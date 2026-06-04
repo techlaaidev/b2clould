@@ -310,7 +310,7 @@ def print_issue(session:requests.Session, print_type:str, entry_feed:dict):
     headers = {'Origin': 'https://newb2web.kuronekoyamato.co.jp'}
 
     # tracking_numberの有無で新規か、再印刷か判断する。
-    if entry_feed['feed']['entry'][0]['shipment']['tracking_number'].startswith('OMN'):
+    if entry_feed['feed']['entry'][0]['shipment']['tracking_number'].startswith(('OMN', 'UMN')):
         # 新規印刷
         response = session.post(f'https://newb2web.kuronekoyamato.co.jp/b2/p/new?issue&print_type={print_type}&sort1=service_type&sort2=created&sort3=created', headers=headers, json=json_data)
     else:
