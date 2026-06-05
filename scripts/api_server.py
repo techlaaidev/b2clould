@@ -1,10 +1,13 @@
 import base64
+import logging
 import os
 import threading
+import traceback
 from datetime import datetime
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import b2cloud
@@ -12,9 +15,28 @@ from scripts.orders_csv import OUTPUT_COLUMNS, create_shipment, validate_local
 
 
 app = FastAPI(title="B2 Cloud API", version="1.0.0")
+logger = logging.getLogger("b2cloud.api")
 
 _SESSION = None
 _SESSION_LOCK = threading.RLock()
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        "Unhandled error for %s %s: %s\n%s",
+        request.method,
+        request.url.path,
+        exc,
+        traceback.format_exc(),
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc) or exc.__class__.__name__,
+            "error_type": exc.__class__.__name__,
+        },
+    )
 
 
 class RowsRequest(BaseModel):
@@ -68,7 +90,10 @@ def with_b2_session(operation):
         session = get_b2_session()
         try:
             return operation(session)
-        except Exception:
+        except HTTPException:
+            raise
+        except Exception as first_error:
+            logger.warning("B2 operation failed; retrying after login: %s", first_error)
             session = get_b2_session(force_login=True)
             return operation(session)
 

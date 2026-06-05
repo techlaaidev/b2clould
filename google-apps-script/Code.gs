@@ -85,11 +85,13 @@ function callB2Api_(path, payload) {
   try {
     data = JSON.parse(text);
   } catch (error) {
-    throw new Error(`API tra ve du lieu khong hop le: ${text}`);
+    throw new Error(`API HTTP ${response.getResponseCode()}: ${text}`);
   }
 
   if (response.getResponseCode() >= 400) {
-    throw new Error(data.detail || data.error || text);
+    throw new Error(
+      `API HTTP ${response.getResponseCode()}: ${data.detail || data.error || text}`
+    );
   }
   return data;
 }
