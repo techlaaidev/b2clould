@@ -135,6 +135,23 @@ def extract_tracking(feed: dict[str, Any]) -> str:
     return ""
 
 
+def matching_order_entries(feed: dict[str, Any], order_id: str) -> list[dict[str, Any]]:
+    matches = []
+    for entry in feed_entries(feed):
+        shipment = entry.get("shipment", {})
+        if str(shipment.get("shipment_number", "")).strip() == order_id:
+            matches.append(entry)
+    return matches
+
+
+def extract_tracking_for_order(feed: dict[str, Any], order_id: str) -> str:
+    for entry in matching_order_entries(feed, order_id):
+        tracking = entry.get("shipment", {}).get("tracking_number", "")
+        if tracking:
+            return tracking
+    return ""
+
+
 def history_params(
     service_type: str = "",
     consignee_name: str = "",
@@ -164,7 +181,7 @@ def find_issued_tracking(session, row: dict[str, str]) -> str:
     order_id = row.get("order_id", "")
     if order_id:
         feed = b2cloud.search_history(session, shipment_number=order_id)
-        tracking = extract_tracking(feed)
+        tracking = extract_tracking_for_order(feed, order_id)
         if tracking:
             return tracking
 
@@ -185,13 +202,13 @@ def find_existing_shipment(session, row: dict[str, str]) -> tuple[str | None, st
         return None, ""
 
     history = b2cloud.search_history(session, shipment_number=order_id)
-    history_entries = feed_entries(history)
+    history_entries = matching_order_entries(history, order_id)
     if history_entries:
         tracking = history_entries[0].get("shipment", {}).get("tracking_number", "")
         return "CREATED", tracking
 
     saved = b2cloud.get_new(session, params={"shipment_number": order_id})
-    saved_entries = feed_entries(saved)
+    saved_entries = matching_order_entries(saved, order_id)
     if saved_entries:
         tracking = saved_entries[0].get("shipment", {}).get("tracking_number", "")
         return "SAVED", tracking
