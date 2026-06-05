@@ -190,6 +190,20 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
             output.append(set_order_error(row, "; ".join(errors)))
             continue
 
+        try:
+            existing_status, existing_tracking = find_existing_shipment(session, row)
+        except Exception as exc:
+            output.append(set_order_error(row, f"Failed to check existing shipment: {exc}", "ERROR"))
+            continue
+
+        if existing_status:
+            row["status"] = existing_status
+            row["tracking_number"] = existing_tracking
+            row["error_message"] = "Order already exists in B2 Cloud."
+            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            output.append(row)
+            continue
+
         shipment = create_shipment(row)
         result = b2cloud.check_shipment(session, shipment)
         if result["success"]:

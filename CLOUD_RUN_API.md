@@ -133,6 +133,18 @@ For production, move `B2_CUSTOMER_PASSWORD` and `B2_API_KEY` to Secret Manager i
 
 ## Google Apps Script Example
 
+A complete Google Sheets workflow is available in:
+
+```text
+google-apps-script/Code.gs
+```
+
+Copy that file into `Extensions -> Apps Script`. It provides menu actions to:
+
+- Validate rows and synchronize existing B2 shipment status/tracking number.
+- Create shipments for valid rows.
+- Save returned PDF labels to Google Drive and write `pdf_url` to the sheet.
+
 Store the API key once:
 
 ```javascript
