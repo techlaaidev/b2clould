@@ -241,8 +241,11 @@ function buildJapanPostCsv_(sheet) {
   ];
   const lines = [csvHeader.map(csvCell_).join(",")];
   const exportedRows = [];
+  const selected = getSelectedRowSet_(sheet); // only highlighted rows
 
   for (let r = 1; r < values.length; r++) {
+    const sheetRow = r + 1;
+    if (selected && !selected[sheetRow]) continue;    // skip rows not selected
     const row = values[r];
     const carrier = String(row[idx.carrier] || "").trim().toUpperCase();
     if (carrier !== "JAPANPOST") continue;            // only Japan Post orders
