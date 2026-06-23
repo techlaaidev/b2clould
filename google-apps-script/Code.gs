@@ -36,6 +36,7 @@ function validateAndSyncOrders() {
   runWithAlert_("Đang kiểm tra và đồng bộ đơn hàng...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
+    if (!read.rows.length) return "Chưa chọn dòng nào. Hãy bôi đen các dòng cần xử lý rồi chạy lại.";
     const result = callB2Api_("/api/orders/validate", { rows: read.rows });
 
     writeRowsByPosition_(sheet, result.rows, read.sheetRows);
