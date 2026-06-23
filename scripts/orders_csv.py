@@ -79,6 +79,12 @@ OUTPUT_COLUMNS = [
     "payment_method",
     "cod_amount",
     "bank_transfer_confirmed",
+    # Business form inputs. Derived into the Yamato fields above by
+    # order_payment.derive_payment_fields().
+    "product_number",
+    "type_of_transaction",
+    "payment_status",
+    "deposit_amount",
 ]
 
 COMMON_REQUIRED = [
