@@ -271,6 +271,8 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
         else:
             row = set_order_error(row, "; ".join(str(error) for error in result["errors"]))
         output.append(row)
+    for row in output:
+        row.update(map_output_row(row))
     return output
 
 
