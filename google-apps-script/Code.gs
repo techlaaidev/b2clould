@@ -125,29 +125,21 @@ function readRows_(sheet) {
 }
 
 
-function writeRowsByOrderId_(sheet, rows) {
+function writeRowsByPosition_(sheet, rows, sheetRows) {
   if (!rows || !rows.length) return;
 
-  const values = sheet.getDataRange().getDisplayValues();
-  const headers = values[0].map(value => String(value).trim());
+  const headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1))
+    .getDisplayValues()[0]
+    .map(value => String(value).trim());
   const headerMap = {};
   headers.forEach((header, index) => {
     if (header) headerMap[header] = index + 1;
   });
 
-  const orderIdColumn = headerMap.order_id;
-  if (!orderIdColumn) throw new Error("Sheet thieu cot order_id.");
-
-  const rowByOrderId = {};
-  for (let index = 1; index < values.length; index++) {
-    const orderId = String(values[index][orderIdColumn - 1] || "").trim();
-    if (orderId) rowByOrderId[orderId] = index + 1;
-  }
-
-  rows.forEach(row => {
-    const sheetRow = rowByOrderId[String(row.order_id || "").trim()];
+  // Results come back in the same order they were sent, so write by position.
+  rows.forEach((row, i) => {
+    const sheetRow = sheetRows[i];
     if (!sheetRow) return;
-
     Object.keys(row).forEach(key => {
       if (key === "pdf_base64" || !headerMap[key]) return;
       sheet.getRange(sheetRow, headerMap[key]).setValue(row[key] ?? "");
