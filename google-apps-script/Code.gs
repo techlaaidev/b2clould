@@ -45,9 +45,9 @@ function validateAndSyncOrders() {
 function createReadyShipments() {
   runWithAlert_("Dang tao van don...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
-    const rows = readRows_(sheet);
+    const read = readRows_(sheet);
     const result = callB2Api_("/api/orders/create", {
-      rows: rows,
+      rows: read.rows,
       issue_pdf: true,
       include_pdf_base64: true
     });
@@ -59,7 +59,7 @@ function createReadyShipments() {
     });
 
     ensureHeader_(sheet, "pdf_url");
-    writeRowsByOrderId_(sheet, result.rows);
+    writeRowsByPosition_(sheet, result.rows, read.sheetRows);
     return summarizeRows_(result.rows);
   });
 }
