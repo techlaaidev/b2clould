@@ -136,6 +136,7 @@ def test_validate_local_surfaces_unpaid_banktransfer():
             product_number="TF - item - 38800",
             type_of_transaction="BankTransfer",
             payment_status="",
+            bank_account="ACC-123",
         )
     )
     errors = validate_local(row)
