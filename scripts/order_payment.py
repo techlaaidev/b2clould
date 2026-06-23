@@ -156,3 +156,35 @@ def prepare_form_order(row):
     if (row.get("print_type") or "").strip() in ("", "3", FORM_SERVICE_TYPE):
         row["print_type"] = FORM_PRINT_TYPE
     return derive_payment_fields(row)
+
+
+def apply_account_defaults(session, row):
+    """Fill shipper + invoice for a non-DM form order from the B2 account.
+
+    - shipper_* come from the account's registered Sender Master (依頼主マスタ),
+      fetched once and cached, so the user never types sender info.
+    - invoice_code defaults to B2_INVOICE_CODE or the login customer code; the
+      billing "-01" suffix is invoice_freight_no (運賃管理番号), default "01".
+    No-op for rows without type_of_transaction (legacy / DM rows).
+    """
+    if not (row.get("type_of_transaction") or "").strip():
+        return
+
+    if "shipper" not in _SHIPPER_CACHE:
+        try:
+            import b2cloud.utilities
+            _SHIPPER_CACHE["shipper"] = b2cloud.utilities.get_shipper(session)
+        except Exception:
+            _SHIPPER_CACHE["shipper"] = {}
+    shipper = _SHIPPER_CACHE["shipper"]
+    for field in SHIPPER_FIELDS:
+        if shipper.get(field) and not (row.get(field) or "").strip():
+            row[field] = shipper[field]
+
+    if not (row.get("invoice_code") or "").strip():
+        row["invoice_code"] = (
+            os.environ.get("B2_INVOICE_CODE", "").strip()
+            or os.environ.get("B2_CUSTOMER_CODE", "").strip()
+        )
+    if not (row.get("invoice_freight_no") or "").strip():
+        row["invoice_freight_no"] = os.environ.get("B2_INVOICE_FREIGHT_NO", "01").strip()
