@@ -3,7 +3,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts.order_payment import compute_cod_amount, parse_product_number
+from scripts.order_payment import (
+    compute_cod_amount,
+    derive_payment_fields,
+    parse_product_number,
+)
+from scripts.orders_csv import normalize_row, validate_local
 
 
 def test_parse_strips_label_and_reads_trailing_price():
