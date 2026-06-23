@@ -169,6 +169,7 @@ def test_banktransfer_paid_gets_prepaid_label():
         "product_number": "TF - Samsung S23 ultra - 92800",
         "type_of_transaction": "BankTransfer",
         "payment_status": "Đã chuyển khoản",
+        "bank_account": "ACC-123",
     }
     error = prepare_form_order(row)
     assert error == ""
