@@ -49,6 +49,7 @@ function createReadyShipments() {
   runWithAlert_("Đang tạo vận đơn...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
+    if (!read.rows.length) return "Chưa chọn dòng nào. Hãy bôi đen các dòng cần xử lý rồi chạy lại.";
     const result = callB2Api_("/api/orders/create", {
       rows: read.rows,
       issue_pdf: true,
