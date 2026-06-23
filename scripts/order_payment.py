@@ -86,3 +86,38 @@ def compute_cod_amount(type_of_transaction, payment_status, deposit, total_price
         return 0, f"Trang thai thanh toan khong hop le cho BankTransfer: {status}"
 
     return 0, f"Type of transaction khong hop le: {type_of_transaction!r}"
+
+
+def derive_payment_fields(row):
+    """Fill item_name1 / payment_method / amount from the business form columns.
+
+    Returns an error message string ("" when valid). No-op (returns "") when
+    type_of_transaction is blank, so rows that already use the clean English
+    columns (payment_method/cod_amount) are left untouched.
+    """
+    ttype = (row.get("type_of_transaction") or "").strip()
+    if not ttype:
+        return ""
+
+    item_name, total_price = parse_product_number(row.get("product_number"))
+    if item_name and not (row.get("item_name1") or "").strip():
+        row["item_name1"] = item_name
+
+    amount, error = compute_cod_amount(
+        ttype,
+        row.get("payment_status"),
+        row.get("deposit_amount"),
+        total_price,
+    )
+    if error:
+        return error
+
+    if ttype == DAIBIKI:
+        row["payment_method"] = "COD"
+        row["amount"] = str(amount)
+        row["cod_amount"] = str(amount)
+    else:  # BANK_TRANSFER, already confirmed paid (else compute returned an error)
+        row["payment_method"] = "BANK_TRANSFER"
+        row["amount"] = "0"
+        row["bank_transfer_confirmed"] = "yes"
+    return ""
