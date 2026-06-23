@@ -41,6 +41,28 @@ def get_postal(session:requests.Session, code:str):
     return json.loads(response.text)
 
 
+def get_shipper(session:requests.Session):
+    """
+    アカウントに登録済みのご依頼主マスタの先頭1件を取得する
+
+    Args:
+        session(requests.Session): ログイン済みのセッション
+
+    Returns:
+        dict: shipper情報（shipper_name, shipper_zip_code, shipper_address1..4等）。
+              未登録の場合は空dict。
+    """
+    url = 'https://newb2web.kuronekoyamato.co.jp/b2/p/shipper'
+    response = session.get(url)
+    feed = json.loads(response.text)
+    entries = feed.get('feed', {}).get('entry', [])
+    if isinstance(entries, dict):
+        entries = [entries]
+    if not entries:
+        return {}
+    return entries[0].get('shipper', {})
+
+
 def create_dm_shipment(
     shipment_date:str,
     consignee_telephone_display:str,
