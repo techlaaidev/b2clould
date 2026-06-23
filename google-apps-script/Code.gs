@@ -4,12 +4,12 @@ const B2_API_BASE_URL = "https://b2cloud-9ma8.onrender.com";
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("B2 Cloud")
-    .addItem("Cau hinh API key", "setupApiKey")
+    .addItem("Cấu hình API key", "setupApiKey")
     .addSeparator()
-    .addItem("Kiem tra va dong bo don", "validateAndSyncOrders")
-    .addItem("Tao van don cho don hop le", "createReadyShipments")
+    .addItem("Kiểm tra và đồng bộ đơn", "validateAndSyncOrders")
+    .addItem("Tạo vận đơn cho đơn hợp lệ", "createReadyShipments")
     .addSeparator()
-    .addItem("Tao CSV Japan Post (YuPack R)", "generateJapanPostCsv")
+    .addItem("Tạo CSV Japan Post (YuPack R)", "generateJapanPostCsv")
     .addToUi();
 }
 
