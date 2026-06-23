@@ -6,6 +6,7 @@ translates results back to the sheet's status/error columns for write-back.
 """
 
 import hashlib
+import re
 
 # Sheet header -> internal field (input direction).
 INPUT_MAP = {
