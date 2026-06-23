@@ -141,6 +141,10 @@ def normalize_row(row: dict) -> dict:
 
 def validate_local(row: dict) -> list[str]:
     errors = []
+    payment_error = derive_payment_fields(row)
+    if payment_error:
+        errors.append(payment_error)
+
     for column in COMMON_REQUIRED:
         if not row.get(column):
             errors.append(f"{column} is required")
