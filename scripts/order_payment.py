@@ -150,11 +150,14 @@ def prepare_form_order(row):
     logged-in account, and check_shipment is the source of truth for anything
     it actually requires.
     """
-    if not (row.get("type_of_transaction") or "").strip():
+    ttype = (row.get("type_of_transaction") or "").strip()
+    if not ttype:
         return ""
     row["service_type"] = FORM_SERVICE_TYPE
     if (row.get("print_type") or "").strip() in ("", "3", FORM_SERVICE_TYPE):
         row["print_type"] = FORM_PRINT_TYPE
+    if ttype == BANK_TRANSFER and not (row.get("bank_account") or "").strip():
+        return "BankTransfer thiếu Back account (#11)"
     return derive_payment_fields(row)
 
 
