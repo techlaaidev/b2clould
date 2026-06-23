@@ -86,13 +86,8 @@ Yamato fields above from them (see `scripts/order_payment.py`). When
 COD collect amount: `Daibiki` collects `total_price - deposit_amount`;
 `BankTransfer` collects `0`.
 
-### Shipper / invoice config
-
-Shipper and invoice values are constant per shop, so they come from environment
-config (see `.env.example`), not one column per order: `B2_INVOICE_CODE`,
-`B2_INVOICE_FREIGHT_NO`, `B2_SHIPPER_NAME`, `B2_SHIPPER_TELEPHONE_DISPLAY`,
-`B2_SHIPPER_ZIP_CODE`, `B2_SHIPPER_ADDRESS1..4`, `B2_SHIPPER_NAME_KANA`.
-Non-DM orders are marked `INVALID` until these are configured.
+Shipper and invoice are not collected by the app: B2 fills the sender from the
+logged-in account, and `check_shipment` validates anything else B2 requires.
 
 ## Status Values
 
