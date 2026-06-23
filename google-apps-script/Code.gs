@@ -253,7 +253,7 @@ function buildJapanPostCsv_(sheet) {
   // All exported orders point to this combined CSV file.
   exportedRows.forEach(sheetRow => sheet.getRange(sheetRow, idx.link + 1).setValue(url));
 
-  return `Da tao CSV Japan Post: ${exportedRows.length} don.\nFile: ${fileName}`;
+  return `Đã tạo CSV Japan Post: ${exportedRows.length} đơn.\nFile: ${fileName}`;
 }
 
 
