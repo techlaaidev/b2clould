@@ -9,7 +9,27 @@ Money decisions are driven ONLY by Type of transaction, never by the text
 prefix inside Product Number (the prefix is a human label and is ignored).
 """
 
+import os
 import re
+
+# Form orders are always 宅急便 (non-DM): BankTransfer ships 発払い, Daibiki COD.
+FORM_SERVICE_TYPE = "0"
+FORM_PRINT_TYPE = "m5"
+
+# Shipper / invoice values are constant per shop -> read once from the
+# environment instead of one column per order.
+SHIPPER_ENV = {
+    "invoice_code": "B2_INVOICE_CODE",
+    "invoice_freight_no": "B2_INVOICE_FREIGHT_NO",
+    "shipper_name": "B2_SHIPPER_NAME",
+    "shipper_telephone_display": "B2_SHIPPER_TELEPHONE_DISPLAY",
+    "shipper_zip_code": "B2_SHIPPER_ZIP_CODE",
+    "shipper_address1": "B2_SHIPPER_ADDRESS1",
+    "shipper_address2": "B2_SHIPPER_ADDRESS2",
+    "shipper_address3": "B2_SHIPPER_ADDRESS3",
+    "shipper_address4": "B2_SHIPPER_ADDRESS4",
+    "shipper_name_kana": "B2_SHIPPER_NAME_KANA",
+}
 
 # Exact cell values used in the sheet.
 DAIBIKI = "Daibiki"
