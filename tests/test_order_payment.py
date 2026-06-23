@@ -73,3 +73,66 @@ def test_unknown_transaction_type_is_invalid():
     amount, error = compute_cod_amount("", "", "", 61300)
     assert amount == 0
     assert "khong hop le" in error
+
+
+def test_derive_fills_yamato_fields_for_daibiki():
+    row = {
+        "product_number": "COD_iPad 11 128GB WIFI BNIB blue - 61300",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "",
+        "deposit_amount": "",
+    }
+    error = derive_payment_fields(row)
+    assert error == ""
+    assert row["item_name1"] == "iPad 11 128GB WIFI BNIB blue"
+    assert row["payment_method"] == "COD"
+    assert row["amount"] == "61300"
+    assert row["cod_amount"] == "61300"
+
+
+def test_derive_is_noop_without_type_of_transaction():
+    row = {"item_name1": "kept", "product_number": "ignored - 999"}
+    assert derive_payment_fields(row) == ""
+    assert "payment_method" not in row
+
+
+def test_validate_local_surfaces_unpaid_banktransfer():
+    base = {
+        "order_id": "ORD-1",
+        "service_type": "3",
+        "shipment_date": "2026/06/23",
+        "consignee_name": "Test",
+        "consignee_telephone_display": "00-0000-0000",
+        "consignee_zip_code": "1000001",
+        "consignee_address1": "東京都",
+        "consignee_address2": "千代田区",
+        "consignee_address3": "千代田1-1",
+        "product_number": "TF - item - 38800",
+        "type_of_transaction": "BankTransfer",
+        "payment_status": "",
+    }
+    row = normalize_row(base)
+    errors = validate_local(row)
+    assert any("chua chuyen khoan" in error for error in errors)
+
+
+def test_validate_local_passes_paid_banktransfer():
+    base = {
+        "order_id": "ORD-2",
+        "service_type": "3",
+        "shipment_date": "2026/06/23",
+        "consignee_name": "Test",
+        "consignee_telephone_display": "00-0000-0000",
+        "consignee_zip_code": "1000001",
+        "consignee_address1": "東京都",
+        "consignee_address2": "千代田区",
+        "consignee_address3": "千代田1-1",
+        "product_number": "TF - item - 38800",
+        "type_of_transaction": "BankTransfer",
+        "payment_status": "Đã chuyển khoản",
+    }
+    row = normalize_row(base)
+    errors = validate_local(row)
+    assert errors == []
+    assert row["payment_method"] == "BANK_TRANSFER"
+    assert row["amount"] == "0"
