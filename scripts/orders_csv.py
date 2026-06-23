@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import b2cloud
 import b2cloud.utilities
+from scripts.order_payment import derive_payment_fields
 
 
 REQUIRED_COLUMNS = [
