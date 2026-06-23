@@ -114,6 +114,8 @@ def feed_entries(feed: dict[str, Any]) -> list[dict[str, Any]]:
 
 def normalize_order_row(row: dict[str, Any]) -> dict[str, str]:
     normalized = {column: str(row.get(column, "") or "").strip() for column in OUTPUT_COLUMNS}
+    if not normalized["order_id"]:
+        normalized["order_id"] = generate_order_id(normalized)
     if not normalized["status"]:
         normalized["status"] = "NEW"
     if not normalized["service_type"]:
