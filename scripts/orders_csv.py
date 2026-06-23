@@ -50,6 +50,7 @@ OUTPUT_COLUMNS = [
     "consignee_telephone_display",
     "consignee_telephone_ext",
     "consignee_zip_code",
+    "consignee_address",
     "consignee_address1",
     "consignee_address2",
     "consignee_address3",
