@@ -33,11 +33,10 @@ function setupApiKey() {
 function validateAndSyncOrders() {
   runWithAlert_("Dang kiem tra va dong bo don hang...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
-    const rows = readRows_(sheet);
-    const result = callB2Api_("/api/orders/validate", { rows: rows });
+    const read = readRows_(sheet);
+    const result = callB2Api_("/api/orders/validate", { rows: read.rows });
 
-    // Backend returns tracking_number when order_id already exists in B2 Cloud.
-    writeRowsByOrderId_(sheet, result.rows);
+    writeRowsByPosition_(sheet, result.rows, read.sheetRows);
     return summarizeRows_(result.rows);
   });
 }
