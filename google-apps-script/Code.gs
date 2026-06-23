@@ -69,7 +69,7 @@ function createReadyShipments() {
 
 function callB2Api_(path, payload) {
   const apiKey = PropertiesService.getScriptProperties().getProperty("B2_API_KEY");
-  if (!apiKey) throw new Error("Chua cau hinh B2_API_KEY.");
+  if (!apiKey) throw new Error("Chưa cấu hình B2_API_KEY.");
 
   const response = UrlFetchApp.fetch(B2_API_BASE_URL + path, {
     method: "post",
