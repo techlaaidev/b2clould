@@ -1,0 +1,88 @@
+"""Derive Yamato payment fields from the business order form.
+
+Maps three raw form columns to the values B2 needs:
+- Product Number (#9)       -> item_name1 + total price
+- Type of transaction (#10) -> payment kind (Daibiki = COD / BankTransfer = prepaid)
+- Thanh toan status (#14) + So tien dat coc (#18) -> COD collect amount (代引金額)
+
+Money decisions are driven ONLY by Type of transaction, never by the text
+prefix inside Product Number (the prefix is a human label and is ignored).
+"""
+
+import re
+
+# Exact cell values used in the sheet.
+DAIBIKI = "Daibiki"
+BANK_TRANSFER = "BankTransfer"
+DEPOSIT_MARKER = "DP"            # Thanh toan = DP  -> Daibiki with a deposit
+PAID_MARKER = "Đã chuyển khoản"  # Thanh toan = paid -> BankTransfer completed
+
+# Trailing price: last number after the final '-' with an optional 'y'/¥ suffix.
+_TRAILING_PRICE = re.compile(r"-\s*([\d.,]+)\s*[y¥]?\s*$", re.IGNORECASE)
+# Leading human payment label to strip from the item name (COD_, CK -, TF-, ...).
+_LEADING_LABEL = re.compile(r"^(cod|ck|tf|dp|db)[\s_:.\-]+", re.IGNORECASE)
+
+
+def _to_int(value):
+    digits = re.sub(r"[.,\s]", "", str(value or ""))
+    return int(digits) if digits.isdigit() else None
+
+
+def parse_product_number(text):
+    """Split a Product Number cell into (item_name, total_price).
+
+    total_price is the trailing number after the final '-' (an optional 'y'/¥
+    suffix is ignored) as int, or None when no trailing price is found.
+    item_name is the remaining text with the leading payment label and the
+    trailing price removed.
+    """
+    raw = (text or "").strip()
+    price = None
+    name_part = raw
+    match = _TRAILING_PRICE.search(raw)
+    if match:
+        price = _to_int(match.group(1))
+        name_part = raw[: match.start()].strip()
+    name = _LEADING_LABEL.sub("", name_part).strip(" -_")
+    return name, price
+
+
+def compute_cod_amount(type_of_transaction, payment_status, deposit, total_price):
+    """Return (amount, error).
+
+    amount: integer yen to collect on delivery (代引金額); 0 for prepaid.
+    error: a non-empty message when the row is invalid, else "".
+
+    Rules (keyed only on Type of transaction):
+      Daibiki (COD):
+        status blank -> collect full total_price
+        status DP    -> collect total_price - deposit (deposit is required)
+      BankTransfer (prepaid):
+        status "Đã chuyển khoản" -> collect 0 (already paid)
+        status blank             -> invalid (not paid yet, do not ship)
+    """
+    ttype = (type_of_transaction or "").strip()
+    status = (payment_status or "").strip()
+
+    if ttype == DAIBIKI:
+        if total_price is None:
+            return 0, "Khong doc duoc gia tong tu Product Number"
+        if status == "":
+            return total_price, ""
+        if status.upper() == DEPOSIT_MARKER:
+            deposit_value = _to_int(deposit)
+            if deposit_value is None:
+                return 0, "Daibiki danh dau DP nhung thieu so tien dat coc (#18)"
+            if deposit_value > total_price:
+                return 0, "So tien dat coc lon hon gia tong"
+            return total_price - deposit_value, ""
+        return 0, f"Trang thai thanh toan khong hop le cho Daibiki: {status}"
+
+    if ttype == BANK_TRANSFER:
+        if status == PAID_MARKER:
+            return 0, ""
+        if status == "":
+            return 0, "BankTransfer chua chuyen khoan"
+        return 0, f"Trang thai thanh toan khong hop le cho BankTransfer: {status}"
+
+    return 0, f"Type of transaction khong hop le: {type_of_transaction!r}"
