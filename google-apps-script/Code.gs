@@ -99,22 +99,30 @@ function callB2Api_(path, payload) {
 
 function readRows_(sheet) {
   const values = sheet.getDataRange().getDisplayValues();
-  if (values.length < 2) return [];
+  if (values.length < 2) return { rows: [], sheetRows: [] };
 
   const headers = values[0].map(value => String(value).trim());
-  const orderIdColumn = headers.indexOf("order_id");
-  if (orderIdColumn < 0) throw new Error("Sheet thieu cot order_id.");
+  // A row is an order if it has a customer Name or a Product Number.
+  const nameCol = headers.indexOf("Name");
+  const prodCol = headers.indexOf("Product Number");
 
-  return values
-    .slice(1)
-    .filter(row => String(row[orderIdColumn] || "").trim())
-    .map(row => {
-      const item = {};
-      headers.forEach((header, index) => {
-        if (header) item[header] = String(row[index] || "").trim();
-      });
-      return item;
+  const rows = [];
+  const sheetRows = [];
+  for (let i = 1; i < values.length; i++) {
+    const raw = values[i];
+    const hasData =
+      (nameCol >= 0 && String(raw[nameCol] || "").trim()) ||
+      (prodCol >= 0 && String(raw[prodCol] || "").trim());
+    if (!hasData) continue;
+
+    const item = {};
+    headers.forEach((header, index) => {
+      if (header) item[header] = String(raw[index] || "").trim();
     });
+    rows.push(item);
+    sheetRows.push(i + 1); // 1-based sheet row number
+  }
+  return { rows, sheetRows };
 }
 
 
