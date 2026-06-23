@@ -107,9 +107,15 @@ function readRows_(sheet) {
   const nameCol = headers.indexOf("Name");
   const prodCol = headers.indexOf("Product Number");
 
+  // Only process the rows the user has highlighted (selection).
+  const selected = getSelectedRowSet_(sheet);
+
   const rows = [];
   const sheetRows = [];
   for (let i = 1; i < values.length; i++) {
+    const sheetRow = i + 1; // 1-based sheet row number
+    if (selected && !selected[sheetRow]) continue; // skip rows not selected
+
     const raw = values[i];
     const hasData =
       (nameCol >= 0 && String(raw[nameCol] || "").trim()) ||
@@ -121,9 +127,25 @@ function readRows_(sheet) {
       if (header) item[header] = String(raw[index] || "").trim();
     });
     rows.push(item);
-    sheetRows.push(i + 1); // 1-based sheet row number
+    sheetRows.push(sheetRow);
   }
   return { rows, sheetRows };
+}
+
+
+// Returns a set {sheetRow: true} of all rows covered by the current selection,
+// supporting multiple non-contiguous ranges (Ctrl+click). null if no selection.
+function getSelectedRowSet_(sheet) {
+  const rangeList = sheet.getActiveRangeList();
+  if (!rangeList) return null;
+
+  const set = {};
+  rangeList.getRanges().forEach(range => {
+    const start = range.getRow();
+    const end = start + range.getNumRows() - 1;
+    for (let r = start; r <= end; r++) set[r] = true;
+  });
+  return set;
 }
 
 
