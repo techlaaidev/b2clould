@@ -242,6 +242,7 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
             output.append(row)
             continue
 
+        apply_account_defaults(session, row)
         errors = validate_local(row)
         if errors:
             output.append(set_order_error(row, "; ".join(errors)))
