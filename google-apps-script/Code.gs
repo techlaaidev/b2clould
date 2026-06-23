@@ -33,7 +33,7 @@ function setupApiKey() {
 
 
 function validateAndSyncOrders() {
-  runWithAlert_("Dang kiem tra va dong bo don hang...", () => {
+  runWithAlert_("Đang kiểm tra và đồng bộ đơn hàng...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
     const result = callB2Api_("/api/orders/validate", { rows: read.rows });
