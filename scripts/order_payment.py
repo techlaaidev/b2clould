@@ -207,6 +207,17 @@ def apply_account_defaults(session, row):
     if not (row.get("type_of_transaction") or "").strip():
         return
 
+    # Split a combined consignee address when the split fields are empty.
+    if not (row.get("consignee_address1") or "").strip() and (row.get("consignee_address") or "").strip():
+        a1, a2, a3, a4 = split_consignee_address(
+            session, row.get("consignee_zip_code"), row.get("consignee_address")
+        )
+        row["consignee_address1"] = a1
+        row["consignee_address2"] = a2
+        row["consignee_address3"] = a3
+        if a4 and not (row.get("consignee_address4") or "").strip():
+            row["consignee_address4"] = a4
+
     if "shipper" not in _SHIPPER_CACHE:
         try:
             import b2cloud.utilities
