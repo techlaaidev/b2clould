@@ -228,7 +228,13 @@ def find_existing_shipment(session, row: dict[str, str]) -> tuple[str | None, st
 def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, str]]:
     output = []
     for item in rows:
-        row = normalize_order_row(item)
+        row = normalize_order_row(map_input_row(item))
+        if (row.get("carrier") or "").upper() not in CARRIER_YAMATO:
+            row["status"] = "SKIPPED"
+            row["error_message"] = "Đơn JAPANPOST - không xử lý trên Yamato"
+            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            output.append(row)
+            continue
         if row.get("tracking_number"):
             row["status"] = "CREATED"
             row["error_message"] = ""
