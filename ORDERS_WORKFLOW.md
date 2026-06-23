@@ -42,16 +42,7 @@ Yamato columns:
 - `is_using_center_service`: `0` or `1`.
 - `consignee_center_code`: required when center service is `1`.
 - `consignee_center_name`: required when center service is `1`.
-- `shipper_name`: required for non-DM services in this template.
-- `shipper_title`: shipper title.
-- `shipper_telephone_display`: required for non-DM services in this template.
-- `shipper_zip_code`: required for non-DM services in this template.
-- `shipper_address1`: required for non-DM services in this template.
-- `shipper_address2`: required for non-DM services in this template.
-- `shipper_address3`: required for non-DM services in this template.
-- `shipper_address4`: shipper building.
-- `shipper_name_kana`: shipper kana.
-- `item_name1`: item name, required for non-DM services.
+- `item_name1`: item name, required for non-DM services (derived from `product_number`).
 - `item_name2`: item name line 2.
 - `handling_information1`: handling note 1.
 - `handling_information2`: handling note 2.
