@@ -75,6 +75,11 @@ OUTPUT_COLUMNS = [
     "type_of_transaction",
     "payment_status",
     "deposit_amount",
+    "bank_account",
+    "carrier",
+    "order_date",
+    "tracking_csv_url",
+    "error_column",
 ]
 
 COMMON_REQUIRED = [
