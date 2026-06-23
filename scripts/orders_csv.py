@@ -100,15 +100,10 @@ COMMON_REQUIRED = [
     "consignee_address3",
 ]
 
+# Only item_name1 is required by B2 for non-DM (品名 必須 DM以外). Shipper and
+# invoice are filled by B2 from the logged-in account; check_shipment is the
+# source of truth for anything else B2 actually needs.
 NON_DM_REQUIRED = [
-    "invoice_code",
-    "invoice_freight_no",
-    "shipper_name",
-    "shipper_telephone_display",
-    "shipper_zip_code",
-    "shipper_address1",
-    "shipper_address2",
-    "shipper_address3",
     "item_name1",
 ]
 
