@@ -289,7 +289,7 @@ function runWithAlert_(message, operation) {
   const ui = SpreadsheetApp.getUi();
   SpreadsheetApp.getActive().toast(message, "B2 Cloud", 10);
   try {
-    ui.alert(operation() || "Hoan tat.");
+    ui.alert(operation() || "Hoàn tất.");
   } catch (error) {
     ui.alert(`Loi: ${error.message || error}`);
     throw error;
