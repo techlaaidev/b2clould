@@ -45,7 +45,7 @@ function validateAndSyncOrders() {
 
 
 function createReadyShipments() {
-  runWithAlert_("Dang tao van don...", () => {
+  runWithAlert_("Đang tạo vận đơn...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
     const result = callB2Api_("/api/orders/create", {
