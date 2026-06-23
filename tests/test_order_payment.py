@@ -156,7 +156,20 @@ def test_validate_local_passes_daibiki_without_shipper_or_invoice():
     errors = validate_local(row)
     assert errors == []
     assert row["service_type"] == "0"
+    assert row["label_type"] == "COD"
     assert row["payment_method"] == "COD"
     assert row["amount"] == "37300"
     assert row["cod_amount"] == "37300"
     assert row["item_name1"] == "iPhone 11 128GB White"
+
+
+def test_banktransfer_paid_gets_prepaid_label():
+    row = {
+        "product_number": "TF - Samsung S23 ultra - 92800",
+        "type_of_transaction": "BankTransfer",
+        "payment_status": "Đã chuyển khoản",
+    }
+    error = prepare_form_order(row)
+    assert error == ""
+    assert row["label_type"] == "Prepaid"
+    assert row["amount"] == "0"
