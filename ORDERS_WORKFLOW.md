@@ -15,16 +15,15 @@ Internal columns:
 
 Yamato columns:
 
-- `service_type`: Yamato service type. `3` is DM.
-- `print_type`: Yamato print type. For example `3` for DM, `m5` for A5 multi.
+- `service_type`: internal Yamato code (`0` = 宅急便, `3` = DM). Form orders are
+  set to `0` automatically — you do not fill this.
+- `print_type`: Yamato print type. `3` for DM, `m5` for A5 multi (form orders use `m5`).
+- `label_type`: human-readable shipping type, derived from `type_of_transaction`:
+  `COD` (Daibiki) or `Prepaid` (BankTransfer).
 - `shipment_date`: format `YYYY/MM/DD`.
 - `delivery_date`: optional delivery date.
 - `delivery_time_zone`: optional delivery time zone.
-- `invoice_code`: required for non-DM services in this template.
-- `invoice_code_ext`: invoice extension.
-- `invoice_freight_no`: required for non-DM services in this template.
-- `invoice_name`: invoice name.
-- `amount`: payment amount.
+- `amount`: COD collect amount (代引金額); `0` for Prepaid.
 - `tax_amount`: tax amount.
 - `package_qty`: package quantity.
 - `consignee_name`: recipient name.
