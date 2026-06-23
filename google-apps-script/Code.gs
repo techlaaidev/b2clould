@@ -291,7 +291,7 @@ function runWithAlert_(message, operation) {
   try {
     ui.alert(operation() || "Hoàn tất.");
   } catch (error) {
-    ui.alert(`Loi: ${error.message || error}`);
+    ui.alert(`Lỗi: ${error.message || error}`);
     throw error;
   }
 }
