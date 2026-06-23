@@ -4,11 +4,40 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.order_payment import (
+    apply_shipper_invoice_defaults,
     compute_cod_amount,
     derive_payment_fields,
     parse_product_number,
+    prepare_form_order,
 )
 from scripts.orders_csv import normalize_row, validate_local
+
+SHOP_ENV = {
+    "B2_INVOICE_CODE": "099285140601",
+    "B2_INVOICE_FREIGHT_NO": "01",
+    "B2_SHIPPER_NAME": "Shop Test",
+    "B2_SHIPPER_TELEPHONE_DISPLAY": "099-0000-0000",
+    "B2_SHIPPER_ZIP_CODE": "8900053",
+    "B2_SHIPPER_ADDRESS1": "鹿児島県",
+    "B2_SHIPPER_ADDRESS2": "鹿児島市",
+    "B2_SHIPPER_ADDRESS3": "中央町10",
+}
+
+
+def _consignee_base(order_id, **extra):
+    base = {
+        "order_id": order_id,
+        "service_type": "3",
+        "shipment_date": "2026/06/23",
+        "consignee_name": "Test",
+        "consignee_telephone_display": "00-0000-0000",
+        "consignee_zip_code": "1000001",
+        "consignee_address1": "東京都",
+        "consignee_address2": "千代田区",
+        "consignee_address3": "千代田1-1",
+    }
+    base.update(extra)
+    return base
 
 
 def test_parse_strips_label_and_reads_trailing_price():
