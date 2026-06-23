@@ -127,28 +127,21 @@ def derive_payment_fields(row):
     return ""
 
 
-def apply_shipper_invoice_defaults(row, env=None):
-    """Fill empty shipper/invoice fields from per-shop environment config."""
-    env = os.environ if env is None else env
-    for field, var in SHIPPER_ENV.items():
-        if not (row.get(field) or "").strip():
-            value = (env.get(var) or "").strip()
-            if value:
-                row[field] = value
-
-
-def prepare_form_order(row, env=None):
+def prepare_form_order(row):
     """Turn a business-form row into a ready Yamato 宅急便 row.
 
-    Sets service_type/print_type for non-DM, fills shipper/invoice from config,
-    then derives the payment fields. Returns an error message ("" when valid).
-    No-op (returns "") when type_of_transaction is blank, so legacy rows that
-    use the clean English columns are untouched.
+    Sets service_type/print_type for non-DM, then derives the payment fields.
+    Returns an error message ("" when valid). No-op (returns "") when
+    type_of_transaction is blank, so legacy rows that use the clean English
+    columns are untouched.
+
+    Shipper / invoice are not enforced here: B2 fills the sender from the
+    logged-in account, and check_shipment is the source of truth for anything
+    it actually requires.
     """
     if not (row.get("type_of_transaction") or "").strip():
         return ""
     row["service_type"] = FORM_SERVICE_TYPE
     if (row.get("print_type") or "").strip() in ("", "3", FORM_SERVICE_TYPE):
         row["print_type"] = FORM_PRINT_TYPE
-    apply_shipper_invoice_defaults(row, env)
     return derive_payment_fields(row)
