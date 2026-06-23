@@ -247,6 +247,7 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
             output.append(row)
             continue
 
+        apply_account_defaults(session, row)
         shipment = create_shipment(row)
         result = b2cloud.check_shipment(session, shipment)
         if result["success"]:
