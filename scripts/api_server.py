@@ -303,6 +303,7 @@ def create_order_shipments(
             output.append(row)
             continue
 
+        apply_account_defaults(session, row)
         errors = validate_local(row)
         if errors:
             output.append(set_order_error(row, "; ".join(errors)))
