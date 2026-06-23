@@ -116,6 +116,8 @@ def read_rows(path: Path) -> list[dict]:
 
 def normalize_row(row: dict) -> dict:
     normalized = {column: (row.get(column) or "").strip() for column in OUTPUT_COLUMNS}
+    if not normalized["order_id"]:
+        normalized["order_id"] = generate_order_id(normalized)
     if not normalized["status"]:
         normalized["status"] = "NEW"
     if not normalized["service_type"]:
