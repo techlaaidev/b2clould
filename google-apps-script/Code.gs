@@ -8,6 +8,8 @@ function onOpen() {
     .addSeparator()
     .addItem("Kiem tra va dong bo don", "validateAndSyncOrders")
     .addItem("Tao van don cho don hop le", "createReadyShipments")
+    .addSeparator()
+    .addItem("Tao CSV Japan Post (YuPack R)", "generateJapanPostCsv")
     .addToUi();
 }
 
