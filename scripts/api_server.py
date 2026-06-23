@@ -322,7 +322,6 @@ def create_order_shipments(
                 output.append(row)
                 continue
 
-            apply_account_defaults(session, row)
             shipment = create_shipment(row)
             checked = b2cloud.post_new_checkonly(session, [shipment])
             checked_errors = feed_entries(checked)[0].get("error", []) if feed_entries(checked) else []
