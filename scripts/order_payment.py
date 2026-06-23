@@ -139,6 +139,27 @@ def derive_payment_fields(row):
     return ""
 
 
+def normalize_delivery_date(value):
+    """Convert a delivery date to B2 format (YYYY/MM/DD).
+
+    Accepts DD/MM/YYYY or YYYY/MM/DD. Returns "" when unparseable or in the past
+    (delivery_date is optional; B2 then uses its "shortest day" default).
+    """
+    text = (value or "").strip()
+    if not text:
+        return ""
+    parsed = None
+    for fmt in ("%d/%m/%Y", "%Y/%m/%d", "%Y-%m-%d", "%d-%m-%Y"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            break
+        except ValueError:
+            continue
+    if parsed is None or parsed.date() < datetime.now().date():
+        return ""
+    return parsed.strftime("%Y/%m/%d")
+
+
 def prepare_form_order(row):
     """Turn a business-form row into a ready Yamato 宅急便 row.
 
