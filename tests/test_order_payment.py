@@ -125,6 +125,7 @@ def test_prepare_form_order_sets_non_dm_service_type():
     assert error == ""
     assert row["service_type"] == "0"
     assert row["print_type"] == "m5"
+    assert row["label_type"] == "COD"
     assert row["amount"] == "61300"
 
 
