@@ -25,10 +25,10 @@ function setupApiKey() {
   if (result.getSelectedButton() !== ui.Button.OK) return;
 
   const apiKey = result.getResponseText().trim();
-  if (!apiKey) throw new Error("API key khong duoc de trong.");
+  if (!apiKey) throw new Error("API key không được để trống.");
 
   PropertiesService.getScriptProperties().setProperty("B2_API_KEY", apiKey);
-  ui.alert("Da luu API key.");
+  ui.alert("Đã lưu API key.");
 }
 
 
