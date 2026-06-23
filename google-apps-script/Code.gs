@@ -183,7 +183,7 @@ const JP_LINK_HEADER = "Link url file csv xử lí mã vận đơn";
 
 
 function generateJapanPostCsv() {
-  runWithAlert_("Dang tao CSV Japan Post...", () => {
+  runWithAlert_("Đang tạo CSV Japan Post...", () => {
     return buildJapanPostCsv_(SpreadsheetApp.getActiveSheet());
   });
 }
