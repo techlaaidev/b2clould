@@ -351,6 +351,8 @@ def create_order_shipments(
         except Exception as exc:
             row = set_order_error(row, str(exc), status="ERROR")
         output.append(row)
+    for row in output:
+        row.update(map_output_row(row))
     return output
 
 
