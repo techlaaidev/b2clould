@@ -18,7 +18,7 @@ function setupApiKey() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.prompt(
     "B2 API Key",
-    "Nhap B2_API_KEY da cau hinh tren Render:",
+    "Nhập B2_API_KEY đã cấu hình trên Render:",
     ui.ButtonSet.OK_CANCEL
   );
 
