@@ -68,6 +68,17 @@ def generate_order_id(row):
     return "AUTO-" + hashlib.sha1(basis.encode("utf-8")).hexdigest()[:12]
 
 
+def _first_error_field(error):
+    """Best-effort extract the offending field name from an error message."""
+    match = re.search(r"([a-z_]+) is required", error)
+    if match:
+        return match.group(1)
+    match = re.search(r"'error_property_name': '([^']+)'", error)
+    if match:
+        return match.group(1)
+    return ""
+
+
 def map_output_row(row):
     """Translate an internal result row into the sheet's status/error columns."""
     status = (row.get("status") or "").upper()
@@ -75,7 +86,7 @@ def map_output_row(row):
     out = {
         "Mã vận đơn": row.get("tracking_number", ""),
         "Trạng thái khởi tạo": STATUS_VI.get(status, ""),
-        "Cột bị lỗi": row.get("error_column", ""),
+        "Cột bị lỗi": row.get("error_column", "") or _first_error_field(error),
         "Tên lỗi": error,
     }
     if status in ("CREATED", "SAVED"):
