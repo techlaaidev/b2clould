@@ -9,11 +9,20 @@ Money decisions are driven ONLY by Type of transaction, never by the text
 prefix inside Product Number (the prefix is a human label and is ignored).
 """
 
+import os
 import re
 
 # Form orders are always 宅急便 (non-DM): BankTransfer ships 発払い, Daibiki COD.
 FORM_SERVICE_TYPE = "0"
 FORM_PRINT_TYPE = "m5"
+
+# Shipper fields copied from the account's registered Sender Master.
+SHIPPER_FIELDS = [
+    "shipper_code", "shipper_name", "shipper_name_kana", "shipper_telephone_display",
+    "shipper_zip_code", "shipper_address1", "shipper_address2", "shipper_address3",
+    "shipper_address4",
+]
+_SHIPPER_CACHE = {}
 
 # Exact cell values used in the sheet.
 DAIBIKI = "Daibiki"
