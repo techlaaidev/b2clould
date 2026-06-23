@@ -158,6 +158,43 @@ def prepare_form_order(row):
     return derive_payment_fields(row)
 
 
+# Leading banchi part: digits / fullwidth digits / hyphens / 番地号丁目の.
+_BANCHI_RE = re.compile(r"^([0-9０-９\-－―ー\s番地号丁目の]+)(.*)$")
+
+
+def split_consignee_address(session, postcode, full_address):
+    """Split a combined Japanese address into (address1, address2, address3, address4).
+
+    Uses B2's postal lookup for prefecture/city/town, then a heuristic to separate
+    the banchi (street number) from the building name so address3 stays within
+    B2's length limit (building goes to address4).
+    """
+    full = (full_address or "").strip()
+    code = re.sub(r"\D", "", postcode or "")
+    a1 = a2 = town = ""
+    try:
+        import b2cloud.utilities
+        feed = b2cloud.utilities.get_postal(session, code)
+        postal = b2cloud.utilities.choice_postal(feed, full)
+        if postal:
+            a1 = postal["address"]["address1"]
+            a2 = postal["address"]["address2"]
+            town = postal["address"]["address3"]
+    except Exception:
+        pass
+    rest = full
+    for piece in (a1, a2):
+        if piece and rest.startswith(piece):
+            rest = rest[len(piece):]
+    if town and rest.startswith(town):
+        rest = rest[len(town):]
+    match = _BANCHI_RE.match(rest)
+    banchi = match.group(1).strip() if match else rest
+    building = match.group(2).strip() if match else ""
+    address3 = (town + banchi).strip() or rest
+    return a1, a2, address3, building
+
+
 def apply_account_defaults(session, row):
     """Fill shipper + invoice for a non-DM form order from the B2 account.
 
