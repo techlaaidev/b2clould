@@ -64,6 +64,36 @@ Internal payment control columns. These are not sent directly to Yamato:
 - `cod_amount`: required when `payment_method` is `COD`.
 - `bank_transfer_confirmed`: use `yes` when a bank transfer is confirmed.
 
+## Business Form Columns
+
+These four columns let the sheet keep its human layout; the system derives the
+Yamato fields above from them (see `scripts/order_payment.py`). When
+`type_of_transaction` is set, the order is treated as 宅急便 (non-DM):
+`service_type` becomes `0` and `print_type` becomes `m5` automatically.
+
+- `product_number`: `<label> - <name> - <total_price>`. The label prefix
+  (COD/CK/TF...) is ignored; `<name>` becomes `item_name1` and `<total_price>`
+  (trailing number, optional `y`/`¥`) is the order total.
+- `type_of_transaction`: `Daibiki` (COD) or `BankTransfer` (prepaid). This — not
+  the product label — drives every money decision.
+- `payment_status`:
+  - `Daibiki`: blank (no deposit) or `DP` (partial deposit, requires
+    `deposit_amount`).
+  - `BankTransfer`: `Đã chuyển khoản` (paid) or blank. Blank is rejected (do not
+    ship before payment).
+- `deposit_amount`: deposit value, required when `payment_status` is `DP`.
+
+COD collect amount: `Daibiki` collects `total_price - deposit_amount`;
+`BankTransfer` collects `0`.
+
+### Shipper / invoice config
+
+Shipper and invoice values are constant per shop, so they come from environment
+config (see `.env.example`), not one column per order: `B2_INVOICE_CODE`,
+`B2_INVOICE_FREIGHT_NO`, `B2_SHIPPER_NAME`, `B2_SHIPPER_TELEPHONE_DISPLAY`,
+`B2_SHIPPER_ZIP_CODE`, `B2_SHIPPER_ADDRESS1..4`, `B2_SHIPPER_NAME_KANA`.
+Non-DM orders are marked `INVALID` until these are configured.
+
 ## Status Values
 
 - `NEW`: newly entered row.
