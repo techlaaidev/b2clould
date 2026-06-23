@@ -176,13 +176,15 @@ def create_shipment(row: dict) -> dict:
 
     shipment = b2cloud.utilities.create_empty_shipment()
     data = shipment["shipment"]
-    # Shipper / invoice are intentionally omitted: B2 fills the sender from the
-    # logged-in account.
+    # Shipper + invoice are filled by order_payment.apply_account_defaults() from
+    # the B2 account (registered Sender Master + login code); required by 宅急便.
     direct_fields = [
         "service_type",
         "shipment_date",
         "delivery_date",
         "delivery_time_zone",
+        "invoice_code",
+        "invoice_freight_no",
         "amount",
         "tax_amount",
         "package_qty",
@@ -202,6 +204,15 @@ def create_shipment(row: dict) -> dict:
         "is_using_center_service",
         "consignee_center_code",
         "consignee_center_name",
+        "shipper_code",
+        "shipper_name",
+        "shipper_name_kana",
+        "shipper_telephone_display",
+        "shipper_zip_code",
+        "shipper_address1",
+        "shipper_address2",
+        "shipper_address3",
+        "shipper_address4",
         "item_name1",
         "item_name2",
         "handling_information1",
@@ -212,6 +223,7 @@ def create_shipment(row: dict) -> dict:
         data[field] = row.get(field, "")
     data["shipment_number"] = row["order_id"]
     data["consignee_telephone"] = row.get("consignee_telephone_display", "").replace("-", "")
+    data["shipper_telephone"] = row.get("shipper_telephone_display", "").replace("-", "")
     return shipment
 
 
