@@ -172,6 +172,106 @@ function savePdfToDrive_(base64Pdf, fileName) {
 }
 
 
+// ===== Japan Post (YuPack R / ゆうプリR) CSV export =====
+// Yamato orders create labels via the B2 API; Japan Post orders can't, so we
+// export them to a ゆうプリR CSV instead and write the file URL back to the
+// "Link url file csv xử lí mã vận đơn" column.
+const JP_SENDER_NAME = "MOBAPPY";
+const JP_SENDER_PHONE = "090-2668-8868";
+const JP_SENDER_ADDRESS = "愛知県名古屋市中区大須3丁目31-22";
+const JP_LINK_HEADER = "Link url file csv xử lí mã vận đơn";
+
+
+function generateJapanPostCsv() {
+  runWithAlert_("Dang tao CSV Japan Post...", () => {
+    return buildJapanPostCsv_(SpreadsheetApp.getActiveSheet());
+  });
+}
+
+
+function buildJapanPostCsv_(sheet) {
+  const values = sheet.getDataRange().getDisplayValues();
+  if (values.length < 2) return "Khong co du lieu.";
+
+  const headers = values[0].map(value => String(value).trim());
+  const col = name => headers.indexOf(name);
+  const idx = {
+    name: col("Name"),
+    ig: col("IG/WA Account"),
+    postcode: col("Postcode"),
+    address: col("Address"),
+    mobile: col("Mobile"),
+    product: col("Product Number"),
+    date: col("Date"),
+    time: col("Time"),
+    carrier: col("Đơn vị giao hàng"),
+    link: col(JP_LINK_HEADER)
+  };
+
+  if (idx.carrier === -1) throw new Error('Thieu cot "Đơn vị giao hàng".');
+  if (idx.link === -1) throw new Error(`Thieu cot "${JP_LINK_HEADER}".`);
+
+  const csvHeader = [
+    "お届け先郵便番号", "お届け先住所1", "お届け先住所2", "お届け先氏名", "お届け先電話番号",
+    "品名", "お届け希望日", "お届け希望時間帯", "ご依頼主氏名", "ご依頼主電話番号", "ご依頼主住所"
+  ];
+  const lines = [csvHeader.map(csvCell_).join(",")];
+  const exportedRows = [];
+
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    const carrier = String(row[idx.carrier] || "").trim().toUpperCase();
+    if (carrier !== "JAPANPOST") continue;            // only Japan Post orders
+    if (String(row[idx.link] || "").trim()) continue; // already exported
+    if (!row[idx.name] || !row[idx.address]) continue; // skip incomplete rows
+
+    let customerName = String(row[idx.name] || "");
+    if (idx.ig !== -1 && row[idx.ig]) customerName += ` (${row[idx.ig]})`;
+
+    lines.push([
+      row[idx.postcode] || "",
+      "", // 住所1 left blank; full address goes to 住所2 (matches old form)
+      row[idx.address] || "",
+      customerName,
+      row[idx.mobile] || "",
+      row[idx.product] || "",
+      idx.date !== -1 ? (row[idx.date] || "") : "",
+      idx.time !== -1 ? (row[idx.time] || "") : "",
+      JP_SENDER_NAME,
+      JP_SENDER_PHONE,
+      JP_SENDER_ADDRESS
+    ].map(csvCell_).join(","));
+    exportedRows.push(r + 1);
+  }
+
+  if (!exportedRows.length) return "Khong co don Japan Post moi de xuat CSV.";
+
+  const ts = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyyMMdd_HHmm");
+  const fileName = `YuPack_${ts}.csv`;
+  const url = saveCsvToDrive_(lines.join("\n"), fileName);
+
+  // All exported orders point to this combined CSV file.
+  exportedRows.forEach(sheetRow => sheet.getRange(sheetRow, idx.link + 1).setValue(url));
+
+  return `Da tao CSV Japan Post: ${exportedRows.length} don.\nFile: ${fileName}`;
+}
+
+
+function csvCell_(value) {
+  return `"${String(value == null ? "" : value).replace(/"/g, '""')}"`;
+}
+
+
+function saveCsvToDrive_(csv, fileName) {
+  const blob = Utilities.newBlob("", "text/csv", fileName).setDataFromString(csv, "UTF-8");
+  const folderId = PropertiesService.getScriptProperties().getProperty("B2_PDF_FOLDER_ID");
+  const file = folderId
+    ? DriveApp.getFolderById(folderId).createFile(blob)
+    : DriveApp.createFile(blob);
+  return file.getUrl();
+}
+
+
 function summarizeRows_(rows) {
   const counts = {};
   rows.forEach(row => {
