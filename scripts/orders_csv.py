@@ -141,7 +141,7 @@ def normalize_row(row: dict) -> dict:
 
 def validate_local(row: dict) -> list[str]:
     errors = []
-    payment_error = derive_payment_fields(row)
+    payment_error = prepare_form_order(row)
     if payment_error:
         errors.append(payment_error)
 
