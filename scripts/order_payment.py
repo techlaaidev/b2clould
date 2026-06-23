@@ -11,6 +11,7 @@ prefix inside Product Number (the prefix is a human label and is ignored).
 
 import os
 import re
+from datetime import datetime
 
 # Form orders are always 宅急便 (non-DM): BankTransfer ships 発払い, Daibiki COD.
 FORM_SERVICE_TYPE = "0"
