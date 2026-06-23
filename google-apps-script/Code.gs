@@ -191,7 +191,7 @@ function generateJapanPostCsv() {
 
 function buildJapanPostCsv_(sheet) {
   const values = sheet.getDataRange().getDisplayValues();
-  if (values.length < 2) return "Khong co du lieu.";
+  if (values.length < 2) return "Không có dữ liệu.";
 
   const headers = values[0].map(value => String(value).trim());
   const col = name => headers.indexOf(name);
