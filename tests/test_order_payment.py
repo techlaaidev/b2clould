@@ -113,14 +113,6 @@ def test_derive_is_noop_without_type_of_transaction():
     assert "payment_method" not in row
 
 
-def test_apply_shipper_invoice_defaults_fills_empty_only():
-    row = {"invoice_code": "keep-me"}
-    apply_shipper_invoice_defaults(row, env=SHOP_ENV)
-    assert row["invoice_code"] == "keep-me"  # not overwritten
-    assert row["shipper_name"] == "Shop Test"
-    assert row["invoice_freight_no"] == "01"
-
-
 def test_prepare_form_order_sets_non_dm_service_type():
     row = {
         "service_type": "3",
@@ -129,11 +121,10 @@ def test_prepare_form_order_sets_non_dm_service_type():
         "type_of_transaction": "Daibiki",
         "payment_status": "",
     }
-    error = prepare_form_order(row, env=SHOP_ENV)
+    error = prepare_form_order(row)
     assert error == ""
     assert row["service_type"] == "0"
     assert row["print_type"] == "m5"
-    assert row["shipper_name"] == "Shop Test"
     assert row["amount"] == "61300"
 
 
@@ -150,36 +141,15 @@ def test_validate_local_surfaces_unpaid_banktransfer():
     assert any("chua chuyen khoan" in error for error in errors)
 
 
-def test_validate_local_blocks_when_shipper_config_missing():
-    # No shipper/invoice config in row and (in CI) no env -> non-DM required fields fail.
+def test_validate_local_passes_daibiki_without_shipper_or_invoice():
+    # App does not require shipper/invoice; B2 fills the sender and check_shipment
+    # is the source of truth for anything else it needs.
     row = normalize_row(
         _consignee_base(
             "ORD-2",
-            product_number="COD - item - 61300",
-            type_of_transaction="Daibiki",
-            payment_status="",
-        )
-    )
-    errors = validate_local(row)
-    assert row["service_type"] == "0"
-    assert any("invoice_code" in error for error in errors)
-
-
-def test_validate_local_passes_daibiki_with_shipper_in_row():
-    row = normalize_row(
-        _consignee_base(
-            "ORD-3",
             product_number="COD - iPhone 11 128GB White - 37300",
             type_of_transaction="Daibiki",
             payment_status="",
-            invoice_code="099285140601",
-            invoice_freight_no="01",
-            shipper_name="Shop Test",
-            shipper_telephone_display="099-0000-0000",
-            shipper_zip_code="8900053",
-            shipper_address1="鹿児島県",
-            shipper_address2="鹿児島市",
-            shipper_address3="中央町10",
         )
     )
     errors = validate_local(row)
