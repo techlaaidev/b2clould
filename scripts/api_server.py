@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 import b2cloud
 from scripts.orders_csv import OUTPUT_COLUMNS, create_shipment, validate_local
+from scripts.order_payment import apply_account_defaults
 
 
 app = FastAPI(title="B2 Cloud API", version="1.0.0")
