@@ -118,10 +118,12 @@ def derive_payment_fields(row):
 
     if ttype == DAIBIKI:
         row["payment_method"] = "COD"
+        row["label_type"] = "COD"
         row["amount"] = str(amount)
         row["cod_amount"] = str(amount)
     else:  # BANK_TRANSFER, already confirmed paid (else compute returned an error)
         row["payment_method"] = "BANK_TRANSFER"
+        row["label_type"] = "Prepaid"
         row["amount"] = "0"
         row["bank_transfer_confirmed"] = "yes"
     return ""
