@@ -244,7 +244,7 @@ function buildJapanPostCsv_(sheet) {
     exportedRows.push(r + 1);
   }
 
-  if (!exportedRows.length) return "Khong co don Japan Post moi de xuat CSV.";
+  if (!exportedRows.length) return "Không có đơn Japan Post mới để xuất CSV.";
 
   const ts = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyyMMdd_HHmm");
   const fileName = `YuPack_${ts}.csv`;
