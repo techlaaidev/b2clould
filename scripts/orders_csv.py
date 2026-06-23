@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import b2cloud
 import b2cloud.utilities
 from scripts.order_payment import prepare_form_order
+from scripts.sheet_mapping import generate_order_id
 
 
 REQUIRED_COLUMNS = [
