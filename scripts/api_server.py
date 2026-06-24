@@ -188,21 +188,27 @@ def load_entries(session, view: str, params: dict[str, str]):
 
 
 def find_issued_tracking(session, row: dict[str, str]) -> str:
-    order_id = row.get("order_id", "")
-    if order_id:
-        feed = b2cloud.search_history(session, shipment_number=order_id)
-        tracking = extract_tracking_for_order(feed, order_id)
-        if tracking:
-            return tracking
+    """Look up the real tracking number B2 assigns when a draft is issued.
 
+    print_issue replaces the UMN/OMN placeholder with the real 送り状番号, but
+    B2's history is not indexed instantly. Retry with a short backoff so we
+    return the real number instead of the placeholder. Searches by order_id
+    (exact) first, then by the full consignee name (B2 matches full names only).
+    """
+    order_id = row.get("order_id", "")
     consignee_name = row.get("consignee_name", "")
-    if consignee_name:
-        feed = b2cloud.search_history(
-            session,
-            service_type=row.get("service_type") or None,
-            consignee_name=consignee_name,
-        )
-        return extract_tracking(feed)
+    for attempt in range(6):
+        if order_id:
+            feed = b2cloud.search_history(session, shipment_number=order_id)
+            tracking = extract_tracking_for_order(feed, order_id)
+            if tracking:
+                return tracking
+        if consignee_name:
+            feed = b2cloud.search_history(session, consignee_name=consignee_name)
+            tracking = extract_tracking(feed)
+            if tracking:
+                return tracking
+        time.sleep(1.5)
     return ""
 
 
