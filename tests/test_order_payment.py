@@ -156,7 +156,7 @@ def test_validate_local_passes_daibiki_without_shipper_or_invoice():
     )
     errors = validate_local(row)
     assert errors == []
-    assert row["service_type"] == "0"
+    assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (COD)
     assert row["label_type"] == "COD"
     assert row["payment_method"] == "COD"
     assert row["amount"] == "37300"
