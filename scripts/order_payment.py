@@ -220,6 +220,7 @@ def prepare_form_order(row):
     if not ttype:
         return ""
     row["delivery_date"] = normalize_delivery_date(row.get("delivery_date"))
+    row["delivery_time_zone"] = normalize_delivery_time(row.get("delivery_time_zone"))
     row["service_type"] = FORM_SERVICE_TYPE
     if (row.get("print_type") or "").strip() in ("", "3", FORM_SERVICE_TYPE):
         row["print_type"] = FORM_PRINT_TYPE
