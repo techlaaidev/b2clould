@@ -13,8 +13,10 @@ import os
 import re
 from datetime import datetime
 
-# Form orders are always 宅急便 (non-DM): BankTransfer ships 発払い, Daibiki COD.
-FORM_SERVICE_TYPE = "0"
+# 送り状種類 (label type) codes. Daibiki collects cash on delivery, so it ships
+# as 宅急便コレクト (COD); BankTransfer is paid up front, so it ships 発払い (prepaid).
+SERVICE_TYPE_PREPAID = "0"   # 発払い
+SERVICE_TYPE_COD = "2"       # 宅急便コレクト (代金引換) — requires COD enabled on the account
 FORM_PRINT_TYPE = "m5"
 
 # Shipper fields copied from the account's registered Sender Master.
