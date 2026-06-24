@@ -123,7 +123,7 @@ def test_prepare_form_order_sets_non_dm_service_type():
     }
     error = prepare_form_order(row)
     assert error == ""
-    assert row["service_type"] == "0"
+    assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (COD)
     assert row["print_type"] == "m5"
     assert row["label_type"] == "COD"
     assert row["amount"] == "61300"
