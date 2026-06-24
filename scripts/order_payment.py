@@ -160,6 +160,50 @@ def normalize_delivery_date(value):
     return parsed.strftime("%Y/%m/%d")
 
 
+# Yamato B2 delivery time-zone codes (配達時間帯). "" = no preference.
+TIME_ZONE_CODES = {"", "0812", "1416", "1618", "1820", "1921"}
+_TIME_SEP = re.compile(r"[~〜\-–—―]")
+
+
+def normalize_delivery_time(value):
+    """Convert a free-text delivery time to a Yamato B2 time-zone code.
+
+    The sheet's Time column holds human text ("09:00~12:00", "18.00–20.00");
+    B2 only accepts its slot codes. Maps the text to the matching slot, passes
+    a valid code through unchanged, and returns "" (no preference) when the
+    text doesn't map to any slot.
+
+    Slots: 0812=午前中, 1416=14-16, 1618=16-18, 1820=18-20, 1921=19-21.
+    """
+    text = (value or "").strip()
+    if text in TIME_ZONE_CODES:
+        return text
+    if "午前" in text:
+        return "0812"
+
+    parts = _TIME_SEP.split(text)
+
+    def first_hour(part):
+        match = re.search(r"\d{1,2}", part or "")
+        return int(match.group()) if match else None
+
+    start = first_hour(parts[0])
+    end = first_hour(parts[1]) if len(parts) > 1 else start
+    if start is None:
+        return ""
+    if start < 12 or (end is not None and end <= 12):
+        return "0812"
+    if start in (14, 15):
+        return "1416"
+    if start in (16, 17):
+        return "1618"
+    if start == 18:
+        return "1820"
+    if start >= 19:
+        return "1921"
+    return ""  # 12-14 slot no longer exists in 宅急便
+
+
 def prepare_form_order(row):
     """Turn a business-form row into a ready Yamato 宅急便 row.
 
