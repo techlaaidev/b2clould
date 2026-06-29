@@ -553,14 +553,27 @@ function kvGetToken_() {
 
 function kvFetchProducts_(token, retailer, pageSize, currentItem) {
   const url = `${KV_API_BASE}/products?pageSize=${pageSize}&currentItem=${currentItem}&includeInventory=false`;
-  const resp = UrlFetchApp.fetch(url, {
+  const options = {
     method: "get",
     headers: { Authorization: "Bearer " + token, Retailer: retailer },
     muteHttpExceptions: true
-  });
-  const text = resp.getContentText();
-  if (resp.getResponseCode() >= 400) throw new Error(`KiotViet products HTTP ${resp.getResponseCode()}: ${text.slice(0, 200)}`);
-  return JSON.parse(text);
+  };
+  // KiotViet drops the connection ("Địa chỉ không khả dụng") when called too fast,
+  // a connection-level error that muteHttpExceptions can't catch → retry with backoff.
+  let lastErr;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const resp = UrlFetchApp.fetch(url, options);
+      const code = resp.getResponseCode();
+      const text = resp.getContentText();
+      if (code >= 400) throw new Error(`HTTP ${code}: ${text.slice(0, 150)}`);
+      return JSON.parse(text);
+    } catch (err) {
+      lastErr = err;
+      Utilities.sleep(800 * attempt); // 0.8s, 1.6s, 2.4s
+    }
+  }
+  throw new Error(`KiotViet products lỗi (currentItem=${currentItem}) sau 4 lần thử: ${lastErr && (lastErr.message || lastErr)}`);
 }
 
 
