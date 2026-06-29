@@ -10,6 +10,9 @@ function onOpen() {
     .addItem("Tạo vận đơn cho đơn hợp lệ", "createReadyShipments")
     .addSeparator()
     .addItem("Tạo CSV Japan Post (YuPack R)", "generateJapanPostCsv")
+    .addSeparator()
+    .addItem("Cấu hình KiotViet API", "setupKiotVietApi")
+    .addItem("Đồng bộ kho KiotViet", "syncKiotVietCatalog")
     .addToUi();
 }
 
