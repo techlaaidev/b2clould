@@ -445,13 +445,6 @@ function onEdit(e) {
 }
 
 
-// Treat as a finalized manual entry (skip suggestions) if it starts with a payment
-// prefix (COD/CK/TF/SC) or ends with a price-like number.
-function kvLooksFinalized_(v) {
-  return /^(cod|ck|tf|sc)\b/i.test(v) || /[-=]\s*[\d.,]{3,}\s*[y円]?$/i.test(v);
-}
-
-
 // KiotViet "iPhone 14 Pro Max - 128GB - Silver - SIM FREE - 新品未使用"
 //        → "iPhone 14 Pro Max 128GB Silver BNIB"  (no inner " - " so price parsing still works)
 function kvCleanName_(s) {
