@@ -384,6 +384,7 @@ function syncKiotVietCatalog() {
       current += pageSize;
       if (!batch.length || current >= total) break;
       if (Date.now() - started > 300000) break; // 5-min safety; report partial
+      Utilities.sleep(150); // pace requests so KiotViet doesn't drop the connection
     }
 
     kvWriteCatalog_(rows);
