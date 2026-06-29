@@ -129,7 +129,8 @@ function readRows_(sheet) {
 
     const item = {};
     headers.forEach((header, index) => {
-      if (header) item[header] = String(raw[index] || "").trim();
+      // Skip helper columns (prefixed with "_", e.g. "_kvCode") so they are not sent to the B2 API.
+      if (header && header.charAt(0) !== "_") item[header] = String(raw[index] || "").trim();
     });
     rows.push(item);
     sheetRows.push(sheetRow);
