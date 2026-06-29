@@ -428,12 +428,7 @@ function onEdit(e) {
       return;
     }
 
-    // Already finalized via a pick, or a manual full entry (has prefix/price) → don't search.
-    if (String(sheet.getRange(row, codeCol).getValue() || "").trim() || kvLooksFinalized_(val)) {
-      e.range.clearDataValidations();
-      return;
-    }
-
+    // Always search and always show the dropdown, regardless of the row's state.
     const matches = kvSearch_(catalog.names, val, KV_MAX_SUGGEST);
     if (!matches.length) {
       e.range.clearDataValidations();
