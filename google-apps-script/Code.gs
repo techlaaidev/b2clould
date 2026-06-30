@@ -344,6 +344,7 @@ const KV_CODE_HEADER = "_kvCode";                     // hidden column storing t
 const KV_IMEI_HEADER = "IMEI";                        // staff-filled IMEI/serial column
 const KV_INVOICE_RESULT_HEADER = "Hóa đơn KiotViet";  // invoice code on success / "LỖI: ..." on failure
 const KV_MAX_SUGGEST = 20;
+const KV_BRANCH_ID = 17397;                           // chi nhánh hiện tại; chỉ bán IMEI thuộc chi nhánh này
 
 
 function setupKiotVietApi() {
