@@ -330,16 +330,18 @@ function runWithAlert_(message, operation) {
 
 
 // ===== KiotViet product suggestions =====
-// Typing a bare keyword (no COD/TF prefix, no trailing price) into "Product Number"
-// pops a filtered dropdown of matching KiotViet products. Picking one fills the cell
-// with a cleaned name (kept in the old format) and stores the SP code in a hidden
-// "_kvCode" column for later invoice creation. The full 15k catalog is cached in a
-// hidden sheet by "Đồng bộ kho KiotViet"; searching is local (no API call per keystroke).
+// Typing a keyword into "Tên sản phẩm Kiot Việt" pops a filtered dropdown of matching
+// KiotViet products. Picking one keeps the KiotViet full name in the cell and stores the
+// SP code in a hidden "_kvCode" column for invoice creation. "Product Number" is left as
+// free text (no dropdown). The full catalog is cached in a hidden sheet by
+// "Đồng bộ kho KiotViet"; searching is local (no API call per keystroke).
 const KV_TOKEN_URL = "https://id.kiotviet.vn/connect/token";
 const KV_API_BASE = "https://public.kiotapi.com";
 const KV_CATALOG_SHEET = "KiotViet_Catalog";
-const KV_PRODUCT_HEADER = "Product Number";
-const KV_CODE_HEADER = "_kvCode";
+const KV_NAME_HEADER = "Tên sản phẩm Kiot Việt";     // column with KiotViet product autocomplete
+const KV_CODE_HEADER = "_kvCode";                     // hidden column storing the picked SP code
+const KV_IMEI_HEADER = "IMEI";                        // staff-filled IMEI/serial column
+const KV_INVOICE_RESULT_HEADER = "Hóa đơn KiotViet";  // invoice code on success / "LỖI: ..." on failure
 const KV_MAX_SUGGEST = 20;
 
 
