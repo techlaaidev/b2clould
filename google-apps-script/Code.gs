@@ -679,7 +679,7 @@ function kvGetProductByCode_(token, retailer, code) {
 }
 
 
-function kvCreateInvoice_(token, retailer, branchId, product, imei) {
+function kvCreateInvoice_(token, retailer, branchId, soldById, product, imei) {
   const detail = {
     productId: product.id,
     productCode: product.code,
@@ -692,6 +692,7 @@ function kvCreateInvoice_(token, retailer, branchId, product, imei) {
 
   const payload = {
     branchId: branchId,
+    soldById: soldById, // KiotViet requires a real seller user id
     isApplyVoucher: false,
     invoiceDetails: [detail]
   };
