@@ -784,7 +784,13 @@ function kvShowImeis() {
       }
       out += "\nproductSerials (raw): " + JSON.stringify(product.productSerials).slice(0, 300);
     } else {
-      out += "\nSố IMEI: " + serials.length + "\n\n" + serials.slice(0, 60).map(s => "• " + s).join("\n");
+      const hist = {};
+      serials.forEach(s => { const k = String(s.status); hist[k] = (hist[k] || 0) + 1; });
+      const histStr = Object.keys(hist).sort().map(k => "status " + k + ": " + hist[k]).join(" | ");
+      out += "\nTổng serial: " + serials.length + " (gồm cả đã bán)\n";
+      out += "Phân bố theo status: " + histStr + "\n";
+      out += "→ status có số lượng = onHand (" + onHand + ") là 'còn hàng'.\n\n";
+      out += serials.slice(0, 60).map(s => "• " + s.serial + " (status " + s.status + ")").join("\n");
       if (serials.length > 60) out += "\n…(còn " + (serials.length - 60) + " IMEI nữa)";
     }
     return out;
