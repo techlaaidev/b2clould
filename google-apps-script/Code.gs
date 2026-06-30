@@ -677,22 +677,45 @@ function kvGetDefaultUserId_(token, retailer) {
 }
 
 
-function kvGetProductByCode_(token, retailer, code) {
-  const url = KV_API_BASE + "/products/code/" + encodeURIComponent(code);
-  const resp = UrlFetchApp.fetch(url, {
-    method: "get",
-    headers: { Authorization: "Bearer " + token, Retailer: retailer },
-    muteHttpExceptions: true
-  });
-  const httpCode = resp.getResponseCode();
-  const text = resp.getContentText();
-  if (httpCode === 404) return null;
-  if (httpCode >= 400) throw new Error(`KiotViet product HTTP ${httpCode}: ${text.slice(0, 150)}`);
-  return JSON.parse(text);
+// Resolves a row to everything the invoice needs and validates the IMEI against KiotViet:
+//   - product (id, code, name, basePrice)
+//   - branchId: for serial products = the branch holding that exact IMEI; otherwise a branch
+//     that actually has stock. KiotViet rejects a serial sent to the wrong branch.
+//   - serialNumbers: the IMEI to attach (empty for non-serial products)
+// Throws a clear Vietnamese error (→ written to the sheet, invoice NOT created) when:
+//   - SP quản lý IMEI nhưng ô IMEI trống
+//   - IMEI không thuộc SP này (sai IMEI / nhập nhầm)
+//   - IMEI đã bán / không còn trong kho
+//   - SP hết hàng ở mọi chi nhánh
+function kvResolveForInvoice_(token, retailer, code, imei) {
+  let product = kvGetProductWithSerials_(token, retailer, code);
+  if (!product || !product.id) throw new Error(`Không tìm thấy SP mã "${code}" trên KiotViet.`);
+
+  let serialsRaw = product.productSerials || [];
+  if (!serialsRaw.length && product.isLotSerialControl) {
+    const byId = kvGetProductByIdWithSerials_(token, retailer, product.id);
+    if (byId) { product = byId; serialsRaw = byId.productSerials || []; }
+  }
+
+  const imeiTrim = String(imei || "").trim();
+
+  if (product.isLotSerialControl) {
+    if (!imeiTrim) throw new Error(`SP quản lý IMEI — cần điền IMEI vào cột "${KV_IMEI_HEADER}".`);
+    const matches = serialsRaw.filter(s => String(s.serialNumber).trim() === imeiTrim);
+    if (!matches.length) throw new Error(`IMEI "${imeiTrim}" không thuộc SP này (sai IMEI hoặc nhập nhầm).`);
+    const inStock = matches.filter(s => Number(s.status) === 1)[0];
+    if (!inStock) throw new Error(`IMEI "${imeiTrim}" đã bán / không còn trong kho.`);
+    return { product: product, branchId: inStock.branchId, serialNumbers: imeiTrim };
+  }
+
+  // Non-serial product → pick a branch that actually has stock; ignore any IMEI typed.
+  const inStockBranch = (product.inventories || []).filter(i => Number(i.onHand) > 0)[0];
+  if (!inStockBranch) throw new Error(`SP "${code}" hết hàng ở mọi chi nhánh.`);
+  return { product: product, branchId: inStockBranch.branchId, serialNumbers: "" };
 }
 
 
-function kvCreateInvoice_(token, retailer, branchId, soldById, product, imei) {
+function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers) {
   const detail = {
     productId: product.id,
     productCode: product.code,
@@ -700,8 +723,7 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, imei) {
     quantity: 1,
     price: product.basePrice != null ? product.basePrice : 0
   };
-  // Sending the IMEI as the serial makes KiotViet validate it against this exact product.
-  if (imei) detail.serialNumbers = imei;
+  if (serialNumbers) detail.serialNumbers = serialNumbers;
 
   const payload = {
     branchId: branchId,
