@@ -808,6 +808,30 @@ function kvGetProductWithSerials_(token, retailer, code) {
 }
 
 
+function kvGetProductByIdWithSerials_(token, retailer, id) {
+  const url = KV_API_BASE + "/products/" + encodeURIComponent(id) +
+    "?includeSerials=true&includeInventory=true";
+  const resp = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const httpCode = resp.getResponseCode();
+  const text = resp.getContentText();
+  if (httpCode === 404) return null;
+  if (httpCode >= 400) throw new Error(`KiotViet product(id) HTTP ${httpCode}: ${text.slice(0, 200)}`);
+  return JSON.parse(text);
+}
+
+
+function kvSumOnHand_(product) {
+  const inv = product.inventories || [];
+  let sum = 0;
+  inv.forEach(i => { sum += Number(i.onHand || 0); });
+  return sum;
+}
+
+
 // KiotViet serial field name varies by account; try the common shapes and show status.
 function kvExtractSerials_(product) {
   const arr = product.serials || product.productSerials || product.serialNumbers || [];
