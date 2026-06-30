@@ -838,16 +838,17 @@ function kvSumOnHand_(product) {
 }
 
 
-// KiotViet serial field name varies by account; try the common shapes and show status.
+// Returns [{serial, status}]. KiotViet keeps every serial ever attached to the product
+// (incl. already-sold ones), so callers must filter by status to get sellable IMEIs.
 function kvExtractSerials_(product) {
-  const arr = product.serials || product.productSerials || product.serialNumbers || [];
+  const arr = product.productSerials || product.serials || product.serialNumbers || [];
   const out = [];
   (arr || []).forEach(s => {
-    if (typeof s === "string") { out.push(s); return; }
+    if (typeof s === "string") { out.push({ serial: s, status: "" }); return; }
     const num = s.serialNumber || s.serial || s.imei || s.code || "";
     if (!num) return;
     const status = (s.status != null) ? s.status : (s.statusValue != null ? s.statusValue : "");
-    out.push(status === "" ? num : (num + " (status " + status + ")"));
+    out.push({ serial: num, status: status });
   });
   return out;
 }
