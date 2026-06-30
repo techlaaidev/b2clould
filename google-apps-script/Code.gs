@@ -885,14 +885,6 @@ function kvGetProductByIdWithSerials_(token, retailer, id) {
 }
 
 
-function kvSumOnHand_(product) {
-  const inv = product.inventories || [];
-  let sum = 0;
-  inv.forEach(i => { sum += Number(i.onHand || 0); });
-  return sum;
-}
-
-
 // Returns [{serial, status, branchId}]. KiotViet keeps every serial ever attached to the
 // product (incl. already-sold ones) across all branches, so callers must filter by status
 // and branchId to get the IMEIs sellable at the current branch.
