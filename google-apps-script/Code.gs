@@ -823,6 +823,8 @@ function kvShowImeis() {
 
     let out = "SP: " + picked + "\nMã: " + code + "\n";
     out += "Quản lý IMEI (isLotSerialControl): " + product.isLotSerialControl + "\n";
+    out += "Giá bán (basePrice): " +
+      (product.basePrice != null ? product.basePrice : "(không có trường basePrice)") + "\n";
     out += "Chi nhánh hiện tại: " + branchId + "\n";
     out += "Tồn kho ở CN " + branchId + " (onHand): " + onHandBranch + "\n";
 
