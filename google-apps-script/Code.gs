@@ -590,6 +590,7 @@ function createKiotVietInvoices() {
     const token = kvGetToken_();
     const retailer = kvProp_("KV_RETAILER");
     const branchId = kvGetDefaultBranchId_(token, retailer);
+    const soldById = kvGetDefaultUserId_(token, retailer);
 
     let ok = 0;
     let fail = 0;
