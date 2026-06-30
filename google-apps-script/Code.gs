@@ -612,10 +612,10 @@ function createKiotVietInvoices() {
 
       try {
         if (!code) throw new Error(`Chưa chọn SP KiotViet (thiếu mã). Chọn lại từ gợi ý ở cột "${KV_NAME_HEADER}".`);
-        const product = kvGetProductByCode_(token, retailer, code);
-        if (!product || !product.id) throw new Error(`Không tìm thấy SP mã "${code}" trên KiotViet.`);
-
-        const invoice = kvCreateInvoice_(token, retailer, branchId, soldById, product, imei);
+        const resolved = kvResolveForInvoice_(token, retailer, code, imei);
+        const invoice = kvCreateInvoice_(
+          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers
+        );
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
         ok++;
