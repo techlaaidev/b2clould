@@ -13,6 +13,7 @@ function onOpen() {
     .addSeparator()
     .addItem("Cấu hình KiotViet API", "setupKiotVietApi")
     .addItem("Đồng bộ kho KiotViet", "syncKiotVietCatalog")
+    .addItem("Tạo hóa đơn KiotViet", "createKiotVietInvoices")
     .addToUi();
 }
 
