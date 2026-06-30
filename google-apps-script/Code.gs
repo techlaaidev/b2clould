@@ -664,6 +664,32 @@ function kvGetDefaultBranchId_(token, retailer) {
 }
 
 
+function kvGetDefaultUserId_(token, retailer) {
+  // Manual override (set KV_SOLD_BY_ID in Script Properties) wins over auto-detect.
+  const override = PropertiesService.getScriptProperties().getProperty("KV_SOLD_BY_ID");
+  if (override) return Number(override);
+
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get("KV_SOLD_BY_ID");
+  if (cached) return Number(cached);
+
+  const resp = UrlFetchApp.fetch(KV_API_BASE + "/users", {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const text = resp.getContentText();
+  if (resp.getResponseCode() >= 400) {
+    throw new Error(`KiotViet users HTTP ${resp.getResponseCode()}: ${text.slice(0, 150)}`);
+  }
+  const list = (JSON.parse(text).data) || [];
+  if (!list.length) throw new Error("Không lấy được người bán (user) KiotViet.");
+  const id = list[0].id;
+  cache.put("KV_SOLD_BY_ID", String(id), 21600); // 6h
+  return id;
+}
+
+
 function kvGetProductByCode_(token, retailer, code) {
   const url = KV_API_BASE + "/products/code/" + encodeURIComponent(code);
   const resp = UrlFetchApp.fetch(url, {
