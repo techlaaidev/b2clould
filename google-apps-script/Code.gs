@@ -726,3 +726,81 @@ function ensureHeaderReturnCol_(sheet, header) {
   sheet.getRange(1, col).setValue(header);
   return col;
 }
+
+
+// ===== Diagnostic: list IMEIs/serials KiotViet returns for a product =====
+// Prompts for a product keyword, finds its SP code in the synced catalog, then asks
+// KiotViet for that product WITH serials and shows the IMEI list. If nothing comes back
+// it dumps the raw field names so we can see the real schema for this account.
+function kvShowImeis() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt("Xem IMEI KiotViet", "Nhập tên/từ khoá sản phẩm:", ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const kw = r.getResponseText().trim();
+  if (!kw) return;
+
+  runWithAlert_("Đang lấy IMEI từ KiotViet...", () => {
+    const catalog = kvLoadCatalog_();
+    if (!catalog) throw new Error('Chưa đồng bộ kho. Chạy "Đồng bộ kho KiotViet" trước.');
+
+    let code;
+    let picked;
+    if (Object.prototype.hasOwnProperty.call(catalog.byName, kw)) {
+      picked = kw;
+      code = catalog.byName[kw];
+    } else {
+      const matches = kvSearch_(catalog.names, kw, 1);
+      if (!matches.length) throw new Error('Không thấy SP khớp "' + kw + '".');
+      picked = matches[0];
+      code = catalog.byName[matches[0]];
+    }
+
+    const token = kvGetToken_();
+    const retailer = kvProp_("KV_RETAILER");
+    const product = kvGetProductWithSerials_(token, retailer, code);
+    if (!product) throw new Error('Không tìm thấy SP mã "' + code + '".');
+
+    const serials = kvExtractSerials_(product);
+    let out = "SP: " + picked + "\nMã: " + code + "\n";
+    if (!serials.length) {
+      out += "\nKhông có IMEI/serial nào KiotViet trả về cho SP này.\n";
+      out += "(SP có thể không quản lý IMEI, hoặc API gói của bạn không trả serial.)\n\n";
+      out += "Các field KiotViet trả về: " + Object.keys(product).join(", ");
+    } else {
+      out += "Số IMEI: " + serials.length + "\n\n" + serials.slice(0, 60).map(s => "• " + s).join("\n");
+      if (serials.length > 60) out += "\n…(còn " + (serials.length - 60) + " IMEI nữa)";
+    }
+    return out;
+  });
+}
+
+
+function kvGetProductWithSerials_(token, retailer, code) {
+  const url = KV_API_BASE + "/products/code/" + encodeURIComponent(code) +
+    "?includeSerials=true&includeInventory=true";
+  const resp = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const httpCode = resp.getResponseCode();
+  const text = resp.getContentText();
+  if (httpCode === 404) return null;
+  if (httpCode >= 400) throw new Error(`KiotViet product HTTP ${httpCode}: ${text.slice(0, 200)}`);
+  return JSON.parse(text);
+}
+
+
+// KiotViet serial field name varies by account; try the common shapes and show status.
+function kvExtractSerials_(product) {
+  const arr = product.serials || product.productSerials || product.serialNumbers || [];
+  const out = [];
+  (arr || []).forEach(s => {
+    if (typeof s === "string") { out.push(s); return; }
+    const num = s.serialNumber || s.serial || s.imei || s.code || "";
+    if (!num) return;
+    const status = (s.status != null) ? s.status : (s.statusValue != null ? s.statusValue : "");
+    out.push(status === "" ? num : (num + " (status " + status + ")"));
+  });
+  return out;
+}
