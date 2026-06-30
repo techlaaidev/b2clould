@@ -638,20 +638,6 @@ function createKiotVietInvoices() {
 }
 
 
-function kvFetchBranches_(token, retailer) {
-  const resp = UrlFetchApp.fetch(KV_API_BASE + "/branches", {
-    method: "get",
-    headers: { Authorization: "Bearer " + token, Retailer: retailer },
-    muteHttpExceptions: true
-  });
-  const text = resp.getContentText();
-  if (resp.getResponseCode() >= 400) {
-    throw new Error(`KiotViet branches HTTP ${resp.getResponseCode()}: ${text.slice(0, 150)}`);
-  }
-  return (JSON.parse(text).data) || [];
-}
-
-
 function kvGetDefaultUserId_(token, retailer) {
   // Manual override (set KV_SOLD_BY_ID in Script Properties) wins over auto-detect.
   const override = PropertiesService.getScriptProperties().getProperty("KV_SOLD_BY_ID");
