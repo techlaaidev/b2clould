@@ -906,17 +906,18 @@ function kvSumOnHand_(product) {
 }
 
 
-// Returns [{serial, status}]. KiotViet keeps every serial ever attached to the product
-// (incl. already-sold ones), so callers must filter by status to get sellable IMEIs.
+// Returns [{serial, status, branchId}]. KiotViet keeps every serial ever attached to the
+// product (incl. already-sold ones) across all branches, so callers must filter by status
+// and branchId to get the IMEIs sellable at the current branch.
 function kvExtractSerials_(product) {
   const arr = product.productSerials || product.serials || product.serialNumbers || [];
   const out = [];
   (arr || []).forEach(s => {
-    if (typeof s === "string") { out.push({ serial: s, status: "" }); return; }
+    if (typeof s === "string") { out.push({ serial: s, status: "", branchId: "" }); return; }
     const num = s.serialNumber || s.serial || s.imei || s.code || "";
     if (!num) return;
     const status = (s.status != null) ? s.status : (s.statusValue != null ? s.statusValue : "");
-    out.push({ serial: num, status: status });
+    out.push({ serial: num, status: status, branchId: s.branchId });
   });
   return out;
 }
