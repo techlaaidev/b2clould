@@ -850,6 +850,24 @@ function kvShowImeis() {
         ? inStock.slice(0, 60).map(s => "• " + s.serial).join("\n")
         : "(không có)";
     }
+
+    // Dò trường giá: liệt kê mọi trường top-level có giá trị SỐ (để tìm trường tiền
+    // ngoài basePrice), + dump riêng priceBooks (bảng giá) nếu KiotViet trả về.
+    out += "\n\n--- Dò trường giá ---\n";
+    const numericFields = Object.keys(product)
+      .filter(k => typeof product[k] === "number")
+      .map(k => k + " = " + product[k]);
+    out += "Các trường dạng số: " + (numericFields.join(" | ") || "(không có)") + "\n";
+
+    const priceBooks = product.priceBooks || product.priceBook || detail.priceBooks;
+    if (priceBooks && priceBooks.length) {
+      out += "priceBooks (bảng giá):\n";
+      out += priceBooks.slice(0, 20).map(p =>
+        "• " + (p.priceBookName || p.priceBookId || "?") + " = " + p.price).join("\n");
+    } else {
+      out += "priceBooks: (không có trong response)\n";
+    }
+    out += "\n\nTất cả tên trường KiotViet trả về:\n" + Object.keys(product).join(", ");
     return out;
   });
 }
