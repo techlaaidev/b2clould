@@ -647,6 +647,15 @@ function kvGetDefaultBranchId_(token, retailer) {
   const cached = cache.get("KV_BRANCH_ID");
   if (cached) return Number(cached);
 
+  const list = kvFetchBranches_(token, retailer);
+  if (!list.length) throw new Error("Không lấy được chi nhánh KiotViet.");
+  const id = list[0].id;
+  cache.put("KV_BRANCH_ID", String(id), 21600); // 6h
+  return id;
+}
+
+
+function kvFetchBranches_(token, retailer) {
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/branches", {
     method: "get",
     headers: { Authorization: "Bearer " + token, Retailer: retailer },
@@ -656,11 +665,7 @@ function kvGetDefaultBranchId_(token, retailer) {
   if (resp.getResponseCode() >= 400) {
     throw new Error(`KiotViet branches HTTP ${resp.getResponseCode()}: ${text.slice(0, 150)}`);
   }
-  const list = (JSON.parse(text).data) || [];
-  if (!list.length) throw new Error("Không lấy được chi nhánh KiotViet.");
-  const id = list[0].id;
-  cache.put("KV_BRANCH_ID", String(id), 21600); // 6h
-  return id;
+  return (JSON.parse(text).data) || [];
 }
 
 
