@@ -447,20 +447,6 @@ function onEdit(e) {
 }
 
 
-// KiotViet "iPhone 14 Pro Max - 128GB - Silver - SIM FREE - 新品未使用"
-//        → "iPhone 14 Pro Max 128GB Silver BNIB"  (no inner " - " so price parsing still works)
-function kvCleanName_(s) {
-  return String(s)
-    .replace(/^\//, "")
-    .replace(/新品未使用品?/g, " BNIB ")
-    .replace(/中古/g, " Cũ ")
-    .replace(/SIM\s*FREE/ig, " ")
-    .replace(/\s*-\s*/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-
 function kvSearch_(names, query, max) {
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!tokens.length) return [];
