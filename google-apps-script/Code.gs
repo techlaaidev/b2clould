@@ -406,7 +406,7 @@ function onEdit(e) {
     if (e.range.getRow() === 1) return;
 
     const headers = headerRow_(sheet);
-    const prodCol = headers.indexOf(KV_PRODUCT_HEADER) + 1;
+    const prodCol = headers.indexOf(KV_NAME_HEADER) + 1;
     if (prodCol === 0 || e.range.getColumn() !== prodCol) return;
 
     const catalog = kvLoadCatalog_();
