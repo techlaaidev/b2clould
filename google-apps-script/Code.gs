@@ -788,17 +788,18 @@ function kvShowImeis() {
     const product = kvGetProductWithSerials_(token, retailer, code);
     if (!product) throw new Error('Không tìm thấy SP mã "' + code + '".');
 
+    // `detail` = the object that actually carries the serial list (by-id sometimes has it
+    // when the by-code response doesn't), so all raw dumps below read from `detail`.
+    let detail = product;
     let serials = kvExtractSerials_(product);
-    // Empty serials but serial-control ON → product detail by code sometimes omits them;
-    // retry via the by-id endpoint which returns the full productSerials list.
     let triedById = false;
     if (!serials.length && product.isLotSerialControl && product.id) {
       triedById = true;
       const byId = kvGetProductByIdWithSerials_(token, retailer, product.id);
-      if (byId) serials = kvExtractSerials_(byId);
+      if (byId) { detail = byId; serials = kvExtractSerials_(byId); }
     }
 
-    const onHand = kvSumOnHand_(product);
+    const onHand = kvSumOnHand_(detail);
     let out = "SP: " + picked + "\nMã: " + code + "\n";
     out += "Quản lý IMEI (isLotSerialControl): " + product.isLotSerialControl + "\n";
     out += "Tồn kho (onHand): " + onHand + "\n";
