@@ -422,12 +422,11 @@ function onEdit(e) {
       return;
     }
 
-    // Picked a suggestion (exact catalog fullName) → clean name + store SP code.
+    // Picked a suggestion (exact catalog fullName) → keep the KiotViet name + store SP code.
     if (Object.prototype.hasOwnProperty.call(catalog.byName, val)) {
-      e.range.setValue(kvCleanName_(val));
       e.range.clearDataValidations();
       sheet.getRange(row, codeCol).setValue(catalog.byName[val]);
-      SpreadsheetApp.getActive().toast("✓ " + catalog.byName[val] + " — thêm COD + giá", "KiotViet", 5);
+      SpreadsheetApp.getActive().toast("✓ Đã chọn SP " + catalog.byName[val], "KiotViet", 5);
       return;
     }
 
