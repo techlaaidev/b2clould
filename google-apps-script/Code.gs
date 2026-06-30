@@ -760,14 +760,31 @@ function kvShowImeis() {
     const product = kvGetProductWithSerials_(token, retailer, code);
     if (!product) throw new Error('Không tìm thấy SP mã "' + code + '".');
 
-    const serials = kvExtractSerials_(product);
+    let serials = kvExtractSerials_(product);
+    // Empty serials but serial-control ON → product detail by code sometimes omits them;
+    // retry via the by-id endpoint which returns the full productSerials list.
+    let triedById = false;
+    if (!serials.length && product.isLotSerialControl && product.id) {
+      triedById = true;
+      const byId = kvGetProductByIdWithSerials_(token, retailer, product.id);
+      if (byId) serials = kvExtractSerials_(byId);
+    }
+
+    const onHand = kvSumOnHand_(product);
     let out = "SP: " + picked + "\nMã: " + code + "\n";
+    out += "Quản lý IMEI (isLotSerialControl): " + product.isLotSerialControl + "\n";
+    out += "Tồn kho (onHand): " + onHand + "\n";
+
     if (!serials.length) {
-      out += "\nKhông có IMEI/serial nào KiotViet trả về cho SP này.\n";
-      out += "(SP có thể không quản lý IMEI, hoặc API gói của bạn không trả serial.)\n\n";
-      out += "Các field KiotViet trả về: " + Object.keys(product).join(", ");
+      out += "\nKhông có IMEI/serial nào KiotViet trả về.\n";
+      if (product.isLotSerialControl === false) {
+        out += "→ SP này KHÔNG bật quản lý IMEI trong KiotViet, nên không có IMEI để đối chiếu.\n";
+      } else {
+        out += "→ SP có bật quản lý IMEI nhưng list rỗng" + (triedById ? " (đã thử cả endpoint theo id)" : "") + ".\n";
+      }
+      out += "\nproductSerials (raw): " + JSON.stringify(product.productSerials).slice(0, 300);
     } else {
-      out += "Số IMEI: " + serials.length + "\n\n" + serials.slice(0, 60).map(s => "• " + s).join("\n");
+      out += "\nSố IMEI: " + serials.length + "\n\n" + serials.slice(0, 60).map(s => "• " + s).join("\n");
       if (serials.length > 60) out += "\n…(còn " + (serials.length - 60) + " IMEI nữa)";
     }
     return out;
