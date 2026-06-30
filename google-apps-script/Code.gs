@@ -637,23 +637,6 @@ function createKiotVietInvoices() {
 }
 
 
-function kvGetDefaultBranchId_(token, retailer) {
-  // Manual override (set KV_BRANCH_ID in Script Properties) wins over auto-detect.
-  const override = PropertiesService.getScriptProperties().getProperty("KV_BRANCH_ID");
-  if (override) return Number(override);
-
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get("KV_BRANCH_ID");
-  if (cached) return Number(cached);
-
-  const list = kvFetchBranches_(token, retailer);
-  if (!list.length) throw new Error("Không lấy được chi nhánh KiotViet.");
-  const id = list[0].id;
-  cache.put("KV_BRANCH_ID", String(id), 21600); // 6h
-  return id;
-}
-
-
 function kvFetchBranches_(token, retailer) {
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/branches", {
     method: "get",
