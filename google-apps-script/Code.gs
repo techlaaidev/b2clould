@@ -559,3 +559,169 @@ function kvProp_(key) {
   if (!value) throw new Error(`Chưa cấu hình ${key}. Chạy menu "Cấu hình KiotViet API".`);
   return value;
 }
+
+
+// ===== KiotViet invoice creation =====
+// For each selected row that has a KiotViet product (picked from the "Tên sản phẩm Kiot Việt"
+// dropdown → "_kvCode" filled), create one invoice on KiotViet. The IMEI cell, if filled, is
+// sent as the serial number so KiotViet validates it: a non-existent IMEI, an already-sold
+// IMEI, or an IMEI that belongs to a different product all make KiotViet reject the invoice.
+// On rejection we DO NOT create the invoice and write the KiotViet error back to the row.
+// Price = product basePrice from KiotViet; customer = walk-in (none); branch = default branch.
+function createKiotVietInvoices() {
+  runWithAlert_("Đang tạo hóa đơn KiotViet...", () => {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const headers = headerRow_(sheet);
+    const nameCol = headers.indexOf(KV_NAME_HEADER);
+    const codeCol = headers.indexOf(KV_CODE_HEADER);
+    const imeiCol = headers.indexOf(KV_IMEI_HEADER);
+    if (nameCol === -1) {
+      throw new Error(`Thiếu cột "${KV_NAME_HEADER}". Hãy tạo cột này cạnh "Product Number".`);
+    }
+    if (codeCol === -1) {
+      throw new Error(`Chưa có mã SP. Hãy chọn sản phẩm từ gợi ý ở cột "${KV_NAME_HEADER}" trước.`);
+    }
+
+    const resultCol = ensureHeaderReturnCol_(sheet, KV_INVOICE_RESULT_HEADER);
+    const values = sheet.getDataRange().getDisplayValues();
+    const selected = getSelectedRowSet_(sheet);
+
+    const token = kvGetToken_();
+    const retailer = kvProp_("KV_RETAILER");
+    const branchId = kvGetDefaultBranchId_(token, retailer);
+
+    let ok = 0;
+    let fail = 0;
+    let skipped = 0;
+    const errors = [];
+
+    for (let i = 1; i < values.length; i++) {
+      const sheetRow = i + 1;
+      if (selected && !selected[sheetRow]) continue;
+
+      const raw = values[i];
+      const name = String(raw[nameCol] || "").trim();
+      const code = String(raw[codeCol] || "").trim();
+      const imei = imeiCol === -1 ? "" : String(raw[imeiCol] || "").trim();
+      if (!name && !code) continue; // empty row
+
+      // Already has a successful invoice code (not an error) → don't duplicate.
+      const existing = String(raw[resultCol - 1] || "").trim();
+      if (existing && existing.indexOf("LỖI") !== 0) { skipped++; continue; }
+
+      try {
+        if (!code) throw new Error(`Chưa chọn SP KiotViet (thiếu mã). Chọn lại từ gợi ý ở cột "${KV_NAME_HEADER}".`);
+        const product = kvGetProductByCode_(token, retailer, code);
+        if (!product || !product.id) throw new Error(`Không tìm thấy SP mã "${code}" trên KiotViet.`);
+
+        const invoice = kvCreateInvoice_(token, retailer, branchId, product, imei);
+        const invCode = invoice.code || invoice.id || "OK";
+        sheet.getRange(sheetRow, resultCol).setValue(invCode);
+        ok++;
+      } catch (err) {
+        sheet.getRange(sheetRow, resultCol).setValue("LỖI: " + (err.message || err));
+        errors.push(`Dòng ${sheetRow}: ${err.message || err}`);
+        fail++;
+      }
+    }
+
+    if (!ok && !fail) {
+      return "Không có hàng nào để tạo hóa đơn. Hãy bôi đen các dòng có sản phẩm KiotViet.";
+    }
+    let summary = `Tạo hóa đơn KiotViet:\n✓ Thành công: ${ok}\n✗ Lỗi: ${fail}`;
+    if (skipped) summary += `\n• Bỏ qua (đã có HĐ): ${skipped}`;
+    if (errors.length) summary += "\n\n" + errors.slice(0, 10).join("\n");
+    return summary;
+  });
+}
+
+
+function kvGetDefaultBranchId_(token, retailer) {
+  // Manual override (set KV_BRANCH_ID in Script Properties) wins over auto-detect.
+  const override = PropertiesService.getScriptProperties().getProperty("KV_BRANCH_ID");
+  if (override) return Number(override);
+
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get("KV_BRANCH_ID");
+  if (cached) return Number(cached);
+
+  const resp = UrlFetchApp.fetch(KV_API_BASE + "/branches", {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const text = resp.getContentText();
+  if (resp.getResponseCode() >= 400) {
+    throw new Error(`KiotViet branches HTTP ${resp.getResponseCode()}: ${text.slice(0, 150)}`);
+  }
+  const list = (JSON.parse(text).data) || [];
+  if (!list.length) throw new Error("Không lấy được chi nhánh KiotViet.");
+  const id = list[0].id;
+  cache.put("KV_BRANCH_ID", String(id), 21600); // 6h
+  return id;
+}
+
+
+function kvGetProductByCode_(token, retailer, code) {
+  const url = KV_API_BASE + "/products/code/" + encodeURIComponent(code);
+  const resp = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const httpCode = resp.getResponseCode();
+  const text = resp.getContentText();
+  if (httpCode === 404) return null;
+  if (httpCode >= 400) throw new Error(`KiotViet product HTTP ${httpCode}: ${text.slice(0, 150)}`);
+  return JSON.parse(text);
+}
+
+
+function kvCreateInvoice_(token, retailer, branchId, product, imei) {
+  const detail = {
+    productId: product.id,
+    productCode: product.code,
+    productName: product.fullName || product.name || "",
+    quantity: 1,
+    price: product.basePrice != null ? product.basePrice : 0
+  };
+  // Sending the IMEI as the serial makes KiotViet validate it against this exact product.
+  if (imei) detail.serialNumbers = imei;
+
+  const payload = {
+    branchId: branchId,
+    isApplyVoucher: false,
+    invoiceDetails: [detail]
+  };
+
+  const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices", {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+
+  const text = resp.getContentText();
+  let data = null;
+  try { data = JSON.parse(text); } catch (ignore) { /* non-JSON error body */ }
+
+  if (resp.getResponseCode() >= 400) {
+    const reason =
+      (data && data.responseStatus && data.responseStatus.message) ||
+      (data && (data.message || data.detail)) ||
+      text.slice(0, 250);
+    throw new Error(reason);
+  }
+  return data || {};
+}
+
+
+function ensureHeaderReturnCol_(sheet, header) {
+  const headers = headerRow_(sheet);
+  const idx = headers.indexOf(header);
+  if (idx !== -1) return idx + 1;
+  const col = headers.length + 1;
+  sheet.getRange(1, col).setValue(header);
+  return col;
+}
