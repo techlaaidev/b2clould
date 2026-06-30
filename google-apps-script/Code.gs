@@ -616,7 +616,7 @@ function createKiotVietInvoices() {
         const product = kvGetProductByCode_(token, retailer, code);
         if (!product || !product.id) throw new Error(`Không tìm thấy SP mã "${code}" trên KiotViet.`);
 
-        const invoice = kvCreateInvoice_(token, retailer, branchId, product, imei);
+        const invoice = kvCreateInvoice_(token, retailer, branchId, soldById, product, imei);
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
         ok++;
