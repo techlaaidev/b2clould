@@ -819,48 +819,49 @@ function kvShowImeis() {
     // `detail` = the object that actually carries the serial list (by-id sometimes has it
     // when the by-code response doesn't), so all raw dumps below read from `detail`.
     let detail = product;
-    let serials = kvExtractSerials_(product);
+    let allSerials = kvExtractSerials_(product);
     let triedById = false;
-    if (!serials.length && product.isLotSerialControl && product.id) {
+    if (!allSerials.length && product.isLotSerialControl && product.id) {
       triedById = true;
       const byId = kvGetProductByIdWithSerials_(token, retailer, product.id);
-      if (byId) { detail = byId; serials = kvExtractSerials_(byId); }
+      if (byId) { detail = byId; allSerials = kvExtractSerials_(byId); }
     }
 
-    const onHand = kvSumOnHand_(detail);
+    // Chỉ quan tâm serial thuộc chi nhánh hiện tại (17397).
+    const branchId = kvCurrentBranchId_();
+    const serials = allSerials.filter(s => Number(s.branchId) === branchId);
+
+    const onHandBranch = (detail.inventories || [])
+      .filter(i => Number(i.branchId) === branchId)
+      .reduce((sum, i) => sum + Number(i.onHand || 0), 0);
+
     let out = "SP: " + picked + "\nMã: " + code + "\n";
     out += "Quản lý IMEI (isLotSerialControl): " + product.isLotSerialControl + "\n";
-    out += "Tồn kho (onHand): " + onHand + "\n";
+    out += "Chi nhánh hiện tại: " + branchId + "\n";
+    out += "Tồn kho ở CN " + branchId + " (onHand): " + onHandBranch + "\n";
 
     if (!serials.length) {
-      out += "\nKhông có IMEI/serial nào KiotViet trả về.\n";
+      out += "\nKhông có IMEI/serial nào của chi nhánh " + branchId + ".\n";
       if (product.isLotSerialControl === false) {
         out += "→ SP này KHÔNG bật quản lý IMEI trong KiotViet, nên không có IMEI để đối chiếu.\n";
+      } else if (allSerials.length) {
+        out += "→ SP có " + allSerials.length + " serial nhưng đều thuộc chi nhánh khác.\n";
       } else {
         out += "→ SP có bật quản lý IMEI nhưng list rỗng" + (triedById ? " (đã thử cả endpoint theo id)" : "") + ".\n";
       }
-      out += "\nproductSerials (raw): " + JSON.stringify(detail.productSerials).slice(0, 300);
     } else {
       const hist = {};
       serials.forEach(s => { const k = String(s.status); hist[k] = (hist[k] || 0) + 1; });
       const histStr = Object.keys(hist).sort().map(k => "status " + k + ": " + hist[k]).join(" | ");
-      out += "\nTổng serial: " + serials.length + " (gồm cả đã bán)\n";
+      const inStock = serials.filter(s => Number(s.status) === 1);
+      out += "\nSerial ở CN " + branchId + ": " + serials.length + " (gồm cả đã bán)\n";
       out += "Phân bố theo status: " + histStr + "\n";
-      out += "→ status có số lượng = onHand (" + onHand + ") là 'còn hàng'.\n\n";
-      out += serials.slice(0, 60).map(s => "• " + s.serial + " (status " + s.status + ")").join("\n");
-      if (serials.length > 60) out += "\n…(còn " + (serials.length - 60) + " IMEI nữa)";
+      out += "→ status 1 = còn hàng (" + inStock.length + " cái), status 0 = đã bán.\n\n";
+      out += "IMEI còn bán được ở CN " + branchId + ":\n";
+      out += inStock.length
+        ? inStock.slice(0, 60).map(s => "• " + s.serial).join("\n")
+        : "(không có)";
     }
-
-    // Branch context — to see WHICH branch holds the in-stock IMEI vs which branch we invoice.
-    out += "\n\n--- Chi nhánh & tồn theo chi nhánh ---\n";
-    const branches = kvFetchBranches_(token, retailer);
-    out += "Chi nhánh: " + branches.map(b => b.id + "=" + (b.branchName || "")).join(" | ") + "\n";
-    out += "Chi nhánh đang dùng để xuất HĐ (mặc định branches[0]): " +
-      (branches[0] ? branches[0].id : "?") + "\n";
-    out += "Tồn theo chi nhánh (inventories): " +
-      JSON.stringify((detail.inventories || []).map(i => ({ branchId: i.branchId, onHand: i.onHand }))) + "\n";
-    const rawStatus1 = (detail.productSerials || []).filter(s => String(s.status) === "1")[0];
-    out += "Raw 1 serial status=1: " + JSON.stringify(rawStatus1);
     return out;
   });
 }
