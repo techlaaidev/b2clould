@@ -539,7 +539,7 @@ function kvGetToken_() {
 
 
 function kvFetchProducts_(token, retailer, pageSize, currentItem) {
-  const url = `${KV_API_BASE}/products?pageSize=${pageSize}&currentItem=${currentItem}&includeInventory=false`;
+  const url = `${KV_API_BASE}/products?pageSize=${pageSize}&currentItem=${currentItem}&includeInventory=false&includeSerials=true`;
   const options = {
     method: "get",
     headers: { Authorization: "Bearer " + token, Retailer: retailer },
