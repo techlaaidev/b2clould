@@ -621,6 +621,12 @@ function createKiotVietInvoices() {
       try {
         if (!code) throw new Error(`Chưa chọn SP KiotViet (thiếu mã). Chọn lại từ gợi ý ở cột "${KV_NAME_HEADER}".`);
         const resolved = kvResolveForInvoice_(token, retailer, code, imei);
+        // Chặn sai tên: tên trong ô phải khớp fullName thật của SP mã "code" trên KiotViet.
+        // Dù IMEI đúng, tên lệch (chọn nhầm/sửa tay) vẫn KHÔNG tạo hóa đơn.
+        const kvName = String(resolved.product.fullName || resolved.product.name || "").trim();
+        if (kvNorm_(name) !== kvNorm_(kvName)) {
+          throw new Error(`Sai tên sản phẩm: ô ghi "${name || "(trống)"}" nhưng SP mã "${code}" trên KiotViet là "${kvName}". Chọn lại SP từ gợi ý ở cột "${KV_NAME_HEADER}".`);
+        }
         const invoice = kvCreateInvoice_(
           token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers
         );
