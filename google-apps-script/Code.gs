@@ -415,13 +415,19 @@ function onEdit(e) {
   try {
     if (!e || !e.range) return;
     const sheet = e.range.getSheet();
-    if (sheet.getName() === KV_CATALOG_SHEET) return;
+    if (sheet.getName() === KV_CATALOG_SHEET || sheet.getName() === KV_IMEI_INDEX_SHEET) return;
     if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
     if (e.range.getRow() === 1) return;
 
     const headers = headerRow_(sheet);
+    const col = e.range.getColumn();
+
+    // Gõ IMEI → tự tra tên SP từ chỉ mục (lập khi đồng bộ).
+    const imeiCol = headers.indexOf(KV_IMEI_HEADER) + 1;
+    if (imeiCol !== 0 && col === imeiCol) { kvFillNameFromImei_(e, sheet, headers); return; }
+
     const prodCol = headers.indexOf(KV_NAME_HEADER) + 1;
-    if (prodCol === 0 || e.range.getColumn() !== prodCol) return;
+    if (prodCol === 0 || col !== prodCol) return;
 
     const catalog = kvLoadCatalog_();
     if (!catalog) return; // not synced → stay out of the way
