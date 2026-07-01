@@ -375,9 +375,11 @@ function syncKiotVietCatalog() {
     const retailer = kvProp_("KV_RETAILER");
     const pageSize = 100;
     const started = Date.now();
+    const branchId = kvCurrentBranchId_();
     let current = 0;
     let total = 0;
-    const rows = [];
+    const rows = [];      // catalog: [code, fullName]
+    const imeiRows = [];  // index:   [imei, code, fullName] — chỉ serial còn hàng ở CN hiện tại
 
     while (true) {
       const data = kvFetchProducts_(token, retailer, pageSize, current);
@@ -386,6 +388,12 @@ function syncKiotVietCatalog() {
       batch.forEach(p => {
         const full = p.fullName || p.name || "";
         if (full) rows.push([p.code || "", full]);
+        // Chỉ lập chỉ mục IMEI còn hàng (status 1) VÀ thuộc CN hiện tại — khớp luật tạo hóa đơn.
+        (p.productSerials || []).forEach(s => {
+          if (Number(s.status) !== 1 || Number(s.branchId) !== branchId) return;
+          const num = String(s.serialNumber || "").trim();
+          if (num) imeiRows.push([num, p.code || "", full]);
+        });
       });
       current += pageSize;
       if (!batch.length || current >= total) break;
@@ -394,8 +402,11 @@ function syncKiotVietCatalog() {
     }
 
     kvWriteCatalog_(rows);
+    kvWriteImeiIndex_(imeiRows);
     const note = rows.length >= total ? "" : " (một phần — chạy lại để lấy tiếp)";
-    return `Đã đồng bộ ${rows.length}/${total} sản phẩm KiotViet${note}.`;
+    return `Đã đồng bộ ${rows.length}/${total} sản phẩm KiotViet${note}.\n` +
+      `Chỉ mục IMEI (CN ${branchId}): ${imeiRows.length} IMEI.` +
+      (imeiRows.length ? "" : "\n⚠ 0 IMEI — endpoint danh sách không trả serial; báo lại để tôi đổi cách lấy.");
   });
 }
 
