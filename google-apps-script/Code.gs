@@ -449,6 +449,13 @@ function onEdit(e) {
 }
 
 
+// Chuẩn hoá tên SP để so khớp: bỏ khoảng trắng thừa 2 đầu + gộp khoảng trắng giữa.
+// Dùng để đối chiếu tên trong ô với fullName thật trên KiotViet (chặn sai tên).
+function kvNorm_(name) {
+  return String(name == null ? "" : name).trim().replace(/\s+/g, " ");
+}
+
+
 function kvSearch_(names, query, max) {
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!tokens.length) return [];
