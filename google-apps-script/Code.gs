@@ -513,6 +513,62 @@ function kvWriteCatalog_(rows) {
 }
 
 
+// Gõ IMEI vào cột IMEI → tra bảng chỉ mục (lập khi đồng bộ) → tự điền tên SP + _kvCode.
+// - IMEI trống: không đụng gì (giữ tên đang có).
+// - IMEI không có trong kho CN hiện tại (sai / đã bán / CN khác): xoá tên + mã (không điền gì).
+function kvFillNameFromImei_(e, sheet, headers) {
+  const nameCol = headers.indexOf(KV_NAME_HEADER) + 1;
+  if (nameCol === 0) return; // chưa có cột tên SP → bỏ qua
+  const codeCol = kvEnsureCodeColumn_(sheet);
+  const row = e.range.getRow();
+  const imei = (e.value == null ? "" : String(e.value)).trim();
+  if (!imei) return;
+
+  const index = kvLoadImeiIndex_();
+  if (!index) {
+    SpreadsheetApp.getActive().toast('Chưa có chỉ mục IMEI. Chạy "Đồng bộ kho KiotViet".', "KiotViet", 5);
+    return;
+  }
+
+  const nameCell = sheet.getRange(row, nameCol);
+  nameCell.clearDataValidations();
+  const hit = index.byImei[imei];
+  if (!hit) {
+    nameCell.clearContent();
+    sheet.getRange(row, codeCol).clearContent();
+    SpreadsheetApp.getActive().toast('IMEI "' + imei + '" không có trong kho CN ' + kvCurrentBranchId_() + '.', "KiotViet", 5);
+    return;
+  }
+  nameCell.setValue(hit.name);
+  sheet.getRange(row, codeCol).setValue(hit.code);
+  SpreadsheetApp.getActive().toast("✓ " + hit.name, "KiotViet", 5);
+}
+
+
+function kvLoadImeiIndex_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(KV_IMEI_INDEX_SHEET);
+  if (!sh || sh.getLastRow() < 2) return null;
+  const vals = sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues();
+  const byImei = {};
+  vals.forEach(r => {
+    const imei = String(r[0] || "").trim();
+    if (imei) byImei[imei] = { code: String(r[1] || ""), name: String(r[2] || "") };
+  });
+  return { byImei };
+}
+
+
+function kvWriteImeiIndex_(rows) {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(KV_IMEI_INDEX_SHEET);
+  if (!sh) sh = ss.insertSheet(KV_IMEI_INDEX_SHEET);
+  sh.clearContents();
+  sh.getRange(1, 1, 1, 3).setValues([["imei", "code", "fullName"]]);
+  if (rows.length) sh.getRange(2, 1, rows.length, 3).setValues(rows);
+  sh.hideSheet();
+}
+
+
 function kvEnsureCodeColumn_(sheet) {
   const headers = headerRow_(sheet);
   const idx = headers.indexOf(KV_CODE_HEADER);
