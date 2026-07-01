@@ -339,6 +339,7 @@ function runWithAlert_(message, operation) {
 const KV_TOKEN_URL = "https://id.kiotviet.vn/connect/token";
 const KV_API_BASE = "https://public.kiotapi.com";
 const KV_CATALOG_SHEET = "KiotViet_Catalog";
+const KV_IMEI_INDEX_SHEET = "KiotViet_ImeiIndex";     // bảng ẩn IMEI→(mã SP, tên SP) lập khi đồng bộ
 const KV_NAME_HEADER = "Tên sản phẩm Kiot Việt";     // column with KiotViet product autocomplete
 const KV_CODE_HEADER = "_kvCode";                     // hidden column storing the picked SP code
 const KV_IMEI_HEADER = "IMEI";                        // staff-filled IMEI/serial column
