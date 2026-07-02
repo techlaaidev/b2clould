@@ -748,6 +748,11 @@ function kvRunCreateInvoices_(force) {
     }
 
     if (!ok && !fail) {
+      if (skipped) {
+        return `Đã bỏ qua ${skipped} dòng vì đã có hóa đơn (không đẩy trùng).\n` +
+          `Muốn đẩy lại (test): dùng menu "Tạo lại hóa đơn KiotViet (test)", ` +
+          `hoặc xoá ô "${KV_INVOICE_RESULT_HEADER}" của dòng đó rồi tạo lại.`;
+      }
       return "Không có hàng nào để tạo hóa đơn. Hãy bôi đen các dòng có sản phẩm KiotViet.";
     }
     let summary = `Tạo hóa đơn KiotViet:\n✓ Thành công: ${ok}\n✗ Lỗi: ${fail}`;
