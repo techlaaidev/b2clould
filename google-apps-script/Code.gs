@@ -652,8 +652,14 @@ function kvProp_(key) {
 // On rejection we DO NOT create the invoice and write the KiotViet error back to the row.
 // Customer = "IG/WA Account" (tra có sẵn → dùng lại, chưa có → tạo mới); trống → khách lẻ.
 // Price = product basePrice from KiotViet; branch = chi nhánh hiện tại (17397).
-function createKiotVietInvoices() {
-  runWithAlert_("Đang tạo hóa đơn KiotViet...", () => {
+// Menu thường: bỏ qua dòng đã có hóa đơn (không đẩy trùng).
+function createKiotVietInvoices() { kvRunCreateInvoices_(false); }
+
+// Menu test: ĐẨY LẠI cả dòng đã có hóa đơn (ghi đè mã HĐ mới). Dùng khi test.
+function recreateKiotVietInvoicesTest() { kvRunCreateInvoices_(true); }
+
+function kvRunCreateInvoices_(force) {
+  runWithAlert_(force ? "Đang tạo LẠI hóa đơn KiotViet (test)..." : "Đang tạo hóa đơn KiotViet...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const headers = headerRow_(sheet);
     const nameCol = headers.indexOf(KV_NAME_HEADER);
