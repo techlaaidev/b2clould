@@ -650,7 +650,8 @@ function kvProp_(key) {
 // sent as the serial number so KiotViet validates it: a non-existent IMEI, an already-sold
 // IMEI, or an IMEI that belongs to a different product all make KiotViet reject the invoice.
 // On rejection we DO NOT create the invoice and write the KiotViet error back to the row.
-// Price = product basePrice from KiotViet; customer = walk-in (none); branch = default branch.
+// Customer = "IG/WA Account" (tra có sẵn → dùng lại, chưa có → tạo mới); trống → khách lẻ.
+// Price = product basePrice from KiotViet; branch = chi nhánh hiện tại (17397).
 function createKiotVietInvoices() {
   runWithAlert_("Đang tạo hóa đơn KiotViet...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
