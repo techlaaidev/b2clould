@@ -707,8 +707,27 @@ function createKiotVietInvoices() {
         if (kvNorm_(name) !== kvNorm_(kvName)) {
           throw new Error(`Sai tên sản phẩm: ô ghi "${name || "(trống)"}" nhưng SP mã "${code}" trên KiotViet là "${kvName}". Chọn lại SP từ gợi ý ở cột "${KV_NAME_HEADER}".`);
         }
+
+        // Gắn khách hàng theo cột IG/WA Account (tra có sẵn → dùng lại, chưa có → tạo mới).
+        const custName = igCol === -1 ? "" : String(raw[igCol] || "").trim();
+        let customerId = null;
+        if (custName) {
+          const key = custName.toLowerCase();
+          if (Object.prototype.hasOwnProperty.call(custCache, key)) {
+            customerId = custCache[key];
+          } else {
+            customerId = kvResolveCustomerId_(token, retailer, custName, {
+              contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
+              email: emailCol === -1 ? "" : String(raw[emailCol] || "").trim(),
+              address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim(),
+              branchId: resolved.branchId
+            });
+            custCache[key] = customerId;
+          }
+        }
+
         const invoice = kvCreateInvoice_(
-          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers
+          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId
         );
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
