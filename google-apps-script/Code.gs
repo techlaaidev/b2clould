@@ -658,6 +658,11 @@ function createKiotVietInvoices() {
     const nameCol = headers.indexOf(KV_NAME_HEADER);
     const codeCol = headers.indexOf(KV_CODE_HEADER);
     const imeiCol = headers.indexOf(KV_IMEI_HEADER);
+    // Cột khách hàng: tên khách = "IG/WA Account" (unique); SĐT/email/địa chỉ để tạo khách đầy đủ.
+    const igCol = headers.indexOf("IG/WA Account");
+    const mobileCol = headers.indexOf("Mobile");
+    const emailCol = headers.indexOf("Email");
+    const addrCol = headers.indexOf("Address");
     if (nameCol === -1) {
       throw new Error(`Thiếu cột "${KV_NAME_HEADER}". Hãy tạo cột này cạnh "Product Number".`);
     }
