@@ -848,6 +848,67 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
 }
 
 
+// Trả customerId cho tên khách (cột IG/WA Account). Có sẵn trên KiotViet → dùng lại;
+// chưa có → tạo mới (kèm SĐT/email/địa chỉ nếu có). Tên trống → null (hóa đơn khách lẻ).
+// IG/WA account là username duy nhất nên khớp theo tên là đủ, không lo trùng.
+function kvResolveCustomerId_(token, retailer, name, extra) {
+  const clean = String(name || "").trim();
+  if (!clean) return null;
+  const existing = kvFindCustomerByName_(token, retailer, clean);
+  if (existing && existing.id) return existing.id;
+  const created = kvCreateCustomer_(token, retailer, clean, extra);
+  if (!created || !created.id) throw new Error(`Tạo khách "${clean}" trên KiotViet thất bại.`);
+  return created.id;
+}
+
+
+function kvFindCustomerByName_(token, retailer, name) {
+  const url = KV_API_BASE + "/customers?name=" + encodeURIComponent(name) + "&pageSize=100";
+  const resp = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const text = resp.getContentText();
+  if (resp.getResponseCode() >= 400) {
+    throw new Error(`KiotViet customers HTTP ${resp.getResponseCode()}: ${text.slice(0, 150)}`);
+  }
+  const list = (JSON.parse(text).data) || [];
+  // Filter theo tên KiotViet trả về (name có thể là khớp "chứa"); so khớp chính xác, không phân biệt hoa/thường.
+  const target = kvNorm_(name).toLowerCase();
+  return list.filter(c => kvNorm_(c.name).toLowerCase() === target)[0] || null;
+}
+
+
+function kvCreateCustomer_(token, retailer, name, extra) {
+  const payload = { name: name };
+  if (extra) {
+    if (extra.contactNumber) payload.contactNumber = extra.contactNumber;
+    if (extra.email) payload.email = extra.email;
+    if (extra.address) payload.address = extra.address;
+    if (extra.branchId) payload.branchId = extra.branchId;
+  }
+  const resp = UrlFetchApp.fetch(KV_API_BASE + "/customers", {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const text = resp.getContentText();
+  let data = null;
+  try { data = JSON.parse(text); } catch (ignore) { /* non-JSON error body */ }
+  if (resp.getResponseCode() >= 400) {
+    const reason =
+      (data && data.responseStatus && data.responseStatus.message) ||
+      (data && (data.message || data.detail)) ||
+      text.slice(0, 250);
+    throw new Error(`Tạo khách "${name}": ${reason}`);
+  }
+  return (data && (data.data || data)) || {};
+}
+
+
 function ensureHeaderReturnCol_(sheet, header) {
   const headers = headerRow_(sheet);
   const idx = headers.indexOf(header);
