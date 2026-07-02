@@ -138,8 +138,20 @@ def validate_local(row: dict) -> list[str]:
         errors.append(payment_error)
 
     for column in COMMON_REQUIRED:
+        # address1/address2 (tỉnh/thành) được TÁCH từ ô địa chỉ gộp — báo lỗi riêng, rõ hơn.
+        if column in ("consignee_address1", "consignee_address2"):
+            continue
         if not row.get(column):
             errors.append(f"{column} is required")
+
+    if not row.get("consignee_address1") or not row.get("consignee_address2"):
+        if row.get("consignee_address"):
+            errors.append(
+                "Không tách được tỉnh/thành phố từ địa chỉ: "
+                f"'{row.get('consignee_address')}' (mã bưu điện {row.get('consignee_zip_code', '')})"
+            )
+        else:
+            errors.append("consignee_address is required")
 
     if row.get("service_type") != "3":
         for column in NON_DM_REQUIRED:
