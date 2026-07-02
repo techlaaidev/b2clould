@@ -9,9 +9,12 @@ Money decisions are driven ONLY by Type of transaction, never by the text
 prefix inside Product Number (the prefix is a human label and is ignored).
 """
 
+import logging
 import os
 import re
 from datetime import datetime
+
+logger = logging.getLogger("b2cloud.order_payment")
 
 # 送り状種類 (label type) codes. Daibiki collects cash on delivery, so it ships
 # as 宅急便コレクト (COD); BankTransfer is paid up front, so it ships 発払い (prepaid).
