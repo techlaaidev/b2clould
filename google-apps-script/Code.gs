@@ -306,16 +306,36 @@ function saveCsvToDrive_(csv, fileName) {
 }
 
 
+// Trạng thái nội bộ (backend) → nhãn tiếng Việt cho popup, để không hiện chữ "INVALID".
+const STATUS_VI_ = {
+  CREATED: "Đã tạo đơn",
+  SAVED: "Đã tạo đơn",
+  READY: "Hợp lệ, chờ tạo",
+  NEW: "Hợp lệ, chờ tạo",
+  INVALID: "Không tạo được (lỗi dữ liệu)",
+  ERROR: "Không tạo được (lỗi hệ thống)",
+  SKIPPED: "Bỏ qua"
+};
+
+
 function summarizeRows_(rows) {
   const counts = {};
+  const errors = [];
   rows.forEach(row => {
     const status = row.status || "UNKNOWN";
     counts[status] = (counts[status] || 0) + 1;
+    // Ghi RÕ tên lỗi cụ thể cho từng dòng lỗi (thay vì chỉ đếm "INVALID: 1").
+    const msg = row.error_message || row["Tên lỗi"] || "";
+    if (msg) {
+      const who = row.consignee_name || row.order_id || "";
+      errors.push("• " + (who ? who + " — " : "") + msg);
+    }
   });
-  return Object.keys(counts)
-    .sort()
-    .map(status => `${status}: ${counts[status]}`)
+  let out = Object.keys(counts).sort()
+    .map(status => `${STATUS_VI_[status] || status}: ${counts[status]}`)
     .join("\n");
+  if (errors.length) out += "\n\nChi tiết lỗi:\n" + errors.slice(0, 15).join("\n");
+  return out;
 }
 
 
