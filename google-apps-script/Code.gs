@@ -324,9 +324,10 @@ function summarizeRows_(rows) {
   rows.forEach(row => {
     const status = row.status || "UNKNOWN";
     counts[status] = (counts[status] || 0) + 1;
-    // Ghi RÕ tên lỗi cụ thể cho từng dòng lỗi (thay vì chỉ đếm "INVALID: 1").
+    // Chỉ ghi "Chi tiết lỗi" cho dòng THẬT SỰ lỗi (INVALID/ERROR).
+    // Dòng thành công/trùng (CREATED/SAVED) có thể kèm ghi chú nhưng KHÔNG phải lỗi.
     const msg = row.error_message || row["Tên lỗi"] || "";
-    if (msg) {
+    if (msg && (status === "INVALID" || status === "ERROR")) {
       const who = row.consignee_name || row.order_id || "";
       errors.push("• " + (who ? who + " — " : "") + msg);
     }
