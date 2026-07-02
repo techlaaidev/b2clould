@@ -807,7 +807,7 @@ function kvResolveForInvoice_(token, retailer, code, imei) {
 }
 
 
-function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers) {
+function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId) {
   const detail = {
     productId: product.id,
     productCode: product.code,
@@ -823,6 +823,7 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     isApplyVoucher: false,
     invoiceDetails: [detail]
   };
+  if (customerId) payload.customerId = customerId; // gắn khách; bỏ trống → khách lẻ
 
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices", {
     method: "post",
