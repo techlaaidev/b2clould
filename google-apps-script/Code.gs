@@ -682,6 +682,7 @@ function createKiotVietInvoices() {
     let fail = 0;
     let skipped = 0;
     const errors = [];
+    const custCache = {}; // tên khách (lowercase) → customerId, tránh tạo trùng trong 1 lần chạy
 
     for (let i = 1; i < values.length; i++) {
       const sheetRow = i + 1;
