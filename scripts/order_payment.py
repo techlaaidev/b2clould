@@ -237,13 +237,32 @@ def prepare_form_order(row):
 # Leading banchi part: digits / fullwidth digits / hyphens / 番地号丁目の.
 _BANCHI_RE = re.compile(r"^([0-9０-９\-－―ー\s番地号丁目の]+)(.*)$")
 
+# Tách tỉnh/thành từ địa chỉ Nhật khi API bưu điện B2 không trả kết quả.
+# Tỉnh (address1): 都道府県 (đặc biệt 北海道, 京都府/大阪府). Thành phố/quận (address2): tới 市/区/郡 đầu tiên.
+_PREF_RE = re.compile(r"^(北海道|東京都|(?:京都|大阪)府|.{1,4}?県)(.*)$")
+_CITY_RE = re.compile(r"^(.+?[市区郡])(.*)$")
+
+
+def _split_jp_prefecture_city(full):
+    """Regex fallback: (prefecture, city, rest) từ địa chỉ Nhật, không cần API.
+    Trả ("", "", full) khi không khớp mẫu tỉnh/thành."""
+    m = _PREF_RE.match(full)
+    if not m:
+        return "", "", full
+    pref, rest = m.group(1), m.group(2)
+    mc = _CITY_RE.match(rest)
+    if not mc:
+        return pref, "", rest
+    return pref, mc.group(1), mc.group(2)
+
 
 def split_consignee_address(session, postcode, full_address):
     """Split a combined Japanese address into (address1, address2, address3, address4).
 
     Uses B2's postal lookup for prefecture/city/town, then a heuristic to separate
     the banchi (street number) from the building name so address3 stays within
-    B2's length limit (building goes to address4).
+    B2's length limit (building goes to address4). Nếu API bưu điện B2 lỗi/rỗng
+    (address1 hoặc address2 trống), fallback sang tách bằng regex (_split_jp_prefecture_city).
     """
     full = (full_address or "").strip()
     code = re.sub(r"\D", "", postcode or "")
@@ -256,8 +275,20 @@ def split_consignee_address(session, postcode, full_address):
             a1 = postal["address"]["address1"]
             a2 = postal["address"]["address2"]
             town = postal["address"]["address3"]
-    except Exception:
-        pass
+    except Exception as exc:
+        # KHÔNG nuốt lỗi lặng lẽ nữa — log để thấy vì sao tra bưu điện thất bại.
+        logger.warning("Tra bưu điện B2 lỗi cho mã '%s': %s", code, exc)
+
+    # Fallback regex khi API không cho tỉnh/thành (nguyên nhân gốc của INVALID:2).
+    if not a1 or not a2:
+        r1, r2, _ = _split_jp_prefecture_city(full)
+        if not a1:
+            a1 = r1
+        if not a2:
+            a2 = r2
+        if not a1 or not a2:
+            logger.warning("Không tách được tỉnh/thành từ địa chỉ: %r (mã bưu điện %s)", full, code)
+
     rest = full
     for piece in (a1, a2):
         if piece and rest.startswith(piece):
