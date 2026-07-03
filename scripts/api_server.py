@@ -137,6 +137,32 @@ def set_order_error(row: dict[str, str], message: str, status: str = "INVALID"):
     return row
 
 
+def precheck_carrier_and_tracking(row: dict[str, str]):
+    """Yamato-only gate applied before validation/creation.
+
+    Returns a finalized row (append it and skip the rest) or None to continue:
+    - blank Đơn vị giao hàng -> hard error, do not push to B2;
+    - a non-Yamato carrier (JAPANPOST) -> skipped, handled elsewhere;
+    - an existing Mã vận đơn -> reported as already existing, not re-created.
+    """
+    carrier = (row.get("carrier") or "").strip().upper()
+    if not carrier:
+        row["error_column"] = "Đơn vị giao hàng"
+        return set_order_error(row, "Thiếu đơn vị giao hàng (phải là YAMATO)")
+    if carrier not in CARRIER_YAMATO:
+        row["status"] = "SKIPPED"
+        row["error_message"] = "Đơn JAPANPOST - không xử lý trên Yamato"
+        row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return row
+    if row.get("tracking_number"):
+        row["status"] = "CREATED"
+        row["error_column"] = "Mã vận đơn"
+        row["error_message"] = f"Mã vận đơn đã tồn tại: {row['tracking_number']}"
+        row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return row
+    return None
+
+
 def extract_tracking(feed: dict[str, Any]) -> str:
     for entry in feed_entries(feed):
         tracking = entry.get("shipment", {}).get("tracking_number", "")
