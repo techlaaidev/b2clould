@@ -16,10 +16,11 @@ from datetime import datetime
 
 logger = logging.getLogger("b2cloud.order_payment")
 
-# 送り状種類 (label type) codes. Daibiki collects cash on delivery, so it ships
-# as 宅急便コレクト (COD); BankTransfer is paid up front, so it ships 発払い (prepaid).
-SERVICE_TYPE_PREPAID = "0"   # 発払い
-SERVICE_TYPE_COD = "2"       # 宅急便コレクト (代金引換) — requires COD enabled on the account
+# 送り状種類 (label type) codes. The account is not contracted for 宅急便コレクト
+# (代引/COD, code 2), so Daibiki ships 着払い (5): the receiver pays the delivery
+# fee at hand-off. BankTransfer is paid up front, so it ships 発払い (prepaid).
+SERVICE_TYPE_PREPAID = "0"      # 発払い
+SERVICE_TYPE_CHAKUBARAI = "5"   # 着払い — receiver pays the delivery fee (Daibiki)
 FORM_PRINT_TYPE = "m5"
 
 # Shipper fields copied from the account's registered Sender Master.
