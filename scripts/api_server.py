@@ -318,25 +318,31 @@ def create_order_shipments(
 
         try:
             existing_status, existing_tracking = find_existing_shipment(session, row)
-            if existing_status:
-                row["status"] = existing_status
+            if existing_status == "CREATED":
+                # Already issued in B2 (a real tracking number exists) — do not
+                # re-create; just report the existing order.
+                row["status"] = "CREATED"
                 row["tracking_number"] = existing_tracking
-                row["error_message"] = (
-                    "Skipped duplicate order_id already found in B2 Cloud: "
-                    f"{row['order_id']}"
-                )
+                row["error_message"] = f"Order already issued in B2 Cloud: {row['order_id']}"
                 row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 output.append(row)
                 continue
 
-            shipment = create_shipment(row)
-            checked = b2cloud.post_new_checkonly(session, [shipment])
-            checked_errors = feed_entries(checked)[0].get("error", []) if feed_entries(checked) else []
-            if checked_errors:
-                output.append(set_order_error(row, "; ".join(str(error) for error in checked_errors)))
-                continue
+            if existing_status == "SAVED":
+                # A draft was saved earlier (未発行) but never issued. Reuse that
+                # draft and issue it below instead of skipping it forever, so it
+                # finally gets a real tracking number.
+                saved = b2cloud.get_new(session, params={"shipment_number": row["order_id"]})
+                saved = {"feed": {"entry": matching_order_entries(saved, row["order_id"])}}
+            else:
+                shipment = create_shipment(row)
+                checked = b2cloud.post_new_checkonly(session, [shipment])
+                checked_errors = feed_entries(checked)[0].get("error", []) if feed_entries(checked) else []
+                if checked_errors:
+                    output.append(set_order_error(row, "; ".join(str(error) for error in checked_errors)))
+                    continue
+                saved = b2cloud.post_new(session, checked)
 
-            saved = b2cloud.post_new(session, checked)
             row["tracking_number"] = extract_tracking(saved)
             row["status"] = "SAVED"
             row["error_message"] = ""
