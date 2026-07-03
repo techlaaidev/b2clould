@@ -262,17 +262,9 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
     output = []
     for item in rows:
         row = normalize_order_row(map_input_row(item))
-        if (row.get("carrier") or "").upper() not in CARRIER_YAMATO:
-            row["status"] = "SKIPPED"
-            row["error_message"] = "Đơn JAPANPOST - không xử lý trên Yamato"
-            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            output.append(row)
-            continue
-        if row.get("tracking_number"):
-            row["status"] = "CREATED"
-            row["error_message"] = ""
-            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            output.append(row)
+        gate = precheck_carrier_and_tracking(row)
+        if gate is not None:
+            output.append(gate)
             continue
 
         apply_account_defaults(session, row)
