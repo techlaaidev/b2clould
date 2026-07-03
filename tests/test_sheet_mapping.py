@@ -48,7 +48,16 @@ def test_map_output_translates_status_and_error():
 
     bad = map_output_row({"status": "INVALID", "error_message": "consignee_name is required"})
     assert bad["Trạng thái khởi tạo"] == "không tạo đơn"
-    assert bad["Cột bị lỗi"] == "consignee_name"
+    assert bad["Cột bị lỗi"] == "Name"  # internal field -> sheet column
+    assert bad["Tên lỗi"] == "Thiếu trường bắt buộc: Name"
+
+
+def test_map_output_lists_all_missing_columns():
+    bad = map_output_row({
+        "status": "INVALID",
+        "error_message": "consignee_name is required; consignee_telephone_display is required; item_name1 is required for service_type 5",
+    })
+    assert bad["Cột bị lỗi"] == "Name, Mobile, Product Number"
 
 
 def test_normalize_auto_generates_order_id():
