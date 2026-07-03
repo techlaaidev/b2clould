@@ -68,15 +68,64 @@ def generate_order_id(row):
     return "AUTO-" + hashlib.sha1(basis.encode("utf-8")).hexdigest()[:12]
 
 
-def _first_error_field(error):
-    """Best-effort extract the offending field name from an error message."""
-    match = re.search(r"([a-z_]+) is required", error)
-    if match:
-        return match.group(1)
-    match = re.search(r"'error_property_name': '([^']+)'", error)
-    if match:
-        return match.group(1)
-    return ""
+# Internal field -> the sheet column the user actually edits. Split/derived
+# fields (address1/2/3, item_name1, shipment_date) point back at their source
+# column so a missing-field error names a cell the user can fix.
+FIELD_TO_HEADER = {
+    "consignee_name": "Name",
+    "consignee_zip_code": "Postcode",
+    "consignee_address": "Address",
+    "consignee_address1": "Address",
+    "consignee_address2": "Address",
+    "consignee_address3": "Address",
+    "consignee_telephone_display": "Mobile",
+    "shipment_date": "Date",
+    "delivery_date": "Date",
+    "delivery_time_zone": "Time",
+    "product_number": "Product Number",
+    "item_name1": "Product Number",
+    "type_of_transaction": "Type of transaction",
+    "bank_account": "Back account",
+    "order_date": "Order Date",
+    "payment_status": "Thanh toán",
+    "deposit_amount": "Số tiền đặt cọc",
+    "carrier": "Đơn vị giao hàng",
+}
+
+
+def _offending_fields(error):
+    """Every internal field named in a (possibly multi-part) error message."""
+    fields = re.findall(r"([a-z_][a-z_0-9]*) is required", error)
+    fields += re.findall(r"'error_property_name': '([^']+)'", error)
+    return fields
+
+
+def _error_columns(error):
+    """Comma-joined sheet columns the user must fix, in order, no duplicates."""
+    cols = []
+    for field in _offending_fields(error):
+        header = FIELD_TO_HEADER.get(field, field)
+        if header and header not in cols:
+            cols.append(header)
+    # Address-split failure has no "X is required" marker but is an Address issue.
+    if ("tách được" in error or "consignee_address" in error) and "Address" not in cols:
+        cols.append("Address")
+    return ", ".join(cols)
+
+
+def _vi_error(error):
+    """Vietnamese-friendly error text. Missing-field lines name the sheet column;
+    other messages (B2 API errors, address split) pass through unchanged."""
+    parts = [p.strip() for p in error.split(";") if p.strip()]
+    out = []
+    for part in parts:
+        match = re.match(r"([a-z_][a-z_0-9]*) is required", part)
+        if match:
+            col = FIELD_TO_HEADER.get(match.group(1), match.group(1))
+            out.append(f"Thiếu trường bắt buộc: {col}")
+        else:
+            out.append(part)
+    return "; ".join(out)
 
 
 def map_output_row(row):
@@ -86,8 +135,8 @@ def map_output_row(row):
     out = {
         "Mã vận đơn": row.get("tracking_number", ""),
         "Trạng thái khởi tạo": STATUS_VI.get(status, ""),
-        "Cột bị lỗi": row.get("error_column", "") or _first_error_field(error),
-        "Tên lỗi": error,
+        "Cột bị lỗi": row.get("error_column", "") or _error_columns(error),
+        "Tên lỗi": _vi_error(error),
     }
     if status in ("CREATED", "SAVED"):
         out["Trạng thái tạo đơn hàng tự động trên yamato"] = "Thành công"
