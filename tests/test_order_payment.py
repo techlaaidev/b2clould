@@ -124,10 +124,10 @@ def test_prepare_form_order_sets_non_dm_service_type():
     }
     error = prepare_form_order(row)
     assert error == ""
-    assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (COD)
+    assert row["service_type"] == "5"  # Daibiki -> 着払い (receiver pays delivery fee)
     assert row["print_type"] == "m5"
-    assert row["label_type"] == "COD"
-    assert row["amount"] == "61300"
+    assert row["label_type"] == "Chakubarai"
+    assert row["amount"] == ""
 
 
 def test_validate_local_surfaces_unpaid_banktransfer():
