@@ -122,8 +122,8 @@ def _vi_error(error):
         match = re.match(r"([a-z_][a-z_0-9]*) is required", part)
         if match:
             col = FIELD_TO_HEADER.get(match.group(1), match.group(1))
-            out.append(f"Thiếu trường bắt buộc: {col}")
-        else:
+            part = f"Thiếu trường bắt buộc: {col}"
+        if part not in out:  # collapse duplicates (e.g. address3 + address both -> Address)
             out.append(part)
     return "; ".join(out)
 
