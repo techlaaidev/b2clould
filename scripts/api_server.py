@@ -311,17 +311,9 @@ def create_order_shipments(
     for item in rows:
         row = normalize_order_row(map_input_row(item))
         row["pdf_base64"] = ""
-        if (row.get("carrier") or "").upper() not in CARRIER_YAMATO:
-            row["status"] = "SKIPPED"
-            row["error_message"] = "Đơn JAPANPOST - không xử lý trên Yamato"
-            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            output.append(row)
-            continue
-        if row.get("tracking_number"):
-            row["status"] = "CREATED"
-            row["error_message"] = ""
-            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            output.append(row)
+        gate = precheck_carrier_and_tracking(row)
+        if gate is not None:
+            output.append(gate)
             continue
         if row.get("status") not in {"READY", "NEW"}:
             row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
