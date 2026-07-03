@@ -123,6 +123,17 @@ def derive_payment_fields(row):
     if item_name and not (row.get("item_name1") or "").strip():
         row["item_name1"] = item_name
 
+    if ttype == DAIBIKI:
+        # Ships 着払い (service_type 5): the receiver pays the delivery fee to
+        # Yamato. Yamato does NOT collect the product price, so there is no
+        # 代引金額 — amount/cod_amount stay empty (mirrors a working 着払い order).
+        row["payment_method"] = "Chakubarai"
+        row["label_type"] = "Chakubarai"
+        row["amount"] = ""
+        row["cod_amount"] = ""
+        return ""
+
+    # BANK_TRANSFER, already confirmed paid (else compute returns an error)
     amount, error = compute_cod_amount(
         ttype,
         row.get("payment_status"),
@@ -131,17 +142,10 @@ def derive_payment_fields(row):
     )
     if error:
         return error
-
-    if ttype == DAIBIKI:
-        row["payment_method"] = "COD"
-        row["label_type"] = "COD"
-        row["amount"] = str(amount)
-        row["cod_amount"] = str(amount)
-    else:  # BANK_TRANSFER, already confirmed paid (else compute returned an error)
-        row["payment_method"] = "BANK_TRANSFER"
-        row["label_type"] = "Prepaid"
-        row["amount"] = "0"
-        row["bank_transfer_confirmed"] = "yes"
+    row["payment_method"] = "BANK_TRANSFER"
+    row["label_type"] = "Prepaid"
+    row["amount"] = "0"
+    row["bank_transfer_confirmed"] = "yes"
     return ""
 
 
