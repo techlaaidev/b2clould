@@ -238,7 +238,7 @@ def prepare_form_order(row):
         return ""
     row["delivery_date"] = normalize_delivery_date(row.get("delivery_date"))
     row["delivery_time_zone"] = normalize_delivery_time(row.get("delivery_time_zone"))
-    row["service_type"] = SERVICE_TYPE_CHAKUBARAI if ttype == DAIBIKI else SERVICE_TYPE_PREPAID
+    row["service_type"] = SERVICE_TYPE_COD if ttype == DAIBIKI else SERVICE_TYPE_PREPAID
     if (row.get("print_type") or "").strip() in ("", "3", "0", "2"):
         row["print_type"] = FORM_PRINT_TYPE
     if ttype == BANK_TRANSFER and not (row.get("bank_account") or "").strip():
