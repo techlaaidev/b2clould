@@ -149,6 +149,9 @@ def derive_payment_fields(row):
     item_name, total_price = parse_product_number(row.get("product_number"))
     if item_name and not (row.get("item_name1") or "").strip():
         row["item_name1"] = item_name
+    # Enforce Yamato's 品名 width limit on whatever name we end up with.
+    if (row.get("item_name1") or "").strip():
+        row["item_name1"] = truncate_item_name(row["item_name1"])
 
     if ttype == DAIBIKI:
         # Ships 宅急便コレクト (service_type 2): Yamato collects the 代引金額
