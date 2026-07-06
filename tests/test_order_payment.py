@@ -8,6 +8,7 @@ from scripts.order_payment import (
     derive_payment_fields,
     parse_product_number,
     prepare_form_order,
+    truncate_item_name,
 )
 from scripts.orders_csv import normalize_row, validate_local
 
