@@ -157,11 +157,11 @@ def test_validate_local_passes_daibiki_without_shipper_or_invoice():
     )
     errors = validate_local(row)
     assert errors == []
-    assert row["service_type"] == "5"  # Daibiki -> 着払い (receiver pays delivery fee)
-    assert row["label_type"] == "Chakubarai"
-    assert row["payment_method"] == "Chakubarai"
-    assert row["amount"] == ""
-    assert row["cod_amount"] == ""
+    assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (代引/COD)
+    assert row["label_type"] == "COD"
+    assert row["payment_method"] == "COD"
+    assert row["amount"] == "37300"
+    assert row["cod_amount"] == "37300"
     assert row["item_name1"] == "iPhone 11 128GB White"
 
 
