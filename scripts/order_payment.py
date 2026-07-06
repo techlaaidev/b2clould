@@ -124,13 +124,20 @@ def derive_payment_fields(row):
         row["item_name1"] = item_name
 
     if ttype == DAIBIKI:
-        # Ships 着払い (service_type 5): the receiver pays the delivery fee to
-        # Yamato. Yamato does NOT collect the product price, so there is no
-        # 代引金額 — amount/cod_amount stay empty (mirrors a working 着払い order).
-        row["payment_method"] = "Chakubarai"
-        row["label_type"] = "Chakubarai"
-        row["amount"] = ""
-        row["cod_amount"] = ""
+        # Ships 宅急便コレクト (service_type 2): Yamato collects the 代引金額
+        # (product price) from the receiver on delivery and remits it to the shop.
+        amount, error = compute_cod_amount(
+            ttype,
+            row.get("payment_status"),
+            row.get("deposit_amount"),
+            total_price,
+        )
+        if error:
+            return error
+        row["payment_method"] = "COD"
+        row["label_type"] = "COD"
+        row["amount"] = str(amount)
+        row["cod_amount"] = str(amount)
         return ""
 
     # BANK_TRANSFER, already confirmed paid (else compute returns an error)
