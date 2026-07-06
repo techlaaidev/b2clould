@@ -68,6 +68,32 @@ def parse_product_number(text):
     return name, price
 
 
+# Yamato 品名 (item_name1) limit: 25 full-width chars. Half-width count 0.5,
+# so a 50-char ASCII name still fits. Over-limit names raise ES001031.
+ITEM_NAME_MAX_WIDTH = 25.0
+
+
+def _char_width(ch):
+    return 1.0 if unicodedata.east_asian_width(ch) in ("W", "F") else 0.5
+
+
+def truncate_item_name(name, max_width=ITEM_NAME_MAX_WIDTH):
+    """Trim a 品名 to Yamato's width limit (25 full-width units).
+
+    Full-width chars count 1.0, half-width 0.5. Returns the name unchanged when
+    it already fits. Prevents ES001031 (品名が長すぎます).
+    """
+    text = (name or "").strip()
+    total = 0.0
+    out = []
+    for ch in text:
+        total += _char_width(ch)
+        if total > max_width:
+            break
+        out.append(ch)
+    return "".join(out)
+
+
 def compute_cod_amount(type_of_transaction, payment_status, deposit, total_price):
     """Return (amount, error).
 
