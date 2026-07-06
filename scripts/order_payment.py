@@ -164,6 +164,16 @@ def derive_payment_fields(row):
         )
         if error:
             return error
+        if amount == 0:
+            # Deposit already covers the full price — nothing left to collect, so
+            # ship 発払い (prepaid) instead of 代引 with a zero 代引金額. This avoids
+            # paying the 代引手数料 for a collection of 0.
+            row["service_type"] = SERVICE_TYPE_PREPAID
+            row["payment_method"] = "PREPAID"
+            row["label_type"] = "Prepaid"
+            row["amount"] = "0"
+            row["cod_amount"] = "0"
+            return ""
         row["payment_method"] = "COD"
         row["label_type"] = "COD"
         row["amount"] = str(amount)
