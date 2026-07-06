@@ -102,10 +102,10 @@ def test_derive_fills_yamato_fields_for_daibiki():
     error = derive_payment_fields(row)
     assert error == ""
     assert row["item_name1"] == "iPad 11 128GB WIFI BNIB blue"
-    # Daibiki ships 着払い: no product-price collection, so amount stays empty.
-    assert row["payment_method"] == "Chakubarai"
-    assert row["amount"] == ""
-    assert row["cod_amount"] == ""
+    # Daibiki ships 宅急便コレクト (代引): Yamato collects the product price.
+    assert row["payment_method"] == "COD"
+    assert row["amount"] == "61300"
+    assert row["cod_amount"] == "61300"
 
 
 def test_derive_is_noop_without_type_of_transaction():
