@@ -23,6 +23,7 @@ LABEL_DIR = Path(__file__).resolve().parents[1] / "data" / "labels"
 SERVICE_TYPES = {
     "": "All",
     "0": "Takkyubin prepaid",
+    "2": "Collect (COD / 代引)",
     "3": "Kuroneko Yu-Mail (DM)",
     "4": "Time",
     "5": "Cash on delivery",
