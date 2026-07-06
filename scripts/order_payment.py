@@ -12,6 +12,7 @@ prefix inside Product Number (the prefix is a human label and is ignored).
 import logging
 import os
 import re
+import unicodedata
 from datetime import datetime
 
 logger = logging.getLogger("b2cloud.order_payment")
