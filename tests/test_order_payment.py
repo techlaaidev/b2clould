@@ -109,6 +109,29 @@ def test_derive_fills_yamato_fields_for_daibiki():
     assert row["cod_amount"] == "61300"
 
 
+def test_truncate_item_name_width_aware():
+    # ASCII counts 0.5/char: 50 chars = 25.0 width, still fits.
+    ascii50 = "macbook pro 2015 13inch retina space gray abcdefgh"
+    assert len(ascii50) == 50
+    assert truncate_item_name(ascii50) == ascii50
+    # Over 50 ASCII chars gets cut at 50 (25.0 width).
+    assert len(truncate_item_name(ascii50 + "XXXX")) == 50
+    # Full-width counts 1.0/char: 26 kana -> trimmed to 25.
+    kana = "あ" * 26
+    assert truncate_item_name(kana) == "あ" * 25
+
+
+def test_derive_truncates_long_item_name():
+    row = {
+        "product_number": "COD_" + "iPhone 15 Pro Max 256GB Natural Titanium xyz - 99000",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "",
+    }
+    derive_payment_fields(row)
+    # 品名 kept within the 25 full-width limit (ASCII => <=50 chars).
+    assert len(row["item_name1"]) <= 50
+
+
 def test_derive_is_noop_without_type_of_transaction():
     row = {"item_name1": "kept", "product_number": "ignored - 999"}
     assert derive_payment_fields(row) == ""
