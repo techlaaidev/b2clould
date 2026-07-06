@@ -132,6 +132,40 @@ def test_derive_truncates_long_item_name():
     assert len(row["item_name1"]) <= 50
 
 
+def test_daibiki_deposit_partial_collects_remainder():
+    row = {
+        "service_type": "3",
+        "print_type": "3",
+        "product_number": "COD_iPhone 13 128GB - 100000",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "DP",
+        "deposit_amount": "30000",
+    }
+    error = prepare_form_order(row)
+    assert error == ""
+    assert row["service_type"] == "2"  # still 代引
+    assert row["amount"] == "70000"    # price - deposit
+    assert row["cod_amount"] == "70000"
+
+
+def test_daibiki_full_deposit_ships_prepaid():
+    row = {
+        "service_type": "3",
+        "print_type": "3",
+        "product_number": "COD_iPhone 13 128GB - 100000",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "DP",
+        "deposit_amount": "100000",
+    }
+    error = prepare_form_order(row)
+    assert error == ""
+    # Fully deposited -> nothing to collect -> ship 発払い (prepaid), not 代引.
+    assert row["service_type"] == "0"
+    assert row["payment_method"] == "PREPAID"
+    assert row["label_type"] == "Prepaid"
+    assert row["amount"] == "0"
+
+
 def test_derive_is_noop_without_type_of_transaction():
     row = {"item_name1": "kept", "product_number": "ignored - 999"}
     assert derive_payment_fields(row) == ""
