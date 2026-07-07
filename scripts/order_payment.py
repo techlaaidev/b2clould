@@ -314,6 +314,9 @@ def prepare_form_order(row):
     row["service_type"] = SERVICE_TYPE_COD if ttype == DAIBIKI else SERVICE_TYPE_PREPAID
     if (row.get("print_type") or "").strip() in ("", "3", "0", "2"):
         row["print_type"] = FORM_PRINT_TYPE
+    # Trim 記事 (note) to Yamato's width limit, else B2 raises ES001036.
+    if (row.get("note") or "").strip():
+        row["note"] = truncate_item_name(row["note"], NOTE_MAX_WIDTH)
     if ttype == BANK_TRANSFER and not (row.get("bank_account") or "").strip():
         return "BankTransfer thiếu Back account (#11)"
     return derive_payment_fields(row)
