@@ -94,6 +94,25 @@ def truncate_item_name(name, max_width=ITEM_NAME_MAX_WIDTH):
     return "".join(out)
 
 
+def _split_at_width(text, max_width):
+    """Split text at max_width full-width units → (head, tail).
+
+    head is the longest prefix that fits within max_width; tail is the rest.
+    Full-width chars count 1.0, half-width 0.5.
+    """
+    total = 0.0
+    for i, ch in enumerate(text):
+        total += _char_width(ch)
+        if total > max_width:
+            return text[:i], text[i:]
+    return text, ""
+
+
+# Yamato お届け先住所3 (町・番地) width limit. Overflow (building / room) must go
+# to address4 (建物名), else B2 raises ES001014 (お届け先町・番地が長すぎます).
+CONSIGNEE_ADDRESS3_MAX_WIDTH = 20.0
+
+
 def compute_cod_amount(type_of_transaction, payment_status, deposit, total_price):
     """Return (amount, error).
 
