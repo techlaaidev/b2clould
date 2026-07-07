@@ -102,14 +102,23 @@ def _split_at_width(text, max_width):
     """Split text at max_width full-width units → (head, tail).
 
     head is the longest prefix that fits within max_width; tail is the rest.
-    Full-width chars count 1.0, half-width 0.5.
+    Prefers breaking at the last space within the limit (so romaji building
+    names aren't cut mid-word); falls back to the exact width boundary
+    (Japanese text has no spaces and wraps anywhere). Full-width 1.0, half 0.5.
     """
     total = 0.0
+    cut = len(text)
     for i, ch in enumerate(text):
         total += _char_width(ch)
         if total > max_width:
-            return text[:i], text[i:]
-    return text, ""
+            cut = i
+            break
+    else:
+        return text, ""
+    space = text.rfind(" ", 0, cut)
+    if space > 0:
+        return text[:space], text[space + 1:]
+    return text[:cut], text[cut:]
 
 
 # Yamato お届け先住所3 (町・番地) width limit. Overflow (building / room) must go
