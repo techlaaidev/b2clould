@@ -69,8 +69,8 @@ function createReadyShipments() {
     });
 
     ensureHeader_(sheet, "pdf_url");
-    writeRowsByPosition_(sheet, result.rows, read.sheetRows);
-    return summarizeRows_(result.rows);
+    const warning = writeRowsByPosition_(sheet, result.rows, read.sheetRows, read.rows);
+    return summarizeRows_(result.rows) + warning;
   });
 }
 
