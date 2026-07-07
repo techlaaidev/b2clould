@@ -158,8 +158,8 @@ function getSelectedRowSet_(sheet) {
 }
 
 
-function writeRowsByPosition_(sheet, rows, sheetRows) {
-  if (!rows || !rows.length) return;
+function writeRowsByPosition_(sheet, rows, sheetRows, sentRows) {
+  if (!rows || !rows.length) return "";
 
   const headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1))
     .getDisplayValues()[0]
@@ -170,14 +170,32 @@ function writeRowsByPosition_(sheet, rows, sheetRows) {
   });
 
   // Results come back in the same order they were sent, so write by position.
+  // Safety: if the sheet was sorted / rows inserted or deleted while the API
+  // was running, the remembered row numbers point at the wrong rows. Before
+  // writing, re-check the row's Name cell still matches what was sent; if it
+  // moved, skip that row and report it instead of writing onto a stranger.
+  const nameCol = headerMap["Name"];
+  const mismatches = [];
   rows.forEach((row, i) => {
     const sheetRow = sheetRows[i];
     if (!sheetRow) return;
+    if (nameCol && sentRows && sentRows[i]) {
+      const sentName = String(sentRows[i]["Name"] || "").trim();
+      const nowName = String(sheet.getRange(sheetRow, nameCol).getDisplayValue() || "").trim();
+      if (sentName && nowName !== sentName) {
+        mismatches.push(`Dòng ${sheetRow}: "${sentName}" đã bị di chuyển (hiện là "${nowName}") — KHÔNG ghi kết quả.`);
+        return;
+      }
+    }
     Object.keys(row).forEach(key => {
       if (key === "pdf_base64" || !headerMap[key]) return;
       sheet.getRange(sheetRow, headerMap[key]).setValue(row[key] ?? "");
     });
   });
+
+  if (!mismatches.length) return "";
+  return "\n\n⚠ Sheet bị thay đổi trong lúc xử lý (sort/thêm/xoá dòng?):\n" +
+    mismatches.join("\n") + "\nHãy chạy lại các dòng này.";
 }
 
 
