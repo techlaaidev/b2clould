@@ -196,18 +196,22 @@ def test_split_separates_building_when_postal_lookup_fails():
     assert a4 == "和光ハイム No.302"           # building/room moved here
 
 
-def test_prepare_form_order_truncates_long_note():
-    row = {
-        "service_type": "3",
-        "print_type": "3",
-        "product_number": "COD_iPhone 13 - 50000",
-        "type_of_transaction": "Daibiki",
-        "payment_status": "",
-        "note": "あ" * 40,  # 40 full-width -> over the 記事 limit
-    }
-    error = prepare_form_order(row)
-    assert error == ""
-    assert _text_width(row["note"]) <= 20.0
+def test_create_shipment_does_not_send_note_to_yamato():
+    # "Ghi chú" is an internal scratch column (deposit note); it must not be
+    # forwarded to the Yamato label (would print + trip ES001036 when long).
+    row = normalize_row(
+        _consignee_base(
+            "ORD-NOTE",
+            service_type="0",
+            product_number="COD - item - 61300",
+            type_of_transaction="Daibiki",
+            payment_status="",
+            note="あ" * 40,
+        )
+    )
+    prepare_form_order(row)
+    shipment = create_shipment(row)
+    assert shipment["shipment"]["note"] == ""
 
 
 def test_derive_is_noop_without_type_of_transaction():
