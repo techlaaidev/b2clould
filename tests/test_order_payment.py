@@ -169,6 +169,21 @@ def test_daibiki_full_deposit_ships_prepaid():
     assert row["amount"] == "0"
 
 
+def test_split_address_caps_address3_and_overflows_to_building():
+    # No postal session -> regex fallback. A long romaji building/room string
+    # after the banchi must not blow past the 町・番地 width limit (ES001014).
+    full = (
+        "香川県坂出市川津町2126番地1 "
+        "Nagai New Dormitory Building A Room 101 extra long tail xxxxxxxx"
+    )
+    a1, a2, a3, a4 = split_consignee_address(None, "762-0025", full)
+    assert a1 == "香川県"
+    assert _text_width(a3) <= CONSIGNEE_ADDRESS3_MAX_WIDTH
+    # Nothing is lost: the overflow lands in the building field (address4).
+    assert "101" in (a3 + a4)
+    assert a4  # building/room text moved here
+
+
 def test_derive_is_noop_without_type_of_transaction():
     row = {"item_name1": "kept", "product_number": "ignored - 999"}
     assert derive_payment_fields(row) == ""
