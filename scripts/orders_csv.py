@@ -238,7 +238,9 @@ def create_shipment(row: dict) -> dict:
         "item_name2",
         "handling_information1",
         "handling_information2",
-        "note",
+        # "note" is intentionally NOT sent: the sheet's "Ghi chú" column is an
+        # internal scratch field (staff jot the deposit amount there); it must
+        # not print on the Yamato label, and long notes tripped ES001036.
     ]
     for field in direct_fields:
         data[field] = row.get(field, "")
