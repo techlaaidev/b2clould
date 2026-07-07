@@ -184,6 +184,32 @@ def test_split_address_caps_address3_and_overflows_to_building():
     assert a4  # building/room text moved here
 
 
+def test_split_separates_building_when_postal_lookup_fails():
+    # Novy's address (ES001014 repro). No session -> regex fallback, yet the
+    # building/room must still land in address4 so 町・番地 stays short.
+    full = "石川県加賀市山代温泉山世台2丁目4番 和光ハイム No.302"
+    a1, a2, a3, a4 = split_consignee_address(None, "9220242", full)
+    assert a1 == "石川県"
+    assert a2 == "加賀市"
+    assert a3 == "山代温泉山世台2丁目4番"      # town+banchi only
+    assert _text_width(a3) <= CONSIGNEE_ADDRESS3_MAX_WIDTH
+    assert a4 == "和光ハイム No.302"           # building/room moved here
+
+
+def test_prepare_form_order_truncates_long_note():
+    row = {
+        "service_type": "3",
+        "print_type": "3",
+        "product_number": "COD_iPhone 13 - 50000",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "",
+        "note": "あ" * 40,  # 40 full-width -> over the 記事 limit
+    }
+    error = prepare_form_order(row)
+    assert error == ""
+    assert _text_width(row["note"]) <= 20.0
+
+
 def test_derive_is_noop_without_type_of_transaction():
     row = {"item_name1": "kept", "product_number": "ignored - 999"}
     assert derive_payment_fields(row) == ""
