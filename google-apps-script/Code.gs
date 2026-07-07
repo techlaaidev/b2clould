@@ -45,8 +45,8 @@ function validateAndSyncOrders() {
     if (!read.rows.length) return "Chưa chọn dòng nào. Hãy bôi đen các dòng cần xử lý rồi chạy lại.";
     const result = callB2Api_("/api/orders/validate", { rows: read.rows });
 
-    writeRowsByPosition_(sheet, result.rows, read.sheetRows);
-    return summarizeRows_(result.rows);
+    const warning = writeRowsByPosition_(sheet, result.rows, read.sheetRows, read.rows);
+    return summarizeRows_(result.rows) + warning;
   });
 }
 
