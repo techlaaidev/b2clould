@@ -379,9 +379,18 @@ def create_order_shipments(
     return output
 
 
+# Bump on every deploy so /version confirms which code Render is actually running.
+APP_VERSION = "2026-07-07a-addr-banchi-note20"
+
+
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/version")
+def version():
+    return {"version": APP_VERSION}
 
 
 @app.get("/api/session/status", dependencies=[Depends(require_api_key)])
