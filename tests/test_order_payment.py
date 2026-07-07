@@ -13,7 +13,7 @@ from scripts.order_payment import (
     split_consignee_address,
     truncate_item_name,
 )
-from scripts.orders_csv import normalize_row, validate_local
+from scripts.orders_csv import create_shipment, normalize_row, validate_local
 
 
 def _consignee_base(order_id, **extra):
