@@ -72,10 +72,6 @@ def parse_product_number(text):
 # so a 50-char ASCII name still fits. Over-limit names raise ES001031.
 ITEM_NAME_MAX_WIDTH = 25.0
 
-# Yamato 記事 (note) width limit. Over-limit raises ES001036 (記事が長すぎます).
-# B2 checkonly confirmed: 20 full-width passes, 25 fails — keep to 20 to be safe.
-NOTE_MAX_WIDTH = 20.0
-
 
 def _char_width(ch):
     return 1.0 if unicodedata.east_asian_width(ch) in ("W", "F") else 0.5
