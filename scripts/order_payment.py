@@ -121,9 +121,10 @@ def _split_at_width(text, max_width):
     return text[:cut], text[cut:]
 
 
-# Yamato お届け先住所3 (町・番地) width limit. Overflow (building / room) must go
-# to address4 (建物名), else B2 raises ES001014 (お届け先町・番地が長すぎます).
-CONSIGNEE_ADDRESS3_MAX_WIDTH = 20.0
+# Yamato お届け先住所3 (町・番地) width backstop. B2 rejected a 20.0-width value
+# with ES001014, so keep this well under 20. With proper banchi/building
+# separation the town+banchi is normally short; this only guards odd cases.
+CONSIGNEE_ADDRESS3_MAX_WIDTH = 16.0
 
 
 def compute_cod_amount(type_of_transaction, payment_status, deposit, total_price):
