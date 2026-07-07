@@ -318,8 +318,24 @@ def prepare_form_order(row):
     return derive_payment_fields(row)
 
 
-# Leading banchi part: digits / fullwidth digits / hyphens / 番地号丁目の.
-_BANCHI_RE = re.compile(r"^([0-9０-９\-－―ー\s番地号丁目の]+)(.*)$")
+# Banchi block: a run beginning at the first digit through the address number
+# (digits / fullwidth digits / hyphens / 番地号丁目の). Whatever follows is the
+# building/room name. Unlike an anchored match this is found anywhere in the
+# string, so it separates the building even when the postal lookup failed and
+# the town name (kanji) still leads the remainder.
+_BANCHI_BLOCK_RE = re.compile(r"[0-9０-９][0-9０-９\-－―ー丁目番地号の]*")
+
+
+def _separate_banchi_building(rest):
+    """Split 'town+banchi building' → (head_through_banchi, building).
+
+    Cuts right after the first numeric banchi block so the building / room
+    name lands in address4. No number found → whole string is the head.
+    """
+    match = _BANCHI_BLOCK_RE.search(rest or "")
+    if not match:
+        return (rest or "").strip(), ""
+    return rest[: match.end()].strip(), rest[match.end():].strip()
 
 # Tách tỉnh/thành từ địa chỉ Nhật khi API bưu điện B2 không trả kết quả.
 # Tỉnh (address1): 都道府県 (đặc biệt 北海道, 京都府/大阪府). Thành phố/quận (address2): tới 市/区/郡 đầu tiên.
