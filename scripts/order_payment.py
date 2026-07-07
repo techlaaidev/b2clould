@@ -77,6 +77,10 @@ def _char_width(ch):
     return 1.0 if unicodedata.east_asian_width(ch) in ("W", "F") else 0.5
 
 
+def _text_width(text):
+    return sum(_char_width(ch) for ch in (text or ""))
+
+
 def truncate_item_name(name, max_width=ITEM_NAME_MAX_WIDTH):
     """Trim a 品名 to Yamato's width limit (25 full-width units).
 
