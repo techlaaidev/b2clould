@@ -395,18 +395,16 @@ def split_consignee_address(session, postcode, full_address):
             rest = rest[len(piece):]
     if town and rest.startswith(town):
         rest = rest[len(town):]
-    match = _BANCHI_RE.match(rest)
-    banchi = match.group(1).strip() if match else rest
-    building = match.group(2).strip() if match else ""
-    address3 = (town + banchi).strip() or rest
+    banchi_head, building = _separate_banchi_building(rest)
+    address3 = (town + banchi_head).strip() or rest
 
-    # Enforce Yamato's 町・番地 width limit: when the banchi/building boundary
-    # can't be cleanly detected, the tail is dumped into address3 and it grows
-    # past the limit (ES001014). Move the overflow into address4 (建物名).
+    # Safety net: if 町・番地 is still over Yamato's limit (ES001014), move the
+    # overflow into address4 (建物名), preferring a space break.
     if _text_width(address3) > CONSIGNEE_ADDRESS3_MAX_WIDTH:
         address3, tail = _split_at_width(address3, CONSIGNEE_ADDRESS3_MAX_WIDTH)
         address3 = address3.strip()
-        building = (tail.strip() + building).strip()
+        joiner = " " if tail.strip() and building else ""
+        building = (tail.strip() + joiner + building).strip()
 
     return a1, a2, address3, building
 
