@@ -749,7 +749,9 @@ function kvFillNameFromImei_(e, sheet, headers) {
   if (!hit) {
     nameCell.clearContent();
     sheet.getRange(row, codeCol).clearContent();
-    SpreadsheetApp.getActive().toast('IMEI "' + imei + '" không có trong kho CN ' + kvCurrentBranchId_() + '.', "KiotViet", 5);
+    SpreadsheetApp.getActive().toast(
+      'Không tìm thấy sản phẩm nào có IMEI "' + imei + '" trong kho KiotViet (chi nhánh ' + kvCurrentBranchId_() + '). Kiểm tra lại IMEI.',
+      "KiotViet — không tìm thấy sản phẩm", 8);
     return;
   }
   nameCell.setValue(hit.name);
