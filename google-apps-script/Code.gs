@@ -325,16 +325,20 @@ function getSelectedRowSet_(sheet) {
 }
 
 
+// Bản đồ header -> số cột (1-based) của dòng tiêu đề hiện tại.
+function headerMap_(sheet) {
+  const map = {};
+  headerRow_(sheet).forEach((header, index) => {
+    if (header) map[header] = index + 1;
+  });
+  return map;
+}
+
+
 function writeRowsByPosition_(sheet, rows, sheetRows, sentRows) {
   if (!rows || !rows.length) return "";
 
-  const headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1))
-    .getDisplayValues()[0]
-    .map(value => String(value).trim());
-  const headerMap = {};
-  headers.forEach((header, index) => {
-    if (header) headerMap[header] = index + 1;
-  });
+  const headerMap = headerMap_(sheet);
 
   // Results come back in the same order they were sent, so write by position.
   // Safety: if the sheet was sorted / rows inserted or deleted while the API
