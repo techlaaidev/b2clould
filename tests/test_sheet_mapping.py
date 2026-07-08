@@ -76,4 +76,4 @@ def test_banktransfer_without_bank_account_is_invalid():
         "payment_status": "Đã chuyển khoản", "bank_account": "",
     })
     errors = validate_local(row)
-    assert any("Back account" in e for e in errors)
+    assert any("Bank Account" in e for e in errors)
