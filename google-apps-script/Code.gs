@@ -537,23 +537,29 @@ const STATUS_VI_ = {
 function summarizeRows_(rows) {
   const counts = {};
   const errors = [];
+  const duplicates = [];
   rows.forEach(row => {
     // Phân biệt đơn VỪA tạo mới với đơn ĐÃ CÓ SẴN trên Yamato từ trước
     // (server gắn created_now="1" khi thật sự vừa phát hành trong lần gọi này).
     let status = row.status || "UNKNOWN";
     if (status === "CREATED" && !row.created_now) status = "EXISTED";
     counts[status] = (counts[status] || 0) + 1;
-    // Chỉ ghi "Chi tiết lỗi" cho dòng THẬT SỰ lỗi (INVALID/ERROR).
+
     // Ưu tiên "Tên lỗi" (đã dịch tiếng Việt) thay vì error_message thô.
     const msg = row["Tên lỗi"] || row.error_message || "";
+    const who = row.consignee_name || row.order_id || "";
     if (msg && (status === "INVALID" || status === "ERROR")) {
-      const who = row.consignee_name || row.order_id || "";
       errors.push("• " + (who ? who + " — " : "") + msg);
+    }
+    // Đơn trùng: báo chi tiết (ngày tạo, mã vận đơn, thu hộ) cho từng dòng.
+    if (msg && status === "EXISTED") {
+      duplicates.push("• " + (who ? who + " — " : "") + msg);
     }
   });
   let out = Object.keys(counts).sort()
     .map(status => `${STATUS_VI_[status] || status}: ${counts[status]}`)
     .join("\n");
+  if (duplicates.length) out += "\n\n⚠ Đơn TRÙNG (không tạo lại):\n" + duplicates.slice(0, 15).join("\n");
   if (errors.length) out += "\n\nChi tiết lỗi:\n" + errors.slice(0, 15).join("\n");
   return out;
 }
