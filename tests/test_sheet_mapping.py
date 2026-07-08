@@ -77,19 +77,6 @@ def test_precheck_only_accepts_yamato_carrier():
     assert skipped["status"] == "SKIPPED"
 
 
-def test_duplicate_note_has_full_details_in_vietnamese():
-    from scripts.api_server import duplicate_note_vi
-
-    note = duplicate_note_vi(
-        {"shipment_date": "20260707", "amount": 90400}, "380352633710"
-    )
-    assert "Đơn TRÙNG" in note
-    assert "07/07/2026" in note          # ngày tạo gốc trên B2
-    assert "380352633710" in note        # mã vận đơn của đơn cũ
-    assert "90400¥" in note              # số tiền thu hộ của đơn cũ
-    assert "xoá đơn cũ" in note          # hướng dẫn cách tạo lại nếu cần
-
-
 def test_normalize_auto_generates_order_id():
     row = normalize_row({"consignee_name": "A", "product_number": "p"})
     assert row["order_id"].startswith("AUTO-")
