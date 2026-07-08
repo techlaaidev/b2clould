@@ -298,6 +298,7 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
 
         if existing_status:
             row["status"] = existing_status
+            row["created_now"] = ""
             row["tracking_number"] = existing_tracking
             row["error_message"] = (
                 "Đơn đã có trên Yamato B2."
