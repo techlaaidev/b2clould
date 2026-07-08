@@ -255,53 +255,6 @@ def find_issued_tracking(session, row: dict[str, str]) -> str:
     return ""
 
 
-def find_existing_shipment(session, row: dict[str, str]) -> tuple[str | None, str, dict]:
-    """Returns (status, tracking, shipment) — shipment là dữ liệu đơn cũ trên B2
-    (ngày tạo, số tiền thu hộ...) để báo chi tiết khi phát hiện đơn trùng."""
-    order_id = row.get("order_id", "")
-    if not order_id:
-        return None, "", {}
-
-    history = b2cloud.search_history(session, shipment_number=order_id)
-    history_entries = matching_order_entries(history, order_id)
-    if history_entries:
-        shipment = history_entries[0].get("shipment", {})
-        return "CREATED", shipment.get("tracking_number", ""), shipment
-
-    saved = b2cloud.get_new(session, params={"shipment_number": order_id})
-    saved_entries = matching_order_entries(saved, order_id)
-    if saved_entries:
-        shipment = saved_entries[0].get("shipment", {})
-        return "SAVED", shipment.get("tracking_number", ""), shipment
-
-    return None, "", {}
-
-
-def _fmt_b2_date(raw) -> str:
-    raw = str(raw or "")
-    if len(raw) == 8 and raw.isdigit():
-        return f"{raw[6:8]}/{raw[4:6]}/{raw[0:4]}"
-    return raw
-
-
-def duplicate_note_vi(shipment: dict, tracking: str) -> str:
-    """Thông điệp tiếng Việt chi tiết cho đơn TRÙNG (đã có sẵn trên Yamato B2)."""
-    parts = ["Đơn TRÙNG — đã tạo trên Yamato B2"]
-    date = _fmt_b2_date(shipment.get("shipment_date"))
-    if date:
-        parts.append(f"ngày {date}")
-    if tracking:
-        parts.append(f"với mã vận đơn {tracking}")
-    amount = shipment.get("amount")
-    if amount:
-        parts.append(f"thu hộ {amount}¥")
-    return (
-        " ".join(parts)
-        + ". Không tạo lại để tránh gửi trùng hàng. Nếu cần tạo đơn mới: "
-        "xoá đơn cũ trên Yamato B2, xoá ô Mã vận đơn trên sheet rồi chạy lại."
-    )
-
-
 def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, str]]:
     output = []
     for item in rows:
