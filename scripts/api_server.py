@@ -378,15 +378,16 @@ def create_order_shipments(
             continue
 
         try:
-            existing_status, existing_tracking = find_existing_shipment(session, row)
+            existing_status, existing_tracking, existing_shipment = find_existing_shipment(session, row)
             if existing_status == "CREATED":
                 # Already issued in B2 (a real tracking number exists) — do not
-                # re-create; just report the existing order. created_now="" cho
-                # popup phân biệt "đã có sẵn từ trước" với "vừa tạo mới".
+                # re-create; report the duplicate IN DETAIL (ngày tạo, mã vận
+                # đơn, thu hộ). created_now="" cho popup phân biệt "đã có sẵn
+                # từ trước" với "vừa tạo mới".
                 row["status"] = "CREATED"
                 row["created_now"] = ""
                 row["tracking_number"] = existing_tracking
-                row["error_message"] = "Đơn đã được tạo trước đó trên Yamato B2 (không tạo lại)."
+                row["error_message"] = duplicate_note_vi(existing_shipment, existing_tracking)
                 row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 output.append(row)
                 continue
