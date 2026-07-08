@@ -273,6 +273,33 @@ def test_validate_local_passes_daibiki_without_shipper_or_invoice():
     assert row["item_name1"] == "iPhone 11 128GB White"
 
 
+def test_b2_error_translated_to_vietnamese_with_column():
+    # Lỗi Yamato (tiếng Nhật + tên trường nội bộ) phải ra tiếng Việt + tên cột sheet.
+    message, columns = b2_errors_to_vi([
+        {
+            "error_property_name": "consignee_address3",
+            "error_code": "ES001014",
+            "error_description": "お届け先町・番地が長すぎます。",
+        }
+    ])
+    assert columns == "Address"
+    assert "quá dài" in message
+    assert "ES001014" in message
+    assert "お届け先" not in message  # không lộ tiếng Nhật cho người dùng cuối
+
+
+def test_map_output_statuses_match_sheet_dropdown():
+    # Dropdown "Trạng thái khởi tạo" chỉ có 3 giá trị, đúng chữ hoa/thường.
+    assert map_output_row({"status": "CREATED"})["Trạng thái khởi tạo"] == "Đã tạo đơn"
+    assert map_output_row({"status": "PENDING"})["Trạng thái khởi tạo"] == "Chờ tạo đơn"
+    assert map_output_row({"status": "SAVED"})["Trạng thái khởi tạo"] == "Chờ tạo đơn"
+    assert map_output_row({"status": "INVALID"})["Trạng thái khởi tạo"] == "Không tạo đơn"
+    # Cột trạng thái tự động: PENDING chưa được tính là thành công.
+    assert map_output_row({"status": "PENDING"})["Trạng thái tạo đơn hàng tự động trên yamato"] == "Đang chờ Yamato xác nhận"
+    assert map_output_row({"status": "CREATED"})["Trạng thái tạo đơn hàng tự động trên yamato"] == "Thành công"
+    assert map_output_row({"status": "INVALID"})["Trạng thái tạo đơn hàng tự động trên yamato"] == "Thất bại"
+
+
 def test_banktransfer_paid_gets_prepaid_label():
     row = {
         "product_number": "TF - Samsung S23 ultra - 92800",
