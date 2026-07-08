@@ -61,6 +61,22 @@ def test_map_output_lists_all_missing_columns():
     assert bad["Cột bị lỗi"] == "Name, Mobile, Product Number"
 
 
+def test_precheck_only_accepts_yamato_carrier():
+    from scripts.api_server import precheck_carrier_and_tracking
+
+    # YAMATO (mọi kiểu hoa/thường) -> đi tiếp (None = xử lý trên Yamato B2).
+    assert precheck_carrier_and_tracking({"carrier": "YAMATO", "tracking_number": ""}) is None
+    assert precheck_carrier_and_tracking({"carrier": "yamato", "tracking_number": ""}) is None
+    # Cách viết cũ JAMATO không còn được nhận -> lỗi tiếng Việt chỉ rõ cột.
+    rejected = precheck_carrier_and_tracking({"carrier": "JAMATO", "tracking_number": ""})
+    assert rejected["status"] == "INVALID"
+    assert "YAMATO" in rejected["error_message"]
+    assert rejected["error_column"] == "Đơn vị giao hàng"
+    # JAPANPOST vẫn được bỏ qua (xuất CSV riêng), không phải lỗi.
+    skipped = precheck_carrier_and_tracking({"carrier": "JAPANPOST", "tracking_number": ""})
+    assert skipped["status"] == "SKIPPED"
+
+
 def test_normalize_auto_generates_order_id():
     row = normalize_row({"consignee_name": "A", "product_number": "p"})
     assert row["order_id"].startswith("AUTO-")
