@@ -14,6 +14,7 @@ from scripts.order_payment import (
     truncate_item_name,
 )
 from scripts.orders_csv import create_shipment, normalize_row, validate_local
+from scripts.sheet_mapping import b2_errors_to_vi, map_output_row
 
 
 def _consignee_base(order_id, **extra):
