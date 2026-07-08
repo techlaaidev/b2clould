@@ -16,6 +16,7 @@ from scripts.orders_csv import OUTPUT_COLUMNS, create_shipment, validate_local
 from scripts.order_payment import apply_account_defaults
 from scripts.sheet_mapping import (
     CARRIER_YAMATO,
+    b2_errors_to_vi,
     generate_order_id,
     map_input_row,
     map_output_row,
