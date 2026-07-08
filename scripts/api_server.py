@@ -318,7 +318,7 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
             continue
 
         try:
-            existing_status, existing_tracking = find_existing_shipment(session, row)
+            existing_status, existing_tracking, existing_shipment = find_existing_shipment(session, row)
         except Exception as exc:
             output.append(set_order_error(row, f"Không kiểm tra được đơn trên Yamato B2: {exc}", "ERROR"))
             continue
@@ -328,7 +328,7 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
             row["created_now"] = ""
             row["tracking_number"] = existing_tracking
             row["error_message"] = (
-                "Đơn đã có trên Yamato B2."
+                duplicate_note_vi(existing_shipment, existing_tracking)
                 if existing_status == "CREATED"
                 else "Đơn nháp đã có trên Yamato B2, chưa phát hành — chạy 'Tạo vận đơn cho đơn hợp lệ' để phát hành."
             )
