@@ -359,26 +359,12 @@ def create_order_shipments(
             continue
 
         try:
-            existing_status, existing_tracking, existing_shipment = find_existing_shipment(session, row)
-            if existing_status == "CREATED":
-                # Already issued in B2 (a real tracking number exists) — do not
-                # re-create; report the duplicate IN DETAIL (ngày tạo, mã vận
-                # đơn, thu hộ). created_now="" cho popup phân biệt "đã có sẵn
-                # từ trước" với "vừa tạo mới".
-                row["status"] = "CREATED"
-                row["created_now"] = ""
-                row["tracking_number"] = existing_tracking
-                row["error_message"] = duplicate_note_vi(existing_shipment, existing_tracking)
-                row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                output.append(row)
-                continue
-
-            if existing_status == "SAVED":
-                # A draft was saved earlier (未発行) but never issued. Reuse that
-                # draft and issue it below instead of skipping it forever, so it
-                # finally gets a real tracking number.
-                saved = b2cloud.get_new(session, params={"shipment_number": row["order_id"]})
-                saved = {"feed": {"entry": matching_order_entries(saved, row["order_id"])}}
+            # A draft saved earlier (未発行) but never issued: reuse it and issue
+            # it below instead of piling up duplicate drafts on B2.
+            saved = b2cloud.get_new(session, params={"shipment_number": row["order_id"]})
+            saved_entries = matching_order_entries(saved, row["order_id"])
+            if saved_entries:
+                saved = {"feed": {"entry": saved_entries}}
             else:
                 shipment = create_shipment(row)
                 checked = b2cloud.post_new_checkonly(session, [shipment])
