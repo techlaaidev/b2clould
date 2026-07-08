@@ -229,19 +229,39 @@ function localOnlySummary_(part) {
 }
 
 
-// Đặt lại dropdown cột "Đơn vị giao hàng" về đúng 2 lựa chọn JAMATO / JAPANPOST
-// (bỏ mục JAMATO bị trùng). Chạy 1 lần từ menu.
+// Đặt lại dropdown cột "Đơn vị giao hàng" về đúng 2 lựa chọn YAMATO / JAPANPOST,
+// đồng thời đổi hàng loạt các ô đang ghi "JAMATO" (cách viết cũ) thành "YAMATO".
+// Chạy 1 lần từ menu.
 function fixCarrierDropdown() {
   runWithAlert_("Đang sửa dropdown Đơn vị giao hàng...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const col = headerMap_(sheet)["Đơn vị giao hàng"];
     if (!col) throw new Error('Không tìm thấy cột "Đơn vị giao hàng" trên sheet này.');
+
+    // Đổi giá trị cũ JAMATO -> YAMATO trước, để dropdown mới không báo ô sai.
+    let converted = 0;
+    const lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      const range = sheet.getRange(2, col, lastRow - 1, 1);
+      const values = range.getValues();
+      values.forEach(cells => {
+        if (String(cells[0] || "").trim().toUpperCase() === "JAMATO") {
+          cells[0] = "YAMATO";
+          converted++;
+        }
+      });
+      if (converted) range.setValues(values);
+    }
+
     const rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(["JAMATO", "JAPANPOST"], true)
+      .requireValueInList(["YAMATO", "JAPANPOST"], true)
       .setAllowInvalid(false)
       .build();
     sheet.getRange(2, col, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
-    return 'Đã đặt lại dropdown "Đơn vị giao hàng": JAMATO, JAPANPOST (đã bỏ mục trùng).';
+
+    let out = 'Đã đặt lại dropdown "Đơn vị giao hàng": chỉ còn YAMATO, JAPANPOST.';
+    if (converted) out += "\nĐã đổi " + converted + ' ô "JAMATO" cũ thành "YAMATO".';
+    return out;
   });
 }
 
