@@ -261,12 +261,12 @@ function callB2Api_(path, payload) {
   try {
     data = JSON.parse(text);
   } catch (error) {
-    throw new Error(`API HTTP ${response.getResponseCode()}: ${text}`);
+    throw new Error(`Máy chủ B2 trả lỗi (HTTP ${response.getResponseCode()}): ${text}`);
   }
 
   if (response.getResponseCode() >= 400) {
     throw new Error(
-      `API HTTP ${response.getResponseCode()}: ${data.detail || data.error || text}`
+      `Máy chủ B2 trả lỗi (HTTP ${response.getResponseCode()}): ${data.detail || data.error || text}`
     );
   }
   return data;
