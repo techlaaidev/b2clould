@@ -400,6 +400,7 @@ def create_order_shipments(
                 if tracking:
                     row["tracking_number"] = tracking
                     row["status"] = "CREATED"
+                    row["created_now"] = "1"
                 else:
                     row["tracking_number"] = ""
                     row["status"] = "PENDING"
