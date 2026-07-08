@@ -8,6 +8,7 @@ function onOpen() {
     .addSeparator()
     .addItem("Kiểm tra và đồng bộ đơn", "validateAndSyncOrders")
     .addItem("Tạo vận đơn cho đơn hợp lệ", "createReadyShipments")
+    .addItem("Sửa dropdown Đơn vị giao hàng", "fixCarrierDropdown")
     .addSeparator()
     .addItem("Tạo CSV Japan Post (YuPack R)", "generateJapanPostCsv")
     .addSeparator()
