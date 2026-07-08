@@ -146,26 +146,26 @@ def compute_cod_amount(type_of_transaction, payment_status, deposit, total_price
 
     if ttype == DAIBIKI:
         if total_price is None:
-            return 0, "Khong doc duoc gia tong tu Product Number"
+            return 0, "Không đọc được giá bán ở cột Product Number (cần số tiền ở cuối, ví dụ: iPhone 13 128GB - 61300)"
         if status == "":
             return total_price, ""
         if status.upper() == DEPOSIT_MARKER:
             deposit_value = _to_int(deposit)
             if deposit_value is None:
-                return 0, "Daibiki danh dau DP nhung thieu so tien dat coc (#18)"
+                return 0, "Đơn Daibiki có đặt cọc (DP) nhưng thiếu cột Số tiền đặt cọc"
             if deposit_value > total_price:
-                return 0, "So tien dat coc lon hon gia tong"
+                return 0, "Số tiền đặt cọc lớn hơn giá bán trong Product Number"
             return total_price - deposit_value, ""
-        return 0, f"Trang thai thanh toan khong hop le cho Daibiki: {status}"
+        return 0, f"Cột Thanh toán không hợp lệ cho đơn Daibiki: '{status}' (để trống hoặc điền DP)"
 
     if ttype == BANK_TRANSFER:
         if status == PAID_MARKER:
             return 0, ""
         if status == "":
-            return 0, "BankTransfer chua chuyen khoan"
-        return 0, f"Trang thai thanh toan khong hop le cho BankTransfer: {status}"
+            return 0, "Đơn BankTransfer chưa chuyển khoản — cột Thanh toán phải là 'Đã chuyển khoản'"
+        return 0, f"Cột Thanh toán không hợp lệ cho đơn BankTransfer: '{status}' (phải là 'Đã chuyển khoản')"
 
-    return 0, f"Type of transaction khong hop le: {type_of_transaction!r}"
+    return 0, f"Cột Type of transaction không hợp lệ: '{ttype}' (chỉ nhận Daibiki hoặc BankTransfer)"
 
 
 def derive_payment_fields(row):
