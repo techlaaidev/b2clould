@@ -315,7 +315,7 @@ def prepare_form_order(row):
     if (row.get("print_type") or "").strip() in ("", "3", "0", "2"):
         row["print_type"] = FORM_PRINT_TYPE
     if ttype == BANK_TRANSFER and not (row.get("bank_account") or "").strip():
-        return "BankTransfer thiếu Back account (#11)"
+        return "Đơn BankTransfer thiếu cột Bank Account"
     return derive_payment_fields(row)
 
 
