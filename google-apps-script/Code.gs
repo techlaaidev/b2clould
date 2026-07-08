@@ -1040,7 +1040,7 @@ function kvResolveForInvoice_(token, retailer, code, imei) {
   if (product.isLotSerialControl) {
     if (!imeiTrim) throw new Error(`SP quản lý IMEI — cần điền IMEI vào cột "${KV_IMEI_HEADER}".`);
     const matches = serialsRaw.filter(s => String(s.serialNumber).trim() === imeiTrim);
-    if (!matches.length) throw new Error(`IMEI "${imeiTrim}" không thuộc SP này (sai IMEI hoặc nhập nhầm).`);
+    if (!matches.length) throw new Error(`Không tìm thấy sản phẩm khớp IMEI "${imeiTrim}" trên KiotViet (sai IMEI hoặc nhập nhầm).`);
     // Chỉ IMEI còn hàng (status 1) VÀ ở đúng chi nhánh hiện tại mới bán được ở đây.
     const sellable = matches.filter(s => Number(s.status) === 1 && Number(s.branchId) === branchId)[0];
     if (!sellable) {
