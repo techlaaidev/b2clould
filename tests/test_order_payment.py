@@ -75,7 +75,7 @@ def test_daibiki_with_dp_deposit_subtracts():
 def test_daibiki_dp_without_deposit_is_invalid():
     amount, error = compute_cod_amount("Daibiki", "DP", "", 100000)
     assert amount == 0
-    assert "dat coc" in error
+    assert "Số tiền đặt cọc" in error
 
 
 def test_banktransfer_paid_collects_zero():
