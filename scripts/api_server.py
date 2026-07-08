@@ -350,7 +350,7 @@ def create_order_shipments(
                 # re-create; just report the existing order.
                 row["status"] = "CREATED"
                 row["tracking_number"] = existing_tracking
-                row["error_message"] = f"Order already issued in B2 Cloud: {row['order_id']}"
+                row["error_message"] = "Đơn đã được tạo trước đó trên Yamato B2 (không tạo lại)."
                 row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 output.append(row)
                 continue
@@ -366,7 +366,9 @@ def create_order_shipments(
                 checked = b2cloud.post_new_checkonly(session, [shipment])
                 checked_errors = feed_entries(checked)[0].get("error", []) if feed_entries(checked) else []
                 if checked_errors:
-                    output.append(set_order_error(row, "; ".join(str(error) for error in checked_errors)))
+                    message, columns = b2_errors_to_vi(checked_errors)
+                    row["error_column"] = columns
+                    output.append(set_order_error(row, message))
                     continue
                 saved = b2cloud.post_new(session, checked)
 
@@ -383,13 +385,20 @@ def create_order_shipments(
                 if include_pdf_base64:
                     row["pdf_base64"] = base64.b64encode(pdf_data).decode("ascii")
                     row["pdf_filename"] = f"{row['order_id'] or 'shipment'}.pdf"
+                # "Đã tạo đơn" chỉ khi tra thấy đơn trong lịch sử Yamato B2 (có
+                # mã vận đơn thật). Chưa thấy (index lag) -> PENDING, người dùng
+                # chạy 'Kiểm tra và đồng bộ đơn' sau vài phút để chốt trạng thái.
                 tracking = find_issued_tracking(session, row)
                 if tracking:
                     row["tracking_number"] = tracking
-                row["status"] = "CREATED"
+                    row["status"] = "CREATED"
+                else:
+                    row["tracking_number"] = ""
+                    row["status"] = "PENDING"
+                    row["error_message"] = PENDING_NOTE_VI
             row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         except Exception as exc:
-            row = set_order_error(row, str(exc), status="ERROR")
+            row = set_order_error(row, f"Lỗi hệ thống khi tạo đơn trên Yamato B2: {exc}", status="ERROR")
         output.append(row)
     for row in output:
         row.update(map_output_row(row))
