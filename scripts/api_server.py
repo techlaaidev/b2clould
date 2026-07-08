@@ -287,13 +287,17 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
         try:
             existing_status, existing_tracking = find_existing_shipment(session, row)
         except Exception as exc:
-            output.append(set_order_error(row, f"Failed to check existing shipment: {exc}", "ERROR"))
+            output.append(set_order_error(row, f"Không kiểm tra được đơn trên Yamato B2: {exc}", "ERROR"))
             continue
 
         if existing_status:
             row["status"] = existing_status
             row["tracking_number"] = existing_tracking
-            row["error_message"] = "Order already exists in B2 Cloud."
+            row["error_message"] = (
+                "Đơn đã có trên Yamato B2."
+                if existing_status == "CREATED"
+                else "Đơn nháp đã có trên Yamato B2, chưa phát hành — chạy 'Tạo vận đơn cho đơn hợp lệ' để phát hành."
+            )
             row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             output.append(row)
             continue
@@ -305,7 +309,9 @@ def validate_order_rows(session, rows: list[dict[str, Any]]) -> list[dict[str, s
             row["error_message"] = ""
             row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         else:
-            row = set_order_error(row, "; ".join(str(error) for error in result["errors"]))
+            message, columns = b2_errors_to_vi(result["errors"])
+            row["error_column"] = columns
+            row = set_order_error(row, message)
         output.append(row)
     for row in output:
         row.update(map_output_row(row))
