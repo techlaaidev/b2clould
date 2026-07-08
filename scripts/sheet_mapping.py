@@ -35,15 +35,29 @@ INPUT_MAP = {
 CARRIER_YAMATO = {"JAMATO", "YAMATO", ""}
 CARRIER_JAPANPOST = "JAPANPOST"
 
-# Internal status -> "Trạng thái khởi tạo" (3 values).
+# Internal status -> "Trạng thái khởi tạo". Phải khớp ĐÚNG chữ hoa/thường với
+# dropdown trên sheet: "Đã tạo đơn" / "Chờ tạo đơn" / "Không tạo đơn".
+# "Đã tạo đơn" chỉ khi đơn đã được XÁC NHẬN có trên Yamato B2 (tra thấy trong
+# lịch sử, có mã vận đơn thật). Đã phát hành nhưng Yamato chưa ghi nhận xong
+# (PENDING) hoặc mới lưu nháp (SAVED) đều là "Chờ tạo đơn".
 STATUS_VI = {
-    "CREATED": "đã tạo đơn",
-    "SAVED": "đã tạo đơn",
-    "READY": "chờ tạo đơn",
-    "NEW": "chờ tạo đơn",
-    "INVALID": "không tạo đơn",
-    "ERROR": "không tạo đơn",
-    "SKIPPED": "không tạo đơn",
+    "CREATED": "Đã tạo đơn",
+    "PENDING": "Chờ tạo đơn",
+    "SAVED": "Chờ tạo đơn",
+    "READY": "Chờ tạo đơn",
+    "NEW": "Chờ tạo đơn",
+    "INVALID": "Không tạo đơn",
+    "ERROR": "Không tạo đơn",
+    "SKIPPED": "Không tạo đơn",
+}
+
+# Internal status -> "Trạng thái tạo đơn hàng tự động trên yamato".
+# Không có trong map -> giữ nguyên giá trị đang có trên sheet.
+YAMATO_AUTO_STATUS_VI = {
+    "CREATED": "Thành công",
+    "PENDING": "Đang chờ Yamato xác nhận",
+    "INVALID": "Thất bại",
+    "ERROR": "Thất bại",
 }
 
 
