@@ -87,13 +87,14 @@ def test_banktransfer_paid_collects_zero():
 def test_banktransfer_unpaid_is_invalid():
     amount, error = compute_cod_amount("BankTransfer", "", "", 139800)
     assert amount == 0
-    assert "chua chuyen khoan" in error
+    assert "chưa chuyển khoản" in error
 
 
 def test_unknown_transaction_type_is_invalid():
     amount, error = compute_cod_amount("", "", "", 61300)
     assert amount == 0
-    assert "khong hop le" in error
+    assert "không hợp lệ" in error
+    assert "Type of transaction" in error
 
 
 def test_derive_fills_yamato_fields_for_daibiki():
