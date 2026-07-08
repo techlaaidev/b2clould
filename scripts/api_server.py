@@ -149,12 +149,18 @@ def precheck_carrier_and_tracking(row: dict[str, str]):
     carrier = (row.get("carrier") or "").strip().upper()
     if not carrier:
         row["error_column"] = "Đơn vị giao hàng"
-        return set_order_error(row, "Thiếu đơn vị giao hàng (phải là YAMATO)")
-    if carrier not in CARRIER_YAMATO:
+        return set_order_error(row, "Thiếu cột Đơn vị giao hàng (chọn YAMATO hoặc JAPANPOST)")
+    if carrier == "JAPANPOST":
         row["status"] = "SKIPPED"
-        row["error_message"] = "Đơn JAPANPOST - không xử lý trên Yamato"
+        row["error_message"] = "Đơn JAPANPOST — xuất CSV riêng, không xử lý trên Yamato"
         row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return row
+    if carrier not in CARRIER_YAMATO:
+        row["error_column"] = "Đơn vị giao hàng"
+        return set_order_error(
+            row,
+            f"Cột Đơn vị giao hàng không hợp lệ: '{carrier}' (chỉ nhận YAMATO hoặc JAPANPOST)",
+        )
     if row.get("tracking_number"):
         row["status"] = "CREATED"
         row["error_column"] = "Mã vận đơn"
