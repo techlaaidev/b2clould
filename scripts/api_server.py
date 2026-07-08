@@ -412,7 +412,7 @@ def create_order_shipments(
 
 
 # Bump on every deploy so /version confirms which code Render is actually running.
-APP_VERSION = "2026-07-08a-vi-errors-pending-status"
+APP_VERSION = "2026-07-08b-yamato-only-carrier"
 
 
 @app.get("/health")
