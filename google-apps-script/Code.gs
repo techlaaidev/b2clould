@@ -44,21 +44,38 @@ function validateAndSyncOrders() {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
     if (!read.rows.length) return "Chưa chọn dòng nào. Hãy bôi đen các dòng cần xử lý rồi chạy lại.";
-    const result = callB2Api_("/api/orders/validate", { rows: read.rows });
 
-    const warning = writeRowsByPosition_(sheet, result.rows, read.sheetRows, read.rows);
-    return summarizeRows_(result.rows) + warning;
+    // Kiểm tra dữ liệu ngay trên sheet trước — dòng lỗi được báo tại chỗ, không
+    // gửi lên server (nhanh hơn nhiều). Dòng đã có mã vận đơn vẫn gửi để đồng bộ.
+    const part = partitionRowsLocally_(sheet, read, true);
+    if (!part.valid.length) return localOnlySummary_(part);
+
+    const result = callB2Api_("/api/orders/validate", { rows: part.valid });
+    const warning = writeRowsByPosition_(sheet, result.rows, part.validSheetRows, part.valid);
+    return localSummary_(part) + summarizeRows_(result.rows) + warning + localErrorDetails_(part);
   });
 }
 
 
 function createReadyShipments() {
-  runWithAlert_("Đang tạo vận đơn...", () => {
+  runWithAlert_("Đang kiểm tra dữ liệu trên sheet...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
     if (!read.rows.length) return "Chưa chọn dòng nào. Hãy bôi đen các dòng cần xử lý rồi chạy lại.";
+
+    ensureHeader_(sheet, "pdf_url");
+
+    // Bước 1: kiểm tra dữ liệu ngay trên sheet. Dòng lỗi → ghi "Không tạo đơn"
+    // + tên cột + lỗi tiếng Việt tại chỗ, KHÔNG gửi lên server. Dòng hợp lệ →
+    // đánh dấu "Chờ tạo đơn" rồi mới gửi lên Yamato B2.
+    const part = partitionRowsLocally_(sheet, read, false);
+    if (!part.valid.length) return localOnlySummary_(part);
+
+    SpreadsheetApp.getActive().toast(
+      "Dữ liệu hợp lệ: " + part.valid.length + " đơn. Đang gửi lên Yamato B2...", "B2 Cloud", 15);
+
     const result = callB2Api_("/api/orders/create", {
-      rows: read.rows,
+      rows: part.valid,
       issue_pdf: true,
       include_pdf_base64: true
     });
@@ -69,9 +86,158 @@ function createReadyShipments() {
       delete row.pdf_base64;
     });
 
-    ensureHeader_(sheet, "pdf_url");
-    const warning = writeRowsByPosition_(sheet, result.rows, read.sheetRows, read.rows);
-    return summarizeRows_(result.rows) + warning;
+    const warning = writeRowsByPosition_(sheet, result.rows, part.validSheetRows, part.valid);
+    return localSummary_(part) + summarizeRows_(result.rows) + warning + localErrorDetails_(part);
+  });
+}
+
+
+// ===== Kiểm tra dữ liệu ngay trên sheet (trước khi gửi lên server) =====
+// Chặn sớm lỗi thiếu/sai dữ liệu để không phải chờ server, và báo đúng tên cột
+// cần sửa bằng tiếng Việt. Server vẫn kiểm tra lần cuối (tách địa chỉ, Yamato...).
+
+// Trả về danh sách lỗi [{col, msg}] của một dòng; rỗng = hợp lệ.
+function localValidateRow_(row) {
+  const errors = [];
+  const need = (col, msg) => {
+    if (!String(row[col] || "").trim()) errors.push({ col: col, msg: msg });
+  };
+  need("Name", "Thiếu tên người nhận (cột Name)");
+  need("Postcode", "Thiếu mã bưu điện (cột Postcode)");
+  need("Address", "Thiếu địa chỉ (cột Address)");
+  need("Mobile", "Thiếu số điện thoại (cột Mobile)");
+  need("Product Number", "Thiếu sản phẩm (cột Product Number)");
+
+  const prod = String(row["Product Number"] || "").trim();
+  if (prod && parsePriceFromProductNumber_(prod) == null) {
+    errors.push({ col: "Product Number", msg: 'Cột Product Number thiếu giá bán ở cuối (ví dụ "iPhone 13 128GB - 61300")' });
+  }
+
+  const ttype = String(row["Type of transaction"] || "").trim();
+  const pay = String(row["Thanh toán"] || "").trim();
+  if (!ttype) {
+    errors.push({ col: "Type of transaction", msg: "Thiếu cột Type of transaction (chọn Daibiki hoặc BankTransfer)" });
+  } else if (ttype === "Daibiki") {
+    if (pay && pay.toUpperCase() !== "DP") {
+      errors.push({ col: "Thanh toán", msg: 'Cột Thanh toán không hợp lệ cho đơn Daibiki: "' + pay + '" (để trống hoặc điền DP)' });
+    } else if (pay.toUpperCase() === "DP") {
+      const deposit = String(row["Số tiền đặt cọc"] || "").replace(/[.,\s]/g, "");
+      if (!deposit) {
+        errors.push({ col: "Số tiền đặt cọc", msg: "Đơn Daibiki có đặt cọc (DP) nhưng thiếu cột Số tiền đặt cọc" });
+      } else if (!/^\d+$/.test(deposit)) {
+        errors.push({ col: "Số tiền đặt cọc", msg: "Cột Số tiền đặt cọc phải là số" });
+      }
+    }
+  } else if (ttype === "BankTransfer") {
+    if (pay !== "Đã chuyển khoản") {
+      errors.push({ col: "Thanh toán", msg: 'Đơn BankTransfer chưa chuyển khoản — cột Thanh toán phải là "Đã chuyển khoản"' });
+    }
+    if (!String(row["Bank Account"] || row["Back account"] || "").trim()) {
+      errors.push({ col: "Bank Account", msg: "Đơn BankTransfer thiếu cột Bank Account" });
+    }
+  } else {
+    errors.push({ col: "Type of transaction", msg: 'Cột Type of transaction không hợp lệ: "' + ttype + '" (chỉ nhận Daibiki hoặc BankTransfer)' });
+  }
+  return errors;
+}
+
+
+// Lấy giá bán ở cuối ô Product Number: số sau dấu '-' cuối cùng, cho phép đuôi y/¥.
+function parsePriceFromProductNumber_(text) {
+  const match = String(text || "").match(/-\s*([\d.,]+)\s*[y¥]?\s*$/i);
+  if (!match) return null;
+  const digits = match[1].replace(/[.,\s]/g, "");
+  return /^\d+$/.test(digits) ? Number(digits) : null;
+}
+
+
+// Chia các dòng đã chọn thành: hợp lệ (gửi lên server) / lỗi dữ liệu (ghi kết
+// quả tại chỗ) / bỏ qua (JAPANPOST, đã có mã vận đơn). keepTracked=true: dòng
+// đã có mã vận đơn vẫn gửi (menu "Kiểm tra và đồng bộ đơn" cần chúng để đồng bộ).
+function partitionRowsLocally_(sheet, read, keepTracked) {
+  const headerMap = headerMap_(sheet);
+  const out = {
+    valid: [], validSheetRows: [],
+    localErrors: [], skippedTracking: 0, skippedJapanPost: 0
+  };
+
+  read.rows.forEach((row, i) => {
+    const sheetRow = read.sheetRows[i];
+    const carrier = String(row["Đơn vị giao hàng"] || "").trim().toUpperCase();
+    if (carrier === "JAPANPOST") { out.skippedJapanPost++; return; }
+
+    const hasTracking = !!String(row["Mã vận đơn"] || "").trim();
+    if (hasTracking && !keepTracked) { out.skippedTracking++; return; }
+
+    const errors = hasTracking ? [] : localValidateRow_(row);
+    if (!carrier) {
+      errors.unshift({ col: "Đơn vị giao hàng", msg: "Thiếu cột Đơn vị giao hàng (chọn JAMATO hoặc JAPANPOST)" });
+    }
+
+    if (errors.length) {
+      const cols = [];
+      errors.forEach(e => { if (cols.indexOf(e.col) === -1) cols.push(e.col); });
+      writeLocalResult_(sheet, sheetRow, headerMap, "Không tạo đơn",
+        cols.join(", "), errors.map(e => e.msg).join("; "), "Thất bại");
+      out.localErrors.push("• " + (row["Name"] || ("Dòng " + sheetRow)) + " — " + errors.map(e => e.msg).join("; "));
+      return;
+    }
+
+    // Hợp lệ, sắp gửi lên Yamato B2 → trạng thái "Chờ tạo đơn", xoá lỗi cũ.
+    if (!hasTracking) writeLocalResult_(sheet, sheetRow, headerMap, "Chờ tạo đơn", "", "", "");
+    out.valid.push(row);
+    out.validSheetRows.push(sheetRow);
+  });
+  return out;
+}
+
+
+// Ghi kết quả kiểm tra cục bộ vào đúng dòng: trạng thái + cột bị lỗi + tên lỗi.
+function writeLocalResult_(sheet, sheetRow, headerMap, status, errorCols, errorMsg, autoStatus) {
+  const setCell = (header, value) => {
+    if (headerMap[header]) sheet.getRange(sheetRow, headerMap[header]).setValue(value);
+  };
+  setCell("Trạng thái khởi tạo", status);
+  setCell("Cột bị lỗi", errorCols);
+  setCell("Tên lỗi", errorMsg);
+  setCell("Trạng thái tạo đơn hàng tự động trên yamato", autoStatus);
+}
+
+
+function localSummary_(part) {
+  let out = "";
+  if (part.localErrors.length) out += "Không tạo đơn (lỗi dữ liệu, chưa gửi lên Yamato): " + part.localErrors.length + "\n";
+  if (part.skippedTracking) out += "Bỏ qua (đã có mã vận đơn): " + part.skippedTracking + "\n";
+  if (part.skippedJapanPost) out += "Bỏ qua (đơn JAPANPOST — xuất CSV riêng): " + part.skippedJapanPost + "\n";
+  return out;
+}
+
+
+function localErrorDetails_(part) {
+  if (!part.localErrors.length) return "";
+  return "\n\nLỗi dữ liệu (sửa xong hãy chạy lại các dòng này):\n" + part.localErrors.slice(0, 15).join("\n");
+}
+
+
+function localOnlySummary_(part) {
+  const out = localSummary_(part) + localErrorDetails_(part);
+  return out.trim() || "Không có dòng nào cần xử lý.";
+}
+
+
+// Đặt lại dropdown cột "Đơn vị giao hàng" về đúng 2 lựa chọn JAMATO / JAPANPOST
+// (bỏ mục JAMATO bị trùng). Chạy 1 lần từ menu.
+function fixCarrierDropdown() {
+  runWithAlert_("Đang sửa dropdown Đơn vị giao hàng...", () => {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const col = headerMap_(sheet)["Đơn vị giao hàng"];
+    if (!col) throw new Error('Không tìm thấy cột "Đơn vị giao hàng" trên sheet này.');
+    const rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(["JAMATO", "JAPANPOST"], true)
+      .setAllowInvalid(false)
+      .build();
+    sheet.getRange(2, col, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
+    return 'Đã đặt lại dropdown "Đơn vị giao hàng": JAMATO, JAPANPOST (đã bỏ mục trùng).';
   });
 }
 
