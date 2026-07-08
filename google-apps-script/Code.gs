@@ -522,7 +522,8 @@ function saveCsvToDrive_(csv, fileName) {
 // Trạng thái nội bộ (backend) → nhãn tiếng Việt cho popup, để không hiện chữ "INVALID".
 // "Đã tạo đơn" CHỈ hiện khi đơn đã được xác nhận có trên Yamato B2.
 const STATUS_VI_ = {
-  CREATED: "Đã tạo đơn (đã xác nhận trên Yamato)",
+  CREATED: "Tạo đơn MỚI thành công (đã xác nhận trên Yamato)",
+  EXISTED: "Đã có sẵn trên Yamato từ trước (không tạo lại — xem ngày tạo trên B2)",
   PENDING: "Đã gửi lên Yamato, chờ xác nhận — vài phút nữa chạy 'Kiểm tra và đồng bộ đơn'",
   SAVED: "Đơn nháp đã có trên Yamato (chưa phát hành)",
   READY: "Hợp lệ, chờ tạo đơn",
@@ -537,7 +538,10 @@ function summarizeRows_(rows) {
   const counts = {};
   const errors = [];
   rows.forEach(row => {
-    const status = row.status || "UNKNOWN";
+    // Phân biệt đơn VỪA tạo mới với đơn ĐÃ CÓ SẴN trên Yamato từ trước
+    // (server gắn created_now="1" khi thật sự vừa phát hành trong lần gọi này).
+    let status = row.status || "UNKNOWN";
+    if (status === "CREATED" && !row.created_now) status = "EXISTED";
     counts[status] = (counts[status] || 0) + 1;
     // Chỉ ghi "Chi tiết lỗi" cho dòng THẬT SỰ lỗi (INVALID/ERROR).
     // Ưu tiên "Tên lỗi" (đã dịch tiếng Việt) thay vì error_message thô.
