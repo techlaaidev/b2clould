@@ -880,6 +880,7 @@ function kvRunCreateInvoices_(force) {
     const nameCol = headers.indexOf(KV_NAME_HEADER);
     const codeCol = headers.indexOf(KV_CODE_HEADER);
     const imeiCol = headers.indexOf(KV_IMEI_HEADER);
+    const prodNumCol = headers.indexOf("Product Number");
     // Cột khách hàng: tên khách = "IG/WA Account" (unique); SĐT/email/địa chỉ để tạo khách đầy đủ.
     const igCol = headers.indexOf("IG/WA Account");
     const mobileCol = headers.indexOf("Mobile");
