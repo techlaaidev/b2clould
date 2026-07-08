@@ -32,7 +32,9 @@ INPUT_MAP = {
 }
 
 # Carrier values that route through Yamato/B2. JAPANPOST is handled elsewhere.
-CARRIER_YAMATO = {"JAMATO", "YAMATO", ""}
+# Chỉ nhận đúng "YAMATO" — cách viết cũ "JAMATO" đã bị loại bỏ (menu
+# "Sửa dropdown Đơn vị giao hàng" trên sheet tự đổi JAMATO -> YAMATO).
+CARRIER_YAMATO = {"YAMATO"}
 CARRIER_JAPANPOST = "JAPANPOST"
 
 # Internal status -> "Trạng thái khởi tạo". Phải khớp ĐÚNG chữ hoa/thường với
