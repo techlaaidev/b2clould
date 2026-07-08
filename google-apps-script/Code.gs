@@ -1063,13 +1063,17 @@ function kvResolveForInvoice_(token, retailer, code, imei) {
 }
 
 
-function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId) {
+// fallbackPrice: giá lấy từ cột Product Number (số tiền khách đã trả) — chỉ dùng
+// khi SP trên KiotViet để giá 0/không có giá, để hóa đơn không bị 0 đồng.
+function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId, fallbackPrice) {
+  const basePrice = product.basePrice != null ? Number(product.basePrice) : 0;
+  const price = basePrice > 0 ? basePrice : (fallbackPrice != null ? fallbackPrice : 0);
   const detail = {
     productId: product.id,
     productCode: product.code,
     productName: product.fullName || product.name || "",
     quantity: 1,
-    price: product.basePrice != null ? product.basePrice : 0
+    price: price
   };
   if (serialNumbers) detail.serialNumbers = serialNumbers;
 
