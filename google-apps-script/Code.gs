@@ -950,8 +950,10 @@ function kvRunCreateInvoices_(force) {
           }
         }
 
+        // SP giá 0 trên KiotViet → lấy số tiền khách đã trả từ cuối cột Product Number.
+        const paidPrice = prodNumCol === -1 ? null : parsePriceFromProductNumber_(raw[prodNumCol]);
         const invoice = kvCreateInvoice_(
-          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId
+          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId, paidPrice
         );
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
