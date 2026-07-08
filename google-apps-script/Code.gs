@@ -496,11 +496,13 @@ function saveCsvToDrive_(csv, fileName) {
 
 
 // Trạng thái nội bộ (backend) → nhãn tiếng Việt cho popup, để không hiện chữ "INVALID".
+// "Đã tạo đơn" CHỈ hiện khi đơn đã được xác nhận có trên Yamato B2.
 const STATUS_VI_ = {
-  CREATED: "Đã tạo đơn",
-  SAVED: "Đã tạo đơn",
-  READY: "Hợp lệ, chờ tạo",
-  NEW: "Hợp lệ, chờ tạo",
+  CREATED: "Đã tạo đơn (đã xác nhận trên Yamato)",
+  PENDING: "Đã gửi lên Yamato, chờ xác nhận — vài phút nữa chạy 'Kiểm tra và đồng bộ đơn'",
+  SAVED: "Đơn nháp đã có trên Yamato (chưa phát hành)",
+  READY: "Hợp lệ, chờ tạo đơn",
+  NEW: "Hợp lệ, chờ tạo đơn",
   INVALID: "Không tạo được (lỗi dữ liệu)",
   ERROR: "Không tạo được (lỗi hệ thống)",
   SKIPPED: "Bỏ qua"
@@ -514,8 +516,8 @@ function summarizeRows_(rows) {
     const status = row.status || "UNKNOWN";
     counts[status] = (counts[status] || 0) + 1;
     // Chỉ ghi "Chi tiết lỗi" cho dòng THẬT SỰ lỗi (INVALID/ERROR).
-    // Dòng thành công/trùng (CREATED/SAVED) có thể kèm ghi chú nhưng KHÔNG phải lỗi.
-    const msg = row.error_message || row["Tên lỗi"] || "";
+    // Ưu tiên "Tên lỗi" (đã dịch tiếng Việt) thay vì error_message thô.
+    const msg = row["Tên lỗi"] || row.error_message || "";
     if (msg && (status === "INVALID" || status === "ERROR")) {
       const who = row.consignee_name || row.order_id || "";
       errors.push("• " + (who ? who + " — " : "") + msg);
