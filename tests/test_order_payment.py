@@ -248,7 +248,7 @@ def test_validate_local_surfaces_unpaid_banktransfer():
         )
     )
     errors = validate_local(row)
-    assert any("chua chuyen khoan" in error for error in errors)
+    assert any("chưa chuyển khoản" in error for error in errors)
 
 
 def test_validate_local_passes_daibiki_without_shipper_or_invoice():
