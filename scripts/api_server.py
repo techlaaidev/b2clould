@@ -406,7 +406,7 @@ def create_order_shipments(
 
 
 # Bump on every deploy so /version confirms which code Render is actually running.
-APP_VERSION = "2026-07-07b-addr-banchi-note-dropped"
+APP_VERSION = "2026-07-08a-vi-errors-pending-status"
 
 
 @app.get("/health")
