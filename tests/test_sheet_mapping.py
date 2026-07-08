@@ -21,7 +21,7 @@ def test_map_input_translates_display_headers():
         "Type of transaction": "Daibiki",
         "Thanh toán": "",
         "Số tiền đặt cọc": "",
-        "Đơn vị giao hàng": "JAMATO",
+        "Đơn vị giao hàng": "YAMATO",
         "IG/WA Account": "ignored",
     }
     internal = map_input_row(display)
