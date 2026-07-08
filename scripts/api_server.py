@@ -214,13 +214,23 @@ def load_entries(session, view: str, params: dict[str, str]):
     return feed_entries(feed), feed
 
 
+# Ghi chú tiếng Việt trả về cho dòng đã phát hành nhưng Yamato chưa ghi nhận
+# xong vào lịch sử (index lag vài phút) — dòng đó ở trạng thái "Chờ tạo đơn".
+PENDING_NOTE_VI = (
+    "Đã gửi đơn lên Yamato B2, đang chờ hệ thống Yamato ghi nhận. "
+    "Vài phút nữa hãy bôi đen dòng này và chạy 'Kiểm tra và đồng bộ đơn' "
+    "để lấy mã vận đơn."
+)
+
+
 def find_issued_tracking(session, row: dict[str, str]) -> str:
     """Look up the real tracking number B2 assigns when a draft is issued.
 
     print_issue replaces the UMN/OMN placeholder with the real 送り状番号, but
-    B2's history is not indexed instantly. Retry with a short backoff so we
-    return the real number instead of the placeholder. Searches by order_id
-    (exact) first, then by the full consignee name (B2 matches full names only).
+    B2's history index can lag by minutes. Poll briefly (~12s); when nothing is
+    found the caller marks the row PENDING ("Chờ tạo đơn") and the user re-syncs
+    later instead of us blocking the request. Searches by order_id (exact)
+    first, then by the full consignee name (B2 matches full names only).
     """
     order_id = row.get("order_id", "")
     consignee_name = row.get("consignee_name", "")
@@ -235,7 +245,7 @@ def find_issued_tracking(session, row: dict[str, str]) -> str:
             tracking = extract_tracking(feed)
             if tracking:
                 return tracking
-        time.sleep(1.5)
+        time.sleep(2.0)
     return ""
 
 
