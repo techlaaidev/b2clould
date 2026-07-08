@@ -230,10 +230,9 @@ def map_output_row(row):
         "Cột bị lỗi": row.get("error_column", "") or _error_columns(error),
         "Tên lỗi": _vi_error(error),
     }
-    if status in ("CREATED", "SAVED"):
-        out["Trạng thái tạo đơn hàng tự động trên yamato"] = "Thành công"
-    elif status == "ERROR":
-        out["Trạng thái tạo đơn hàng tự động trên yamato"] = "thất bại"
+    auto_status = YAMATO_AUTO_STATUS_VI.get(status)
+    if auto_status:
+        out["Trạng thái tạo đơn hàng tự động trên yamato"] = auto_status
     if row.get("tracking_csv_url"):
         out["Link url file csv xử lí mã vận đơn"] = row["tracking_csv_url"]
     if row.get("pdf_url"):
