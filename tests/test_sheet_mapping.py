@@ -43,13 +43,14 @@ def test_generate_order_id_is_stable():
 def test_map_output_translates_status_and_error():
     out = map_output_row({"status": "CREATED", "tracking_number": "12345"})
     assert out["Mã vận đơn"] == "12345"
-    assert out["Trạng thái khởi tạo"] == "đã tạo đơn"
+    assert out["Trạng thái khởi tạo"] == "Đã tạo đơn"  # khớp đúng dropdown trên sheet
     assert out["Trạng thái tạo đơn hàng tự động trên yamato"] == "Thành công"
 
     bad = map_output_row({"status": "INVALID", "error_message": "consignee_name is required"})
-    assert bad["Trạng thái khởi tạo"] == "không tạo đơn"
+    assert bad["Trạng thái khởi tạo"] == "Không tạo đơn"
     assert bad["Cột bị lỗi"] == "Name"  # internal field -> sheet column
     assert bad["Tên lỗi"] == "Thiếu trường bắt buộc: Name"
+    assert bad["Trạng thái tạo đơn hàng tự động trên yamato"] == "Thất bại"
 
 
 def test_map_output_lists_all_missing_columns():
