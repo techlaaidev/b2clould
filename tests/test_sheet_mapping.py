@@ -30,7 +30,7 @@ def test_map_input_translates_display_headers():
     assert internal["consignee_address"] == "東京都千代田区千代田1-1"
     assert internal["product_number"] == "COD - iPhone - 50000"
     assert internal["type_of_transaction"] == "Daibiki"
-    assert internal["carrier"] == "JAMATO"
+    assert internal["carrier"] == "YAMATO"
     assert "IG/WA Account" not in internal  # unmapped column dropped
 
 
