@@ -114,6 +114,19 @@ def _offending_fields(error):
     return fields
 
 
+# Từ khoá trong thông điệp lỗi tiếng Việt -> cột trên sheet cần sửa, để cột
+# "Cột bị lỗi" luôn chỉ đúng chỗ dù lỗi không theo dạng "X is required".
+_KEYWORD_COLUMNS = [
+    ("Product Number", "Product Number"),
+    ("đặt cọc", "Số tiền đặt cọc"),
+    ("Thanh toán", "Thanh toán"),
+    ("chuyển khoản", "Thanh toán"),
+    ("Type of transaction", "Type of transaction"),
+    ("Bank Account", "Bank Account"),
+    ("Đơn vị giao hàng", "Đơn vị giao hàng"),
+]
+
+
 def _error_columns(error):
     """Comma-joined sheet columns the user must fix, in order, no duplicates."""
     cols = []
@@ -124,7 +137,72 @@ def _error_columns(error):
     # Address-split failure has no "X is required" marker but is an Address issue.
     if ("tách được" in error or "consignee_address" in error) and "Address" not in cols:
         cols.append("Address")
+    for keyword, header in _KEYWORD_COLUMNS:
+        if keyword in error and header not in cols:
+            cols.append(header)
     return ", ".join(cols)
+
+
+# Cụm từ tiếng Nhật hay gặp trong error_description của Yamato B2 -> tiếng Việt.
+_B2_DESC_VI = [
+    ("長すぎ", "quá dài"),
+    ("入力してください", "đang bị thiếu"),
+    ("入力して下さい", "đang bị thiếu"),
+    ("必須", "đang bị thiếu"),
+    ("正しくありません", "không hợp lệ"),
+    ("不正", "không hợp lệ"),
+    ("誤り", "không hợp lệ"),
+    ("存在しません", "không tồn tại"),
+    ("利用できません", "không dùng được (tài khoản chưa đăng ký dịch vụ này)"),
+    ("契約", "tài khoản chưa đăng ký dịch vụ này"),
+]
+
+
+def format_b2_error(error):
+    """Một lỗi Yamato B2 (dict hoặc chuỗi) -> (thông điệp tiếng Việt, cột trên sheet).
+
+    Lỗi B2 dạng {'error_property_name': ..., 'error_code': 'ESxxxxxx',
+    'error_description': '<tiếng Nhật>'}; người dùng cuối chỉ cần biết CỘT nào
+    bị lỗi và lỗi GÌ bằng tiếng Việt — mã ES giữ lại để tra cứu khi cần.
+    """
+    if isinstance(error, dict):
+        prop = str(error.get("error_property_name") or "").strip()
+        code = str(error.get("error_code") or "").strip()
+        desc = str(error.get("error_description") or "").strip()
+    else:
+        text = str(error or "")
+
+        def _pick(key):
+            match = re.search(rf"'{key}':\s*'([^']*)'", text)
+            return match.group(1).strip() if match else ""
+
+        prop = _pick("error_property_name")
+        code = _pick("error_code")
+        desc = _pick("error_description")
+        if not (prop or code or desc):
+            return text, _error_columns(text)
+
+    reason = next((vi for key, vi in _B2_DESC_VI if key in desc), "bị Yamato từ chối")
+    column = FIELD_TO_HEADER.get(prop, prop)
+    message = f"Cột {column}: dữ liệu {reason}" if column else f"Dữ liệu {reason}"
+    if code:
+        message += f" (mã lỗi Yamato {code})"
+    return message, column
+
+
+def b2_errors_to_vi(errors):
+    """Danh sách lỗi Yamato B2 -> ("lỗi 1; lỗi 2", "Cột A, Cột B") tiếng Việt."""
+    messages = []
+    columns = []
+    for error in errors or []:
+        message, column = format_b2_error(error)
+        if message and message not in messages:
+            messages.append(message)
+        for col in (column or "").split(","):
+            col = col.strip()
+            if col and col not in columns:
+                columns.append(col)
+    return "; ".join(messages), ", ".join(columns)
 
 
 def _vi_error(error):
