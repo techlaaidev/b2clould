@@ -18,6 +18,8 @@ INPUT_MAP = {
     "Date": "delivery_date",
     "Time": "delivery_time_zone",
     "Product Number": "product_number",
+    "Price": "price",
+    "Giá bán": "price",
     "Type of transaction": "type_of_transaction",
     "Back account": "bank_account",
     "Bank Account": "bank_account",
