@@ -49,6 +49,16 @@ def _to_int(value):
     return int(digits) if digits.isdigit() else None
 
 
+def parse_price_cell(value):
+    """Giá bán từ cột Price riêng trên sheet: số nguyên yên (cho phép dấu
+    . , khoảng trắng và đuôi y/¥), hoặc None khi ô trống / không phải số."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    text = re.sub(r"[y¥]\s*$", "", text, flags=re.IGNORECASE)
+    return _to_int(text)
+
+
 def parse_product_number(text):
     """Split a Product Number cell into (item_name, total_price).
 
