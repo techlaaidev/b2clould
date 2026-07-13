@@ -102,6 +102,7 @@ FIELD_TO_HEADER = {
     "delivery_time_zone": "Time",
     "product_number": "Product Number",
     "item_name1": "Product Number",
+    "price": "Price",
     "type_of_transaction": "Type of transaction",
     "bank_account": "Back account",
     "order_date": "Order Date",
