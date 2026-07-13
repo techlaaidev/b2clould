@@ -108,9 +108,15 @@ function localValidateRow_(row) {
   need("Mobile", "Thiếu số điện thoại (cột Mobile)");
   need("Product Number", "Thiếu sản phẩm (cột Product Number)");
 
+  // Giá bán: ưu tiên cột Price riêng; giá ở cuối Product Number chỉ là
+  // fallback cho các dòng cũ chưa tách giá ra cột riêng.
   const prod = String(row["Product Number"] || "").trim();
-  if (prod && parsePriceFromProductNumber_(prod) == null) {
-    errors.push({ col: "Product Number", msg: 'Cột Product Number thiếu giá bán ở cuối (ví dụ "iPhone 13 128GB - 61300")' });
+  const priceRaw = String(row["Price"] || "").trim();
+  const priceCell = priceRaw ? parsePriceCell_(priceRaw) : null;
+  if (priceRaw && priceCell == null) {
+    errors.push({ col: "Price", msg: 'Cột Price phải là số (ví dụ 61300), đang là "' + priceRaw + '"' });
+  } else if (prod && priceCell == null && parsePriceFromProductNumber_(prod) == null) {
+    errors.push({ col: "Price", msg: 'Thiếu giá bán: điền số vào cột Price (hoặc ở cuối cột Product Number, ví dụ "iPhone 13 128GB - 61300")' });
   }
 
   const ttype = String(row["Type of transaction"] || "").trim();
