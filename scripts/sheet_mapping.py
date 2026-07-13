@@ -122,6 +122,7 @@ def _offending_fields(error):
 # Từ khoá trong thông điệp lỗi tiếng Việt -> cột trên sheet cần sửa, để cột
 # "Cột bị lỗi" luôn chỉ đúng chỗ dù lỗi không theo dạng "X is required".
 _KEYWORD_COLUMNS = [
+    ("cột Price", "Price"),
     ("Product Number", "Product Number"),
     ("đặt cọc", "Số tiền đặt cọc"),
     ("Thanh toán", "Thanh toán"),
