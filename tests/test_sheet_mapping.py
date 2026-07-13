@@ -18,6 +18,7 @@ def test_map_input_translates_display_headers():
         "Address": "東京都千代田区千代田1-1",
         "Mobile": "03-1234-5678",
         "Product Number": "COD - iPhone - 50000",
+        "Price": "50000",
         "Type of transaction": "Daibiki",
         "Thanh toán": "",
         "Số tiền đặt cọc": "",
