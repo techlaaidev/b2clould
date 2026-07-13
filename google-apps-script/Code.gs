@@ -148,6 +148,13 @@ function localValidateRow_(row) {
 }
 
 
+// Giá bán từ cột Price riêng: số nguyên (cho phép dấu . , khoảng trắng và đuôi y/¥).
+function parsePriceCell_(text) {
+  const digits = String(text || "").trim().replace(/[y¥]\s*$/i, "").replace(/[.,\s]/g, "");
+  return digits && /^\d+$/.test(digits) ? Number(digits) : null;
+}
+
+
 // Lấy giá bán ở cuối ô Product Number: số sau dấu '-' cuối cùng, cho phép đuôi y/¥.
 function parsePriceFromProductNumber_(text) {
   const match = String(text || "").match(/-\s*([\d.,]+)\s*[y¥]?\s*$/i);
