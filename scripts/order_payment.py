@@ -156,7 +156,7 @@ def compute_cod_amount(type_of_transaction, payment_status, deposit, total_price
 
     if ttype == DAIBIKI:
         if total_price is None:
-            return 0, "Không đọc được giá bán ở cột Product Number (cần số tiền ở cuối, ví dụ: iPhone 13 128GB - 61300)"
+            return 0, "Thiếu giá bán: điền số tiền vào cột Price (hoặc ở cuối cột Product Number, ví dụ: iPhone 13 128GB - 61300)"
         if status == "":
             return total_price, ""
         if status.upper() == DEPOSIT_MARKER:
