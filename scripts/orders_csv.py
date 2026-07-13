@@ -73,6 +73,7 @@ OUTPUT_COLUMNS = [
     # Business form inputs. Derived into the Yamato fields above by
     # order_payment.derive_payment_fields().
     "product_number",
+    "price",
     "type_of_transaction",
     "payment_status",
     "deposit_amount",
