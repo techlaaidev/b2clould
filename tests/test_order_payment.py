@@ -61,6 +61,46 @@ def test_parse_row_without_label_prefix():
     assert name.startswith("iPhone 12 pro")
 
 
+def test_price_column_overrides_trailing_price():
+    # Cột Price riêng được ưu tiên hơn giá ở cuối Product Number.
+    row = {
+        "product_number": "COD_iPad 11 128GB WIFI BNIB blue - 61300",
+        "price": "59.800",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "",
+    }
+    error = derive_payment_fields(row)
+    assert error == ""
+    assert row["amount"] == "59800"
+    assert row["item_name1"] == "iPad 11 128GB WIFI BNIB blue"
+
+
+def test_price_column_works_without_trailing_price():
+    # Product Number chỉ còn tên SP, giá nằm ở cột Price riêng.
+    row = {
+        "product_number": "iPhone 13 128GB blue",
+        "price": "61300y",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "",
+    }
+    error = derive_payment_fields(row)
+    assert error == ""
+    assert row["amount"] == "61300"
+    assert row["cod_amount"] == "61300"
+    assert row["item_name1"] == "iPhone 13 128GB blue"
+
+
+def test_missing_price_everywhere_is_invalid():
+    row = {
+        "product_number": "iPhone 13 128GB blue",
+        "price": "",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "",
+    }
+    error = derive_payment_fields(row)
+    assert "cột Price" in error
+
+
 def test_daibiki_no_deposit_collects_full_total():
     amount, error = compute_cod_amount("Daibiki", "", "", 61300)
     assert error == ""
