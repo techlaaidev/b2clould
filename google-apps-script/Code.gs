@@ -759,7 +759,7 @@ function syncKiotVietCatalog() {
 
     kvWriteCatalog_(rows);
     kvWriteImeiIndex_(imeiRows);
-    const sellerNote = kvApplySellerDropdown_(token, retailer);
+    const sellerNote = kvApplySellerDropdown_(token, retailer) + kvApplyGiftDropdown_();
     const note = rows.length >= total ? "" : " (một phần — chạy lại để lấy tiếp)";
     return `Đã đồng bộ ${rows.length}/${total} sản phẩm KiotViet${note}.\n` +
       `Chỉ mục IMEI (CN ${branchId}): ${imeiRows.length} IMEI.` +
