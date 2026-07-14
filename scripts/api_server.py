@@ -456,12 +456,10 @@ def create_orders(request: CreateOrdersRequest):
     if not isinstance(request.rows, list):
         raise HTTPException(status_code=400, detail="rows must be a list.")
     return with_b2_session(
-        lambda session: {
-            "rows": create_order_shipments(
-                session,
-                request.rows,
-                request.issue_pdf,
-                request.include_pdf_base64,
-            )
-        }
+        lambda session: create_order_shipments(
+            session,
+            request.rows,
+            request.issue_pdf,
+            request.include_pdf_base64,
+        )
     )
