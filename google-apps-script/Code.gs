@@ -846,13 +846,17 @@ function kvWriteCatalog_(rows) {
 // Gõ IMEI vào cột IMEI → tra bảng chỉ mục (lập khi đồng bộ) → tự điền tên SP + _kvCode.
 // - IMEI trống: không đụng gì (giữ tên đang có).
 // - IMEI không có trong kho CN hiện tại (sai / đã bán / CN khác): xoá tên + mã (không điền gì).
+// Nhân viên chỉ cần gõ 5 SỐ CUỐI của IMEI (hoặc nhiều hơn / đủ IMEI):
+// - khớp đúng 1 IMEI → tự ghi IMEI ĐẦY ĐỦ lại vào ô (tạo hóa đơn cần đủ số)
+//   và điền tên SP + mã.
+// - nhiều IMEI cùng đuôi → hiện dropdown các IMEI đầy đủ để chọn.
 function kvFillNameFromImei_(e, sheet, headers) {
   const nameCol = headers.indexOf(KV_NAME_HEADER) + 1;
   if (nameCol === 0) return; // chưa có cột tên SP → bỏ qua
   const codeCol = kvEnsureCodeColumn_(sheet);
   const row = e.range.getRow();
-  const imei = (e.value == null ? "" : String(e.value)).trim();
-  if (!imei) return;
+  const typed = (e.value == null ? "" : String(e.value)).trim();
+  if (!typed) return;
 
   const index = kvLoadImeiIndex_();
   if (!index) {
@@ -862,15 +866,43 @@ function kvFillNameFromImei_(e, sheet, headers) {
 
   const nameCell = sheet.getRange(row, nameCol);
   nameCell.clearDataValidations();
-  const hit = index.byImei[imei];
+
+  let imei = typed;
+  let hit = index.byImei[imei];
+  if (!hit && /^\d+$/.test(typed)) {
+    if (typed.length < 5) {
+      SpreadsheetApp.getActive().toast(
+        'Gõ ít nhất 5 số cuối của IMEI (đang gõ ' + typed.length + ' số).', "KiotViet", 5);
+      return;
+    }
+    // Tìm theo đuôi: mọi IMEI trong kho CN hiện tại kết thúc bằng số vừa gõ.
+    const matches = Object.keys(index.byImei).filter(k => k.length > typed.length && k.endsWith(typed));
+    if (matches.length === 1) {
+      imei = matches[0];
+      hit = index.byImei[imei];
+      e.range.setValue(imei); // ghi IMEI đầy đủ — tạo hóa đơn KiotViet cần đủ số
+    } else if (matches.length > 1) {
+      e.range.setDataValidation(
+        SpreadsheetApp.newDataValidation()
+          .requireValueInList(matches.slice(0, KV_MAX_SUGGEST), true)
+          .setAllowInvalid(true).build()
+      );
+      SpreadsheetApp.getActive().toast(
+        matches.length + ' IMEI cùng đuôi "' + typed + '" — bấm ▼ chọn IMEI đầy đủ.', "KiotViet", 6);
+      return;
+    }
+  }
+
   if (!hit) {
+    e.range.clearDataValidations();
     nameCell.clearContent();
     sheet.getRange(row, codeCol).clearContent();
     SpreadsheetApp.getActive().toast(
-      'Không tìm thấy sản phẩm nào có IMEI "' + imei + '" trong kho KiotViet (chi nhánh ' + kvCurrentBranchId_() + '). Kiểm tra lại IMEI.',
+      'Không tìm thấy sản phẩm nào có IMEI đuôi "' + typed + '" trong kho KiotViet (chi nhánh ' + kvCurrentBranchId_() + '). Kiểm tra lại IMEI.',
       "KiotViet — không tìm thấy sản phẩm", 8);
     return;
   }
+  e.range.clearDataValidations(); // xoá dropdown gợi ý còn lại từ lần gõ trước
   nameCell.setValue(hit.name);
   sheet.getRange(row, codeCol).setValue(hit.code);
   SpreadsheetApp.getActive().toast("✓ " + hit.name, "KiotViet", 5);
