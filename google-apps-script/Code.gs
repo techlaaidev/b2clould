@@ -1271,6 +1271,18 @@ function kvGetDefaultUserId_(token, retailer) {
 }
 
 
+// 代引手数料 Yamato trừ của SHOP theo bậc giá trị đơn hàng (KHÔNG tính Thu
+// khác) — ghi thành giảm trừ trên hóa đơn KiotViet để doanh thu khớp tiền
+// thực nhận. Chỉ áp cho đơn ship Daibiki.
+function yamatoCodFee_(value) {
+  if (!value || value <= 0) return 0;
+  if (value <= 9999) return 330;
+  if (value <= 29999) return 440;
+  if (value <= 99999) return 660;
+  return 1100; // 100,000 - 300,000円
+}
+
+
 // Tra khoản thu khác (Các khoản thu khác) trên KiotViet theo mã KV_COD_SURCHARGE_CODE.
 function kvFindCodSurcharge_(token, retailer) {
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/surchages?pageSize=100", {
