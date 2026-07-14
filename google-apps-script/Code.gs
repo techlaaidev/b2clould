@@ -1302,7 +1302,8 @@ function kvResolveForInvoice_(token, retailer, code, imei) {
 
 // fallbackPrice: giá lấy từ cột Product Number (số tiền khách đã trả) — chỉ dùng
 // khi SP trên KiotViet để giá 0/không có giá, để hóa đơn không bị 0 đồng.
-function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId, fallbackPrice) {
+// giftDetails: các dòng hóa đơn bổ sung từ cột "Hàng tặng kèm" (có thể rỗng).
+function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId, fallbackPrice, giftDetails) {
   const basePrice = product.basePrice != null ? Number(product.basePrice) : 0;
   const price = basePrice > 0 ? basePrice : (fallbackPrice != null ? fallbackPrice : 0);
   const detail = {
