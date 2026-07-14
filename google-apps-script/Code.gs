@@ -1144,8 +1144,15 @@ function kvRunCreateInvoices_(force) {
         // KHÔNG dùng cột Price: Price = tiền thu hộ (đơn Daibiki đã cộng
         // 1.500¥ phí, DP đã trừ cọc) nên không phải giá bán của sản phẩm.
         const paidPrice = prodNumCol === -1 ? null : parsePriceFromProductNumber_(raw[prodNumCol]);
+
+        // Hàng tặng kèm / phụ phí: thêm các SP của bộ đã chọn vào hóa đơn.
+        const giftText = giftCol === -1 ? "" : String(raw[giftCol] || "").trim();
+        const giftDetails = giftText
+          ? kvResolveGiftDetails_(token, retailer, giftText, giftProductCache)
+          : [];
+
         const invoice = kvCreateInvoice_(
-          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId, paidPrice
+          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId, paidPrice, giftDetails
         );
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
