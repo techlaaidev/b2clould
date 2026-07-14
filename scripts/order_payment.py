@@ -227,7 +227,11 @@ def derive_payment_fields(row):
             if amount > 0:
                 # Dòng cũ chưa có cột Price: cộng phí Daibiki khách chịu vào
                 # tiền thu hộ, khớp với số menu "Điền cột Price" sẽ điền.
-                amount += DAIBIKI_CUSTOMER_FEE
+                # Mức phí theo cột "Thu khác"; ô trống -> mặc định 1.500¥
+                # (điền 0 = không thu phí). Cùng nguồn với khoản thu THK000001
+                # trên hóa đơn KiotViet nên 2 bên luôn khớp nhau.
+                fee = parse_price_cell(row.get("extra_fee"))
+                amount += fee if fee is not None else DAIBIKI_CUSTOMER_FEE
         if amount == 0:
             # Deposit already covers the full price — nothing left to collect, so
             # ship 発払い (prepaid) instead of 代引 with a zero 代引金額. This avoids
