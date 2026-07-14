@@ -1156,7 +1156,17 @@ function kvGetDefaultUserId_(token, retailer) {
   const cached = cache.get("KV_SOLD_BY_ID");
   if (cached) return Number(cached);
 
-  const resp = UrlFetchApp.fetch(KV_API_BASE + "/users", {
+  const list = kvFetchUsers_(token, retailer);
+  if (!list.length) throw new Error("Không lấy được người bán (user) KiotViet.");
+  const id = list[0].id;
+  cache.put("KV_SOLD_BY_ID", String(id), 21600); // 6h
+  return id;
+}
+
+
+// Danh sách người bán (user) trên KiotViet — dùng cho cột "Người nhập đơn".
+function kvFetchUsers_(token, retailer) {
+  const resp = UrlFetchApp.fetch(KV_API_BASE + "/users?pageSize=100", {
     method: "get",
     headers: { Authorization: "Bearer " + token, Retailer: retailer },
     muteHttpExceptions: true
@@ -1165,11 +1175,22 @@ function kvGetDefaultUserId_(token, retailer) {
   if (resp.getResponseCode() >= 400) {
     throw new Error(`KiotViet users HTTP ${resp.getResponseCode()}: ${text.slice(0, 150)}`);
   }
-  const list = (JSON.parse(text).data) || [];
-  if (!list.length) throw new Error("Không lấy được người bán (user) KiotViet.");
-  const id = list[0].id;
-  cache.put("KV_SOLD_BY_ID", String(id), 21600); // 6h
-  return id;
+  return (JSON.parse(text).data) || [];
+}
+
+
+// Tên ở cột "Người nhập đơn" -> id người bán trên KiotViet. Khớp theo tên
+// hiển thị (givenName) hoặc tên đăng nhập (userName), không phân biệt hoa/thường.
+function kvResolveSellerId_(users, name) {
+  const target = kvNorm_(name).toLowerCase();
+  const hit = users.filter(u =>
+    kvNorm_(u.givenName).toLowerCase() === target ||
+    kvNorm_(u.userName).toLowerCase() === target)[0];
+  if (!hit) {
+    const known = users.map(u => u.givenName || u.userName).filter(Boolean).join(", ");
+    throw new Error('Không tìm thấy người bán "' + name + '" trên KiotViet. Tên hợp lệ: ' + known);
+  }
+  return hit.id;
 }
 
 
