@@ -1533,7 +1533,8 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     invoiceDetails: [detail].concat(giftDetails || [])
   };
   if (customerId) payload.customerId = customerId; // gắn khách; bỏ trống → khách lẻ
-  if (surcharges && surcharges.length) payload.invoiceOrderSurcharges = surcharges;
+  // Tên trường ĐÚNG theo tài liệu KiotViet Public API là "surchages" (thiếu r).
+  if (surcharges && surcharges.length) payload.surchages = surcharges;
   // Đơn Daibiki: trừ 代引手数料 Yamato (330/440/660/1.100¥ theo bậc GIÁ HÀNG,
   // không tính Thu khác) dưới dạng giảm giá hóa đơn -> tổng hóa đơn = tiền
   // thực nhận về tài khoản.
