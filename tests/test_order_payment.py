@@ -167,10 +167,10 @@ def test_derive_fills_yamato_fields_for_daibiki():
     error = derive_payment_fields(row)
     assert error == ""
     assert row["item_name1"] == "iPad 11 128GB WIFI BNIB blue"
-    # Daibiki ships 宅急便コレクト (代引): Yamato collects the product price.
+    # Daibiki ships 宅急便コレクト (代引): thu hộ = giá hàng + 1.500¥ phí khách chịu.
     assert row["payment_method"] == "COD"
-    assert row["amount"] == "61300"
-    assert row["cod_amount"] == "61300"
+    assert row["amount"] == "62800"
+    assert row["cod_amount"] == "62800"
 
 
 def test_truncate_item_name_width_aware():
