@@ -1051,7 +1051,8 @@ function kvRunCreateInvoices_(force) {
 
     const token = kvGetToken_();
     const retailer = kvProp_("KV_RETAILER");
-    const soldById = kvGetDefaultUserId_(token, retailer);
+    const soldByDefault = kvGetDefaultUserId_(token, retailer);
+    let kvUsers = null; // danh sách người bán — chỉ tải khi có dòng điền "Người nhập đơn"
 
     let ok = 0;
     let fail = 0;
