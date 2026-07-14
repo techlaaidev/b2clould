@@ -336,6 +336,9 @@ function fillPriceColumnFromProductNumber() {
         if (deposit == null || deposit > price) { skippedDeposit.push(i + 2); return; }
         price -= deposit;
       }
+      // Đơn Daibiki: cộng phí thu hộ khách chịu (đặt cọc đủ 100% thì thôi).
+      const ttype = col.ttype === -1 ? "" : String(raw[col.ttype] || "").trim();
+      if (ttype === "Daibiki" && price > 0) price += DAIBIKI_FEE;
       priceValues[i][0] = price;
       filled++;
     });
