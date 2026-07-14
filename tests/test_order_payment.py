@@ -65,7 +65,8 @@ def test_parse_row_without_label_prefix():
 
 
 def test_price_column_overrides_trailing_price():
-    # Cột Price riêng được ưu tiên hơn giá ở cuối Product Number.
+    # Cột Price = tiền thu hộ cuối cùng, được ưu tiên hơn giá ở cuối Product
+    # Number và dùng THẲNG — không cộng thêm phí Daibiki lần nữa.
     row = {
         "product_number": "COD_iPad 11 128GB WIFI BNIB blue - 61300",
         "price": "59.800",
