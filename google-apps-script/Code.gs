@@ -1319,7 +1319,7 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     branchId: branchId,
     soldById: soldById, // KiotViet requires a real seller user id
     isApplyVoucher: false,
-    invoiceDetails: [detail]
+    invoiceDetails: [detail].concat(giftDetails || [])
   };
   if (customerId) payload.customerId = customerId; // gắn khách; bỏ trống → khách lẻ
 
