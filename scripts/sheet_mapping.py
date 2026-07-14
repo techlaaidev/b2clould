@@ -109,6 +109,7 @@ FIELD_TO_HEADER = {
     "order_date": "Order Date",
     "payment_status": "Thanh toán",
     "deposit_amount": "Số tiền đặt cọc",
+    "extra_fee": "Thu khác",
     "carrier": "Đơn vị giao hàng",
 }
 
