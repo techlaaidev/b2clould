@@ -955,6 +955,20 @@ function kvFillNameFromImei_(e, sheet, headers) {
   e.range.clearDataValidations(); // xoá dropdown gợi ý còn lại từ lần gõ trước
   nameCell.setValue(hit.name);
   sheet.getRange(row, codeCol).setValue(hit.code);
+
+  // Cảnh báo sớm nếu SP theo IMEI không khớp mô tả ở Product Number
+  // (bước tạo hóa đơn sẽ CHẶN hẳn nếu vẫn lệch).
+  const prodCol = headers.indexOf("Product Number") + 1;
+  if (prodCol !== 0) {
+    const prodCell = sheet.getRange(row, prodCol).getDisplayValue();
+    const ratio = kvNameMatchRatio_(prodCell, hit.name);
+    if (ratio < KV_NAME_MATCH_MIN) {
+      SpreadsheetApp.getActive().toast(
+        '⚠ SP theo IMEI là "' + hit.name + '" nhưng chỉ khớp ' + Math.round(ratio * 100) +
+        '% với Product Number — kiểm tra lại IMEI/máy!', "KiotViet — lệch tên SP", 8);
+      return;
+    }
+  }
   SpreadsheetApp.getActive().toast("✓ " + hit.name, "KiotViet", 5);
 }
 
