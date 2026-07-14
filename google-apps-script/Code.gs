@@ -1166,6 +1166,23 @@ function kvGetDefaultUserId_(token, retailer) {
 }
 
 
+// Gắn dropdown danh sách người bán KiotViet cho cột "Người nhập đơn" (nếu sheet
+// có cột này) — chạy kèm menu "Đồng bộ kho KiotViet" nên danh sách luôn mới.
+function kvApplySellerDropdown_(token, retailer) {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const col = headerMap_(sheet)[KV_SELLER_HEADER];
+  if (!col) return "";
+  const names = kvFetchUsers_(token, retailer)
+    .map(u => String(u.givenName || u.userName || "").trim())
+    .filter(Boolean);
+  if (!names.length) return "";
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(names, true).setAllowInvalid(true).build();
+  sheet.getRange(2, col, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
+  return '\nDropdown "' + KV_SELLER_HEADER + '": ' + names.length + " người bán (" + names.join(", ") + ").";
+}
+
+
 // Danh sách người bán (user) trên KiotViet — dùng cho cột "Người nhập đơn".
 function kvFetchUsers_(token, retailer) {
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/users?pageSize=100", {
