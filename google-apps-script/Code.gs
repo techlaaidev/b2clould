@@ -1180,10 +1180,14 @@ function kvRunCreateInvoices_(force) {
           const fee = cellFee != null ? cellFee : DAIBIKI_FEE;
           if (fee > 0) {
             if (!codSurcharge) codSurcharge = kvFindCodSurcharge_(token, retailer);
+            // Gửi đủ các biến thể tên trường KiotViet có thể yêu cầu (id/code/giá).
             surcharges = [{
+              id: codSurcharge.id,
               surchargeId: codSurcharge.id,
+              code: codSurcharge.surchargeCode || codSurcharge.code || KV_COD_SURCHARGE_CODE,
               surchargeName: codSurcharge.surchargeName || "Cash on Delivery Fee",
               surValue: fee,
+              surValueRatio: 0,
               price: fee
             }];
           }
