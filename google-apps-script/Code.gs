@@ -674,6 +674,7 @@ const KV_NAME_HEADER = "Tên sản phẩm Kiot Việt";     // column with KiotV
 const KV_CODE_HEADER = "_kvCode";                     // hidden column storing the picked SP code
 const KV_IMEI_HEADER = "IMEI";                        // staff-filled IMEI/serial column
 const KV_INVOICE_RESULT_HEADER = "Hóa đơn KiotViet";  // invoice code on success / "LỖI: ..." on failure
+const KV_SELLER_HEADER = "Người nhập đơn";            // map với NGƯỜI BÁN (soldById) trên hóa đơn KiotViet
 const KV_MAX_SUGGEST = 20;
 const KV_BRANCH_ID = 17397;                           // chi nhánh hiện tại; chỉ bán IMEI thuộc chi nhánh này
 
