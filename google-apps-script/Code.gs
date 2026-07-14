@@ -685,6 +685,21 @@ const KV_CODE_HEADER = "_kvCode";                     // hidden column storing t
 const KV_IMEI_HEADER = "IMEI";                        // staff-filled IMEI/serial column
 const KV_INVOICE_RESULT_HEADER = "Hóa đơn KiotViet";  // invoice code on success / "LỖI: ..." on failure
 const KV_SELLER_HEADER = "Người nhập đơn";            // map với NGƯỜI BÁN (soldById) trên hóa đơn KiotViet
+const KV_GIFT_HEADER = "Hàng tặng kèm";               // bộ quà / phụ phí thêm vào hóa đơn KiotViet
+
+// Tên bộ tặng kèm / phụ phí -> các mã SP KiotViet sẽ thêm vào hóa đơn.
+// Quà tặng lên hóa đơn với giá 0¥; mục "Shipping cost ..." lấy giá bán trên
+// KiotViet (fallback: số trong tên). Ô cho phép nhiều mục, ngăn cách dấu phẩy.
+const KV_GIFT_SETS = {
+  "SET 20W-Lightning": ["SP012564", "SP012965"],
+  "20W Adapter": ["SP012564"],
+  "SET 20W-CtoC": ["SP012564", "SP013652"],
+  "SET 35W-CtoC (2m)": ["SP016719", "SP013963"],
+  "SET 5W-Lightning": ["SP014192", "SP012966"],
+  "Shipping cost 600": ["SP165674"],
+  "Shipping cost 430": ["SP165675"],
+  "Shipping cost 200": ["SP165676"]
+};
 const KV_MAX_SUGGEST = 20;
 const KV_BRANCH_ID = 17397;                           // chi nhánh hiện tại; chỉ bán IMEI thuộc chi nhánh này
 
