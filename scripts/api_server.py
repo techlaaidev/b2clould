@@ -364,7 +364,7 @@ def create_order_shipments(
 
 
 # Bump on every deploy so /version confirms which code Render is actually running.
-APP_VERSION = "2026-07-13a-price-column"
+APP_VERSION = "2026-07-14a-price-collect-amount"
 
 
 @app.get("/health")
