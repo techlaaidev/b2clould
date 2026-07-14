@@ -32,6 +32,10 @@ SHIPPER_FIELDS = [
 ]
 _SHIPPER_CACHE = {}
 
+# Phí thu hộ shop thu của KHÁCH, cộng thẳng vào 代引金額 cho mọi đơn Daibiki
+# (khác với 代引手数料 330-1.100¥ Yamato trừ của shop theo bậc tiền thu hộ).
+DAIBIKI_CUSTOMER_FEE = 1500
+
 # Exact cell values used in the sheet.
 DAIBIKI = "Daibiki"
 BANK_TRANSFER = "BankTransfer"
