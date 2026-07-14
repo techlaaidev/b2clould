@@ -294,7 +294,7 @@ def test_prepare_form_order_sets_non_dm_service_type():
     assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (代引/COD)
     assert row["print_type"] == "m5"
     assert row["label_type"] == "COD"
-    assert row["amount"] == "61300"
+    assert row["amount"] == "62800"  # giá hàng + 1500 phí thu hộ
 
 
 def test_validate_local_surfaces_unpaid_banktransfer():
