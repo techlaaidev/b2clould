@@ -208,7 +208,8 @@ def derive_payment_fields(row):
         # Ships 宅急便コレクト (service_type 2): Yamato collects the 代引金額
         # (product price) from the receiver on delivery and remits it to the shop.
         if price_cell is not None:
-            # Cột Price đã là tiền thu hộ sau đặt cọc — chỉ còn kiểm tra
+            # Cột Price đã là tiền thu hộ CUỐI CÙNG (menu "Điền cột Price" đã
+            # trừ đặt cọc + cộng 1.500¥ phí Daibiki) — chỉ còn kiểm tra
             # trạng thái Thanh toán hợp lệ (trống hoặc DP).
             status = (row.get("payment_status") or "").strip()
             if status and status.upper() != DEPOSIT_MARKER:
@@ -223,6 +224,10 @@ def derive_payment_fields(row):
             )
             if error:
                 return error
+            if amount > 0:
+                # Dòng cũ chưa có cột Price: cộng phí Daibiki khách chịu vào
+                # tiền thu hộ, khớp với số menu "Điền cột Price" sẽ điền.
+                amount += DAIBIKI_CUSTOMER_FEE
         if amount == 0:
             # Deposit already covers the full price — nothing left to collect, so
             # ship 発払い (prepaid) instead of 代引 with a zero 代引金額. This avoids
