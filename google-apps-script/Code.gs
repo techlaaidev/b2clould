@@ -283,6 +283,72 @@ function fixCarrierDropdown() {
 }
 
 
+// Điền cột Price cho MỌI dòng có Product Number: giá = số ở cuối ô Product
+// Number; đơn DP thì trừ sẵn Số tiền đặt cọc (Price = số tiền THU HỘ cuối cùng).
+// Chưa có cột Price → tự chèn một cột mới ngay cạnh phải Product Number.
+// Ô Price đã có giá trị thì GIỮ NGUYÊN (không ghi đè giá đã sửa tay).
+function fillPriceColumnFromProductNumber() {
+  runWithAlert_("Đang điền cột Price từ Product Number...", () => {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    let headers = headerRow_(sheet);
+    const prodIdx = headers.indexOf("Product Number");
+    if (prodIdx === -1) throw new Error('Không tìm thấy cột "Product Number" trên sheet này.');
+
+    if (headers.indexOf("Price") === -1) {
+      sheet.insertColumnAfter(prodIdx + 1);
+      sheet.getRange(1, prodIdx + 2).setValue("Price");
+      headers = headerRow_(sheet); // các cột sau Product Number đã dịch sang phải 1
+    }
+    const col = {
+      prod: headers.indexOf("Product Number"),
+      price: headers.indexOf("Price"),
+      pay: headers.indexOf("Thanh toán"),
+      deposit: headers.indexOf("Số tiền đặt cọc")
+    };
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return "Sheet chưa có dữ liệu.";
+    const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getDisplayValues();
+    const priceRange = sheet.getRange(2, col.price + 1, lastRow - 1, 1);
+    const priceValues = priceRange.getValues();
+
+    let filled = 0;
+    let kept = 0;
+    const skippedNoPrice = [];
+    const skippedDeposit = [];
+    values.forEach((raw, i) => {
+      if (!String(raw[col.prod] || "").trim()) return; // dòng không có SP
+      if (String(priceValues[i][0] || "").trim() !== "") { kept++; return; } // đã có giá → giữ nguyên
+
+      let price = parsePriceFromProductNumber_(raw[col.prod]);
+      if (price == null) { skippedNoPrice.push(i + 2); return; }
+
+      const pay = col.pay === -1 ? "" : String(raw[col.pay] || "").trim().toUpperCase();
+      if (pay === "DP") {
+        const deposit = col.deposit === -1 ? null : parsePriceCell_(raw[col.deposit]);
+        if (deposit == null || deposit > price) { skippedDeposit.push(i + 2); return; }
+        price -= deposit;
+      }
+      priceValues[i][0] = price;
+      filled++;
+    });
+    priceRange.setValues(priceValues);
+
+    let out = "Đã điền cột Price cho " + filled + " dòng (giá lấy từ Product Number, đơn DP đã trừ đặt cọc).";
+    if (kept) out += "\n• Giữ nguyên " + kept + " dòng đã có sẵn giá trong cột Price.";
+    if (skippedNoPrice.length) {
+      out += "\n⚠ " + skippedNoPrice.length + " dòng không đọc được giá ở cuối Product Number (dòng: " +
+        skippedNoPrice.slice(0, 20).join(", ") + ") — điền tay vào cột Price.";
+    }
+    if (skippedDeposit.length) {
+      out += "\n⚠ " + skippedDeposit.length + " dòng DP thiếu/sai Số tiền đặt cọc (dòng: " +
+        skippedDeposit.slice(0, 20).join(", ") + ") — sửa đặt cọc rồi chạy lại.";
+    }
+    return out;
+  });
+}
+
+
 function callB2Api_(path, payload) {
   const apiKey = PropertiesService.getScriptProperties().getProperty("B2_API_KEY");
   if (!apiKey) throw new Error("Chưa cấu hình B2_API_KEY.");
