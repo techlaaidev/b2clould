@@ -1124,12 +1124,10 @@ function kvRunCreateInvoices_(force) {
           soldById = kvResolveSellerId_(kvUsers, sellerName);
         }
 
-        // SP giá 0 trên KiotViet → lấy số tiền khách đã trả: ưu tiên cột Price,
-        // fallback số ở cuối cột Product Number (dòng cũ).
-        const priceCellKv = priceColKv === -1 ? null : parsePriceCell_(raw[priceColKv]);
-        const paidPrice = priceCellKv != null
-          ? priceCellKv
-          : (prodNumCol === -1 ? null : parsePriceFromProductNumber_(raw[prodNumCol]));
+        // SP giá 0 trên KiotViet → lấy GIÁ HÀNG gốc ở cuối cột Product Number.
+        // KHÔNG dùng cột Price: Price = tiền thu hộ (đơn Daibiki đã cộng
+        // 1.500¥ phí, DP đã trừ cọc) nên không phải giá bán của sản phẩm.
+        const paidPrice = prodNumCol === -1 ? null : parsePriceFromProductNumber_(raw[prodNumCol]);
         const invoice = kvCreateInvoice_(
           token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId, paidPrice
         );
