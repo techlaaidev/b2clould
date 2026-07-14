@@ -291,8 +291,9 @@ def create_order_shipments(
     rows: list[dict[str, Any]],
     issue_pdf: bool,
     include_pdf_base64: bool,
-) -> list[dict[str, str]]:
+) -> dict[str, Any]:
     output = []
+    to_print = []  # (row, entries) đã lưu nháp xong, chờ IN GỘP 1 lần cuối hàm
     for item in rows:
         row = normalize_order_row(map_input_row(item))
         row["pdf_base64"] = ""
@@ -332,16 +333,44 @@ def create_order_shipments(
             row["tracking_number"] = extract_tracking(saved)
             row["status"] = "SAVED"
             row["error_message"] = ""
-
+            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             if issue_pdf:
+                to_print.append((row, feed_entries(saved)))
+        except Exception as exc:
+            row = set_order_error(row, f"Lỗi hệ thống khi tạo đơn trên Yamato B2: {exc}", status="ERROR")
+        output.append(row)
+
+    # In GỘP: mọi nhãn của cả loạt vào MỘT file PDF (B2 tự dàn 2 nhãn / tờ A4
+    # trên giấy マルチ送り状) thay vì mỗi đơn một file như trước. Nhóm theo
+    # print_type vì B2 chỉ in được 1 loại phôi mỗi lần.
+    batch_pdfs = []
+    if to_print:
+        groups: dict[str, list] = {}
+        for row, entries in to_print:
+            key = row.get("print_type") or row["service_type"]
+            groups.setdefault(key, []).append((row, entries))
+        for print_type, group in groups.items():
+            group_rows = [row for row, _ in group]
+            group_entries = [entry for _, entries in group for entry in entries]
+            try:
                 pdf_data = b2cloud.print_issue(
-                    session,
-                    row.get("print_type") or row["service_type"],
-                    saved,
+                    session, print_type, {"feed": {"entry": group_entries}}
                 )
-                if include_pdf_base64:
-                    row["pdf_base64"] = base64.b64encode(pdf_data).decode("ascii")
-                    row["pdf_filename"] = f"{row['order_id'] or 'shipment'}.pdf"
+            except Exception as exc:
+                for row in group_rows:
+                    # Nháp đã nằm trên B2 (chưa phát hành) — chạy lại menu sẽ
+                    # dùng lại nháp và in tiếp, không tạo trùng.
+                    row["error_message"] = f"Đã lưu nháp trên B2 nhưng in vận đơn thất bại: {exc}"
+                continue
+            filename = f"yamato_labels_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{print_type}.pdf"
+            if include_pdf_base64:
+                batch_pdfs.append({
+                    "print_type": print_type,
+                    "pdf_filename": filename,
+                    "pdf_base64": base64.b64encode(pdf_data).decode("ascii"),
+                })
+            for row in group_rows:
+                row["pdf_batch"] = filename
                 # "Đã tạo đơn" chỉ khi tra thấy đơn trong lịch sử Yamato B2 (có
                 # mã vận đơn thật). Chưa thấy (index lag) -> PENDING, người dùng
                 # chạy 'Kiểm tra và đồng bộ đơn' sau vài phút để chốt trạng thái.
@@ -354,13 +383,11 @@ def create_order_shipments(
                     row["tracking_number"] = ""
                     row["status"] = "PENDING"
                     row["error_message"] = PENDING_NOTE_VI
-            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        except Exception as exc:
-            row = set_order_error(row, f"Lỗi hệ thống khi tạo đơn trên Yamato B2: {exc}", status="ERROR")
-        output.append(row)
+                row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     for row in output:
         row.update(map_output_row(row))
-    return output
+    return {"rows": output, "batch_pdfs": batch_pdfs}
 
 
 # Bump on every deploy so /version confirms which code Render is actually running.
