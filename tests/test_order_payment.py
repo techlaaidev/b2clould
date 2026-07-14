@@ -90,6 +90,22 @@ def test_price_column_works_without_trailing_price():
     assert row["item_name1"] == "iPhone 13 128GB blue"
 
 
+def test_price_cell_is_final_collect_amount_for_dp():
+    # Cột Price đã trừ sẵn đặt cọc (menu "Điền cột Price") — dùng thẳng,
+    # KHÔNG trừ đặt cọc lần nữa, và không cần cột Số tiền đặt cọc.
+    row = {
+        "product_number": "COD_iPhone 13 128GB - 100000",
+        "price": "70000",
+        "type_of_transaction": "Daibiki",
+        "payment_status": "DP",
+        "deposit_amount": "",
+    }
+    error = derive_payment_fields(row)
+    assert error == ""
+    assert row["amount"] == "70000"
+    assert row["cod_amount"] == "70000"
+
+
 def test_missing_price_everywhere_is_invalid():
     row = {
         "product_number": "iPhone 13 128GB blue",
