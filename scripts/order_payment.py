@@ -190,11 +190,10 @@ def derive_payment_fields(row):
         return ""
 
     item_name, total_price = parse_product_number(row.get("product_number"))
-    # Cột Price riêng trên sheet được ưu tiên; giá ở cuối Product Number chỉ
-    # còn là fallback cho các dòng cũ chưa tách giá ra cột riêng.
+    # Cột Price trên sheet = SỐ TIỀN THU HỘ cuối cùng (menu "Điền cột Price"
+    # đã trừ sẵn đặt cọc DP) — dùng thẳng, KHÔNG trừ đặt cọc lần nữa. Giá ở
+    # cuối Product Number chỉ là fallback cho dòng cũ (fallback vẫn trừ DP).
     price_cell = parse_price_cell(row.get("price"))
-    if price_cell is not None:
-        total_price = price_cell
     if item_name and not (row.get("item_name1") or "").strip():
         row["item_name1"] = item_name
     # Enforce Yamato's 品名 width limit on whatever name we end up with.
