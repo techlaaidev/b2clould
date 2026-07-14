@@ -332,6 +332,53 @@ def test_validate_local_passes_daibiki_without_shipper_or_invoice():
     assert row["item_name1"] == "iPhone 11 128GB White"
 
 
+def test_normalize_delivery_date_accepts_common_display_formats():
+    tomorrow = datetime.now().date() + timedelta(days=1)
+    expect = tomorrow.strftime("%Y/%m/%d")
+    assert normalize_delivery_date(tomorrow.strftime("%d/%m/%Y")) == expect
+    assert normalize_delivery_date(tomorrow.strftime("%Y/%m/%d")) == expect
+    assert normalize_delivery_date(tomorrow.strftime("%Y-%m-%d")) == expect
+
+
+def test_normalize_delivery_date_us_format_and_no_year():
+    # Ngày > 12 -> tự nhận ra MM/DD/YYYY (Google Sheets locale US hiển thị vậy).
+    year = datetime.now().year + 1
+    assert normalize_delivery_date(f"12/25/{year}") == f"{year}/12/25"
+    # Thiếu năm -> năm nay; ngày đã qua thì tự sang năm sau.
+    result = normalize_delivery_date("25/12")
+    assert result.endswith("/12/25")
+    assert result >= datetime.now().strftime("%Y/%m/%d")
+
+
+def test_normalize_delivery_date_drops_past_and_garbage():
+    assert normalize_delivery_date("01/01/2020") == ""
+    assert normalize_delivery_date("mai giao") == ""
+    assert normalize_delivery_date("") == ""
+
+
+def test_delivery_date_sent_for_both_collect_and_prepaid():
+    # Cột Date phải thành delivery_date (お届け予定日) trên shipment gửi lên B2,
+    # cho cả đơn Daibiki (collect) lẫn BankTransfer (prepaid).
+    tomorrow = (datetime.now().date() + timedelta(days=1)).strftime("%d/%m/%Y")
+    expect = (datetime.now().date() + timedelta(days=1)).strftime("%Y/%m/%d")
+    collect = normalize_row(_consignee_base(
+        "ORD-DD1", service_type="0", delivery_date=tomorrow,
+        product_number="COD - item - 61300",
+        type_of_transaction="Daibiki", payment_status="",
+    ))
+    prepare_form_order(collect)
+    assert create_shipment(collect)["shipment"]["delivery_date"] == expect
+
+    prepaid = normalize_row(_consignee_base(
+        "ORD-DD2", service_type="0", delivery_date=tomorrow,
+        product_number="TF - item - 38800",
+        type_of_transaction="BankTransfer", payment_status="Đã chuyển khoản",
+        bank_account="ACC-123",
+    ))
+    prepare_form_order(prepaid)
+    assert create_shipment(prepaid)["shipment"]["delivery_date"] == expect
+
+
 def test_b2_error_translated_to_vietnamese_with_column():
     # Lỗi Yamato (tiếng Nhật + tên trường nội bộ) phải ra tiếng Việt + tên cột sheet.
     message, columns = b2_errors_to_vi([
