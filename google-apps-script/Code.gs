@@ -1250,6 +1250,49 @@ function kvGetDefaultUserId_(token, retailer) {
 }
 
 
+// Tra khoản thu khác (Các khoản thu khác) trên KiotViet theo mã KV_COD_SURCHARGE_CODE.
+function kvFindCodSurcharge_(token, retailer) {
+  const resp = UrlFetchApp.fetch(KV_API_BASE + "/surchages?pageSize=100", {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const text = resp.getContentText();
+  if (resp.getResponseCode() >= 400) {
+    throw new Error(`KiotViet surchages HTTP ${resp.getResponseCode()}: ${text.slice(0, 150)}`);
+  }
+  const list = (JSON.parse(text).data) || [];
+  const hit = list.filter(s =>
+    String(s.surchargeCode || s.code || "").trim().toUpperCase() === KV_COD_SURCHARGE_CODE)[0];
+  if (!hit) {
+    throw new Error('Không tìm thấy khoản thu ' + KV_COD_SURCHARGE_CODE +
+      ' trong "Các khoản thu khác" trên KiotViet. Kiểm tra lại cấu hình KiotViet.');
+  }
+  return hit;
+}
+
+
+// Từ khoá mô tả hàng ở ô Product Number: bỏ nhãn thanh toán đầu (COD/CK/TF...)
+// và giá ở cuối, tách thành các token chữ+số để so với tên SP KiotViet.
+function productNameTokens_(prodCell) {
+  let text = String(prodCell || "").trim();
+  text = text.replace(/-\s*[\d.,]+\s*[y¥]?\s*$/i, "");      // bỏ giá cuối
+  text = text.replace(/^(cod|ck|tf|dp|db)[\s_:.\-]+/i, ""); // bỏ nhãn thanh toán đầu
+  return text.toLowerCase().match(/[a-z0-9%]+/g) || [];
+}
+
+
+// Tỷ lệ từ khoá của Product Number xuất hiện trong tên SP KiotViet (0..1).
+// So trên chuỗi đã bỏ hết ký tự ngăn cách nên "promax" vẫn khớp "Pro Max".
+function kvNameMatchRatio_(prodCell, kvName) {
+  const tokens = productNameTokens_(prodCell);
+  if (!tokens.length) return 1; // không có gì để so → không chặn
+  const hay = String(kvName || "").toLowerCase().replace(/[^a-z0-9%]+/g, "");
+  const matched = tokens.filter(t => hay.indexOf(t) !== -1).length;
+  return matched / tokens.length;
+}
+
+
 // Ô "Hàng tặng kèm" -> các dòng hóa đơn KiotViet bổ sung. Cho phép nhiều mục
 // ngăn cách bởi dấu phẩy / + / ; . Quà tặng lên hóa đơn giá 0¥; mục
 // "Shipping cost ..." lấy giá bán trên KiotViet (fallback: số trong tên).
