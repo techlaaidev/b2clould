@@ -130,7 +130,10 @@ function localValidateRow_(row) {
     } else if (pay.toUpperCase() === "DP") {
       const deposit = String(row["Số tiền đặt cọc"] || "").replace(/[.,\s]/g, "");
       if (!deposit) {
-        errors.push({ col: "Số tiền đặt cọc", msg: "Đơn Daibiki có đặt cọc (DP) nhưng thiếu cột Số tiền đặt cọc" });
+        // Có cột Price (đã trừ sẵn đặt cọc) thì không bắt buộc Số tiền đặt cọc nữa.
+        if (priceCell == null) {
+          errors.push({ col: "Số tiền đặt cọc", msg: "Đơn Daibiki có đặt cọc (DP) nhưng thiếu cột Số tiền đặt cọc" });
+        }
       } else if (!/^\d+$/.test(deposit)) {
         errors.push({ col: "Số tiền đặt cọc", msg: "Cột Số tiền đặt cọc phải là số" });
       }
