@@ -3,11 +3,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from datetime import datetime, timedelta
+
 from scripts.order_payment import (
     CONSIGNEE_ADDRESS3_MAX_WIDTH,
     _text_width,
     compute_cod_amount,
     derive_payment_fields,
+    normalize_delivery_date,
     parse_product_number,
     prepare_form_order,
     split_consignee_address,
