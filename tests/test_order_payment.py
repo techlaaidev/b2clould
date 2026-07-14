@@ -315,7 +315,7 @@ def test_prepare_form_order_sets_non_dm_service_type():
     error = prepare_form_order(row)
     assert error == ""
     assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (代引/COD)
-    assert row["print_type"] == "m5"
+    assert row["print_type"] == "m"  # A4マルチ: 2 nhãn / tờ A4
     assert row["label_type"] == "COD"
     assert row["amount"] == "62800"  # giá hàng + 1500 phí thu hộ
 
