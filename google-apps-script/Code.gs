@@ -344,7 +344,7 @@ function fillPriceColumnFromProductNumber() {
     });
     priceRange.setValues(priceValues);
 
-    let out = "Đã điền cột Price cho " + filled + " dòng (giá lấy từ Product Number, đơn DP đã trừ đặt cọc).";
+    let out = "Đã điền cột Price cho " + filled + " dòng (giá lấy từ Product Number, DP đã trừ đặt cọc, đơn Daibiki đã cộng " + DAIBIKI_FEE + "¥ phí thu hộ).";
     if (kept) out += "\n• Giữ nguyên " + kept + " dòng đã có sẵn giá trong cột Price.";
     if (skippedNoPrice.length) {
       out += "\n⚠ " + skippedNoPrice.length + " dòng không đọc được giá ở cuối Product Number (dòng: " +
