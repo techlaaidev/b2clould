@@ -1226,7 +1226,8 @@ function kvRunCreateInvoices_(force) {
           : [];
 
         const invoice = kvCreateInvoice_(
-          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId, paidPrice, giftDetails, surcharges
+          token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId, paidPrice, giftDetails, surcharges,
+          ttypeKv === "Daibiki"
         );
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
