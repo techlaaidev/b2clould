@@ -1137,6 +1137,34 @@ function kvRunCreateInvoices_(force) {
         if (kvNorm_(name) !== kvNorm_(kvName)) {
           throw new Error(`Sai tên sản phẩm: ô ghi "${name || "(trống)"}" nhưng SP mã "${code}" trên KiotViet là "${kvName}". Chọn lại SP từ gợi ý ở cột "${KV_NAME_HEADER}".`);
         }
+        // Chặn bán nhầm máy: tên SP KiotViet phải khớp đủ từ khoá với mô tả
+        // hàng ở cột Product Number (>= KV_NAME_MATCH_MIN).
+        if (prodNumCol !== -1) {
+          const ratio = kvNameMatchRatio_(raw[prodNumCol], kvName);
+          if (ratio < KV_NAME_MATCH_MIN) {
+            throw new Error('SP KiotViet "' + kvName + '" chỉ khớp ' + Math.round(ratio * 100) +
+              '% với cột Product Number "' + String(raw[prodNumCol] || "").trim() +
+              '" (cần ≥ ' + Math.round(KV_NAME_MATCH_MIN * 100) + '%). Kiểm tra lại IMEI / sản phẩm.');
+          }
+        }
+
+        // Đơn Daibiki: cộng khoản thu khác 決済手数料 (COD fee) vào hóa đơn.
+        // Số tiền lấy từ cột "Thu khác"; ô trống -> mặc định DAIBIKI_FEE.
+        let surcharges = [];
+        const ttypeKv = ttypeCol === -1 ? "" : String(raw[ttypeCol] || "").trim();
+        if (ttypeKv === "Daibiki") {
+          const cellFee = surchargeCol === -1 ? null : parsePriceCell_(raw[surchargeCol]);
+          const fee = cellFee != null ? cellFee : DAIBIKI_FEE;
+          if (fee > 0) {
+            if (!codSurcharge) codSurcharge = kvFindCodSurcharge_(token, retailer);
+            surcharges = [{
+              surchargeId: codSurcharge.id,
+              surchargeName: codSurcharge.surchargeName || "Cash on Delivery Fee",
+              surValue: fee,
+              price: fee
+            }];
+          }
+        }
 
         // Gắn khách hàng theo cột IG/WA Account (tra có sẵn → dùng lại, chưa có → tạo mới).
         const custName = igCol === -1 ? "" : String(raw[igCol] || "").trim();
