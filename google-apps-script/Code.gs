@@ -283,8 +283,14 @@ function fixCarrierDropdown() {
 }
 
 
-// Điền cột Price cho MỌI dòng có Product Number: giá = số ở cuối ô Product
-// Number; đơn DP thì trừ sẵn Số tiền đặt cọc (Price = số tiền THU HỘ cuối cùng).
+// Phí thu hộ shop thu của KHÁCH — cộng thẳng vào tiền thu hộ mọi đơn Daibiki
+// (khác với 代引手数料 330-1.100¥ Yamato trừ của shop theo bậc tiền thu hộ).
+const DAIBIKI_FEE = 1500;
+
+
+// Điền cột Price cho MỌI dòng có Product Number. Price = số tiền THU HỘ cuối
+// cùng: giá ở cuối ô Product Number, trừ Số tiền đặt cọc nếu DP, đơn Daibiki
+// cộng thêm 1.500¥ phí thu hộ (DAIBIKI_FEE).
 // Chưa có cột Price → tự chèn một cột mới ngay cạnh phải Product Number.
 // Ô Price đã có giá trị thì GIỮ NGUYÊN (không ghi đè giá đã sửa tay).
 function fillPriceColumnFromProductNumber() {
