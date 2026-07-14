@@ -203,14 +203,22 @@ def derive_payment_fields(row):
     if ttype == DAIBIKI:
         # Ships 宅急便コレクト (service_type 2): Yamato collects the 代引金額
         # (product price) from the receiver on delivery and remits it to the shop.
-        amount, error = compute_cod_amount(
-            ttype,
-            row.get("payment_status"),
-            row.get("deposit_amount"),
-            total_price,
-        )
-        if error:
-            return error
+        if price_cell is not None:
+            # Cột Price đã là tiền thu hộ sau đặt cọc — chỉ còn kiểm tra
+            # trạng thái Thanh toán hợp lệ (trống hoặc DP).
+            status = (row.get("payment_status") or "").strip()
+            if status and status.upper() != DEPOSIT_MARKER:
+                return f"Cột Thanh toán không hợp lệ cho đơn Daibiki: '{status}' (để trống hoặc điền DP)"
+            amount = price_cell
+        else:
+            amount, error = compute_cod_amount(
+                ttype,
+                row.get("payment_status"),
+                row.get("deposit_amount"),
+                total_price,
+            )
+            if error:
+                return error
         if amount == 0:
             # Deposit already covers the full price — nothing left to collect, so
             # ship 発払い (prepaid) instead of 代引 with a zero 代引金額. This avoids
