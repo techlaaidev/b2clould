@@ -251,25 +251,47 @@ def derive_payment_fields(row):
     return ""
 
 
-def normalize_delivery_date(value):
-    """Convert a delivery date to B2 format (YYYY/MM/DD).
+def _safe_date(year, month, day):
+    try:
+        return datetime(year, month, day).date()
+    except ValueError:
+        return None
 
-    Accepts DD/MM/YYYY or YYYY/MM/DD. Returns "" when unparseable or in the past
-    (delivery_date is optional; B2 then uses its "shortest day" default).
+
+def normalize_delivery_date(value):
+    """Convert a delivery date to B2 format (YYYY/MM/DD) — お届け予定日.
+
+    Cột Date trên sheet đổ vào đây; giá trị hiển thị có thể là DD/MM/YYYY,
+    YYYY/MM/DD, MM/DD/YYYY (Google Sheets locale US), hoặc DD/MM thiếu năm
+    (năm suy ra: năm nay, đã qua thì sang năm). Số ngày > 12 tự phân biệt
+    ngày/tháng. Returns "" when unparseable or in the past (delivery_date is
+    optional; B2 then uses its "shortest day" default).
     """
     text = (value or "").strip()
     if not text:
         return ""
-    parsed = None
-    for fmt in ("%d/%m/%Y", "%Y/%m/%d", "%Y-%m-%d", "%d-%m-%Y"):
-        try:
-            parsed = datetime.strptime(text, fmt)
-            break
-        except ValueError:
-            continue
-    if parsed is None or parsed.date() < datetime.now().date():
+    nums = [int(n) for n in re.findall(r"\d+", text)]
+    today = datetime.now().date()
+    candidate = None
+    if len(nums) == 3:
+        a, b, c = nums
+        if a >= 1000:  # YYYY/M/D
+            candidate = _safe_date(a, b, c)
+        elif c >= 1000:  # D/M/YYYY; nếu "tháng" > 12 thì hiểu là M/D/YYYY (US)
+            day, month = (b, a) if b > 12 and a <= 12 else (a, b)
+            candidate = _safe_date(c, month, day)
+    elif len(nums) == 2:  # D/M thiếu năm -> năm nay, đã qua thì sang năm
+        day, month = nums
+        if month > 12 and day <= 12:
+            day, month = month, day
+        candidate = _safe_date(today.year, month, day)
+        if candidate is not None and candidate < today:
+            candidate = _safe_date(today.year + 1, month, day)
+    if candidate is None or candidate < today:
+        if candidate is None:
+            logger.warning("Không đọc được ngày giao dự kiến (cột Date): %r", text)
         return ""
-    return parsed.strftime("%Y/%m/%d")
+    return candidate.strftime("%Y/%m/%d")
 
 
 # Yamato B2 delivery time-zone codes (配達時間帯). "" = no preference.
