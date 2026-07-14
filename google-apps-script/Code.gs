@@ -1129,6 +1129,7 @@ function kvRunCreateInvoices_(force) {
     let kvUsers = null; // danh sách người bán — chỉ tải khi có dòng điền "Người nhập đơn"
 
     let ok = 0;
+    let okFee = 0; // hóa đơn có gửi Thu khác kèm theo
     let fail = 0;
     let skipped = 0;
     const errors = [];
