@@ -1197,6 +1197,55 @@ function kvGetDefaultUserId_(token, retailer) {
 }
 
 
+// Ô "Hàng tặng kèm" -> các dòng hóa đơn KiotViet bổ sung. Cho phép nhiều mục
+// ngăn cách bởi dấu phẩy / + / ; . Quà tặng lên hóa đơn giá 0¥; mục
+// "Shipping cost ..." lấy giá bán trên KiotViet (fallback: số trong tên).
+function kvResolveGiftDetails_(token, retailer, cellText, productCache) {
+  const details = [];
+  const parts = String(cellText || "").split(/[,+;\n]/).map(s => s.trim()).filter(Boolean);
+  parts.forEach(part => {
+    const key = Object.keys(KV_GIFT_SETS)
+      .filter(k => kvNorm_(k).toLowerCase() === kvNorm_(part).toLowerCase())[0];
+    if (!key) {
+      throw new Error('Không hiểu mục tặng kèm "' + part + '". Hợp lệ: ' + Object.keys(KV_GIFT_SETS).join(", "));
+    }
+    KV_GIFT_SETS[key].forEach(code => {
+      let product = productCache[code];
+      if (!product) {
+        product = kvGetProductWithSerials_(token, retailer, code);
+        if (!product || !product.id) throw new Error('Không tìm thấy SP tặng kèm mã "' + code + '" trên KiotViet.');
+        productCache[code] = product;
+      }
+      const isShipping = /^shipping cost/i.test(key);
+      const base = product.basePrice != null ? Number(product.basePrice) : 0;
+      const priceInName = Number((key.match(/\d+/) || [0])[0]);
+      details.push({
+        productId: product.id,
+        productCode: product.code,
+        productName: product.fullName || product.name || "",
+        quantity: 1,
+        price: isShipping ? (base > 0 ? base : priceInName) : 0
+      });
+    });
+  });
+  return details;
+}
+
+
+// Gắn dropdown các bộ tặng kèm / phụ phí cho cột "Hàng tặng kèm" (nếu có).
+// setAllowInvalid(true) để vẫn gõ tay được nhiều mục: "SET 20W-CtoC, Shipping cost 600".
+function kvApplyGiftDropdown_() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const col = headerMap_(sheet)[KV_GIFT_HEADER];
+  if (!col) return "";
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(Object.keys(KV_GIFT_SETS), true)
+    .setAllowInvalid(true).build();
+  sheet.getRange(2, col, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
+  return '\nDropdown "' + KV_GIFT_HEADER + '": ' + Object.keys(KV_GIFT_SETS).length + " mục tặng kèm/phụ phí.";
+}
+
+
 // Gắn dropdown danh sách người bán KiotViet cho cột "Người nhập đơn" (nếu sheet
 // có cột này) — chạy kèm menu "Đồng bộ kho KiotViet" nên danh sách luôn mới.
 function kvApplySellerDropdown_(token, retailer) {
