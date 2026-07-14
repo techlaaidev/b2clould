@@ -1103,6 +1103,15 @@ function kvRunCreateInvoices_(force) {
           }
         }
 
+        // Người bán trên hóa đơn: cột "Người nhập đơn" (khớp tên trên KiotViet);
+        // để trống → người bán mặc định (user đầu tiên / KV_SOLD_BY_ID).
+        let soldById = soldByDefault;
+        const sellerName = sellerCol === -1 ? "" : String(raw[sellerCol] || "").trim();
+        if (sellerName) {
+          if (!kvUsers) kvUsers = kvFetchUsers_(token, retailer);
+          soldById = kvResolveSellerId_(kvUsers, sellerName);
+        }
+
         // SP giá 0 trên KiotViet → lấy số tiền khách đã trả: ưu tiên cột Price,
         // fallback số ở cuối cột Product Number (dòng cũ).
         const priceCellKv = priceColKv === -1 ? null : parsePriceCell_(raw[priceColKv]);
