@@ -77,6 +77,7 @@ OUTPUT_COLUMNS = [
     "type_of_transaction",
     "payment_status",
     "deposit_amount",
+    "extra_fee",
     "bank_account",
     "carrier",
     "order_date",
