@@ -898,7 +898,11 @@ function kvFillNameFromImei_(e, sheet, headers) {
   if (nameCol === 0) return; // chưa có cột tên SP → bỏ qua
   const codeCol = kvEnsureCodeColumn_(sheet);
   const row = e.range.getRow();
-  const typed = (e.value == null ? "" : String(e.value)).trim();
+  // PASTE không có e.value (chỉ gõ tay mới có) → đọc lại giá trị từ ô.
+  let typed = (e.value == null ? "" : String(e.value)).trim();
+  if (!typed) typed = String(e.range.getDisplayValue() || "").trim();
+  // Số IMEI dài bị Sheets hiển thị dạng khoa học (3.5E+14) → khôi phục đủ chữ số.
+  if (/^\d+(\.\d+)?e\+?\d+$/i.test(typed)) typed = Number(typed).toFixed(0);
   if (!typed) return;
 
   const index = kvLoadImeiIndex_();
