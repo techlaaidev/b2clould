@@ -22,7 +22,9 @@ logger = logging.getLogger("b2cloud.order_payment")
 # remits it to the shop. BankTransfer is paid up front, so it ships 発払い (prepaid).
 SERVICE_TYPE_PREPAID = "0"   # 発払い
 SERVICE_TYPE_COD = "2"       # 宅急便コレクト / 代引 — Yamato collects product price (Daibiki)
-FORM_PRINT_TYPE = "m5"
+# 'm' = A4マルチ: 2 nhãn / tờ A4 (đúng giấy マルチ送り状 đang dùng). 'm5' (A5
+# マルチ) in mỗi nhãn 1 trang nên loạt 2 đơn bị tách thành 2 tờ.
+FORM_PRINT_TYPE = "m"
 
 # Shipper fields copied from the account's registered Sender Master.
 SHIPPER_FIELDS = [
