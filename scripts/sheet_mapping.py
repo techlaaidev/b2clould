@@ -29,6 +29,7 @@ INPUT_MAP = {
     "Mã vận đơn": "tracking_number",
     "Ghi chú": "note",
     "Số tiền đặt cọc": "deposit_amount",
+    "Thu khác": "extra_fee",
     "Đơn vị giao hàng": "carrier",
     "Link url file csv xử lí mã vận đơn": "tracking_csv_url",
 }
