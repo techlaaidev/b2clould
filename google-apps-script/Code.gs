@@ -1257,7 +1257,7 @@ function kvRunCreateInvoices_(force) {
       }
       return "Không có hàng nào để tạo hóa đơn. Hãy bôi đen các dòng có sản phẩm KiotViet.";
     }
-    let summary = `Tạo hóa đơn KiotViet:\n✓ Thành công: ${ok}\n✗ Lỗi: ${fail}`;
+    let summary = `Tạo hóa đơn KiotViet:\n✓ Thành công: ${ok} (${okFee} hóa đơn có gửi Thu khác)\n✗ Lỗi: ${fail}`;
     if (skipped) summary += `\n• Bỏ qua (đã có HĐ): ${skipped}`;
     if (errors.length) summary += "\n\n" + errors.slice(0, 10).join("\n");
     return summary;
