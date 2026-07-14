@@ -1082,7 +1082,10 @@ function kvRunCreateInvoices_(force) {
     const prodNumCol = headers.indexOf("Product Number");
     const sellerCol = headers.indexOf(KV_SELLER_HEADER);
     const giftCol = headers.indexOf(KV_GIFT_HEADER);
+    const surchargeCol = headers.indexOf(KV_SURCHARGE_HEADER);
+    const ttypeCol = headers.indexOf("Type of transaction");
     const giftProductCache = {}; // mã SP tặng kèm -> product (tránh gọi API lặp trong 1 lần chạy)
+    let codSurcharge = null;     // khoản thu THK000001 trên KiotViet (tải 1 lần khi cần)
     // Cột khách hàng: tên khách = "IG/WA Account" (unique); SĐT/email/địa chỉ để tạo khách đầy đủ.
     const igCol = headers.indexOf("IG/WA Account");
     const mobileCol = headers.indexOf("Mobile");
