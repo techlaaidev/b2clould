@@ -81,14 +81,29 @@ function createReadyShipments() {
       include_pdf_base64: true
     });
 
+    // PDF GỘP: server in cả loạt vào 1 file (2 nhãn / tờ A4) — lưu 1 lần lên
+    // Drive rồi dán cùng 1 link vào cột pdf_url của mọi dòng trong loạt.
+    const batchUrls = {};
+    const batchLinks = [];
+    (result.batch_pdfs || []).forEach(batch => {
+      if (!batch.pdf_base64) return;
+      const url = savePdfToDrive_(batch.pdf_base64, batch.pdf_filename);
+      batchUrls[batch.pdf_filename] = url;
+      batchLinks.push(url);
+    });
     result.rows.forEach(row => {
-      if (!row.pdf_base64) return;
+      if (row.pdf_batch && batchUrls[row.pdf_batch]) row.pdf_url = batchUrls[row.pdf_batch];
+      delete row.pdf_batch;
+      if (!row.pdf_base64) return; // tương thích server cũ (PDF từng đơn)
       row.pdf_url = savePdfToDrive_(row.pdf_base64, row.pdf_filename || `${row.order_id}.pdf`);
       delete row.pdf_base64;
     });
 
     const warning = writeRowsByPosition_(sheet, result.rows, part.validSheetRows, part.valid);
-    return localSummary_(part) + summarizeRows_(result.rows) + warning + localErrorDetails_(part);
+    const pdfNote = batchLinks.length
+      ? "\n\nPDF in gộp (mở 1 file, in tất cả nhãn):\n" + batchLinks.join("\n")
+      : "";
+    return localSummary_(part) + summarizeRows_(result.rows) + pdfNote + warning + localErrorDetails_(part);
   });
 }
 
