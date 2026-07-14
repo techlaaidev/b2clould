@@ -1425,6 +1425,7 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     invoiceDetails: [detail].concat(giftDetails || [])
   };
   if (customerId) payload.customerId = customerId; // gắn khách; bỏ trống → khách lẻ
+  if (surcharges && surcharges.length) payload.invoiceOrderSurcharges = surcharges;
 
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices", {
     method: "post",
