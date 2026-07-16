@@ -473,3 +473,12 @@ def create_orders(request: CreateOrdersRequest):
             request.include_pdf_base64,
         )
     )
+
+
+@app.post("/api/orders/print", dependencies=[Depends(require_api_key)])
+def print_orders_merged(request: PrintRequest):
+    if not request.tracking_numbers:
+        raise HTTPException(status_code=400, detail="tracking_numbers must not be empty.")
+    return with_b2_session(
+        lambda session: reprint_shipments_merged(session, request.tracking_numbers)
+    )
