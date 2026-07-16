@@ -1462,20 +1462,19 @@ function yamatoCodFee_(value) {
 }
 
 
-// Đọc lại hóa đơn vừa tạo để kiểm chứng KiotViet có ghi nhận khoản Thu khác không.
-function kvInvoiceHasSurcharge_(token, retailer, invoiceId) {
+// Đọc lại hóa đơn vừa tạo (kiểm chứng Thu khác + vận đơn). null = không đọc được.
+function kvFetchInvoiceDetail_(token, retailer, invoiceId) {
   try {
     const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices/" + encodeURIComponent(invoiceId), {
       method: "get",
       headers: { Authorization: "Bearer " + token, Retailer: retailer },
       muteHttpExceptions: true
     });
-    if (resp.getResponseCode() >= 400) return true; // không đọc được -> đừng báo nhầm
+    if (resp.getResponseCode() >= 400) return null; // không đọc được -> bỏ qua kiểm chứng
     const data = JSON.parse(resp.getContentText());
-    const inv = data && (data.data || data);
-    return !!(inv && inv.invoiceOrderSurcharges && inv.invoiceOrderSurcharges.length);
+    return (data && (data.data || data)) || null;
   } catch (ignore) {
-    return true; // lỗi mạng/parse -> bỏ qua kiểm chứng, không báo nhầm
+    return null; // lỗi mạng/parse -> bỏ qua kiểm chứng, không báo nhầm
   }
 }
 
