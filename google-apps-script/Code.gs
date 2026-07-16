@@ -8,6 +8,7 @@ function onOpen() {
     .addSeparator()
     .addItem("Kiểm tra và đồng bộ đơn", "validateAndSyncOrders")
     .addItem("Tạo vận đơn cho đơn hợp lệ", "createReadyShipments")
+    .addItem("In gộp phiếu đã tạo (2 nhãn/tờ A4)", "printMergedLabels")
     .addItem("Sửa dropdown Đơn vị giao hàng", "fixCarrierDropdown")
     .addItem("Điền cột Price từ Product Number", "fillPriceColumnFromProductNumber")
     .addSeparator()
