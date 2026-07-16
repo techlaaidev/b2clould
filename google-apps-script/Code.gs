@@ -1736,15 +1736,20 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
 
   if (!delivery) return kvPostInvoice_(token, retailer, payload);
 
-  // KiotViet khắt khe với trạng thái hóa đơn giao hàng qua API: thử lần lượt
-  // từ biến thể ĐẦY ĐỦ nhất (hóa đơn Đang xử lý + thu hộ COD — vận đơn sẽ
-  // hiện ở màn hình "Kiểm tra vận đơn") lùi dần về tối giản; biến thể nào
-  // được chấp nhận thì dùng. Chỉ thử tiếp khi đúng lỗi trạng thái.
+  // KiotViet khắt khe với hóa đơn giao hàng qua API: thử lần lượt từ biến thể
+  // ĐẦY ĐỦ nhất (hóa đơn Đang xử lý + thu hộ COD + đối tác — vận đơn hiện ở
+  // màn hình "Kiểm tra vận đơn") lùi dần: bỏ trạng thái, rồi bỏ đối tác giao
+  // hàng (partnerDelivery.code sai mã hay gây "Object reference not set").
+  // Chỉ thử tiếp khi gặp lỗi trạng thái / lỗi null từ server KiotViet.
   const variants = [
-    { status: 3, usingCod: true, deliveryStatus: 1 }, // Đang xử lý + COD + vận đơn Chờ xử lý
-    { usingCod: true, deliveryStatus: 1 },            // COD + vận đơn Chờ xử lý
-    {}                                                // tối giản
+    { status: 3, usingCod: true, deliveryStatus: 1, partner: true },
+    { usingCod: true, deliveryStatus: 1, partner: true },
+    { partner: true },
+    { status: 3, usingCod: true, deliveryStatus: 1, partner: false },
+    { usingCod: true, deliveryStatus: 1, partner: false },
+    { partner: false }
   ];
+  const retryable = /invalid.*invoice status|invoice status|object reference not set/i;
   let lastError = null;
   for (let i = 0; i < variants.length; i++) {
     const variant = variants[i];
@@ -1752,11 +1757,14 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     if (variant.status) attempt.status = variant.status;
     if (variant.usingCod) attempt.usingCod = true;
     if (variant.deliveryStatus) attempt.invoiceDelivery.status = variant.deliveryStatus;
+    if (!variant.partner) delete attempt.invoiceDelivery.partnerDelivery;
     try {
-      return kvPostInvoice_(token, retailer, attempt);
+      const created = kvPostInvoice_(token, retailer, attempt);
+      created._variantUsed = i + 1; // để báo lại biến thể nào được chấp nhận
+      return created;
     } catch (err) {
       lastError = err;
-      if (!/invalid.*invoice status|invoice status/i.test(String(err.message || err))) throw err;
+      if (!retryable.test(String(err.message || err))) throw err;
     }
   }
   throw lastError;
