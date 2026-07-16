@@ -1467,6 +1467,60 @@ function yamatoCodFee_(value) {
 }
 
 
+// ===== Học "mẫu vận đơn" từ 1 hóa đơn giao hàng bạn đã tạo TAY trên KiotViet =====
+// KiotViet nhận diện đối tác giao hàng bằng partnerDeliveryId (mã số nội bộ,
+// KHÔNG phải tên hiển thị) — gửi sai thì server báo "Object reference not set".
+// Cách chắc chắn: đọc lại một hóa đơn Bán giao hàng thật (tạo tay, đối tác
+// ヤマト Nagoya) rồi dùng đúng bộ giá trị đó cho mọi hóa đơn tạo qua API.
+function kvLearnDeliveryTemplate() {
+  runWithAlert_("Đang tìm hóa đơn giao hàng mẫu trên KiotViet...", () => {
+    const token = kvGetToken_();
+    const retailer = kvProp_("KV_RETAILER");
+    const resp = UrlFetchApp.fetch(
+      KV_API_BASE + "/invoices?pageSize=100&orderBy=createdDate&orderDirection=Desc&includeInvoiceDelivery=true",
+      { method: "get", headers: { Authorization: "Bearer " + token, Retailer: retailer }, muteHttpExceptions: true });
+    const text = resp.getContentText();
+    if (resp.getResponseCode() >= 400) {
+      throw new Error("KiotViet invoices HTTP " + resp.getResponseCode() + ": " + text.slice(0, 150));
+    }
+    const list = (JSON.parse(text).data) || [];
+    const hasPartner = inv => inv && inv.invoiceDelivery &&
+      (inv.invoiceDelivery.partnerDeliveryId ||
+       (inv.invoiceDelivery.partnerDelivery && inv.invoiceDelivery.partnerDelivery.code));
+    let sample = list.filter(hasPartner)[0];
+    if (!sample) {
+      // Danh sách không kèm chi tiết giao hàng -> đọc chi tiết 20 hóa đơn gần nhất.
+      for (let i = 0; i < Math.min(list.length, 20) && !sample; i++) {
+        const detail = kvFetchInvoiceDetail_(token, retailer, list[i].id);
+        if (hasPartner(detail)) sample = detail;
+      }
+    }
+    if (!sample) {
+      return 'Chưa tìm thấy hóa đơn nào có VẬN ĐƠN kèm đối tác trong 100 hóa đơn gần nhất.\n\n' +
+        'Cách làm: trên KiotViet, tạo TAY 1 hóa đơn "Bán giao hàng" (chọn đối tác ヤマト Nagoya, ' +
+        'điền đại 1 SP bất kỳ) rồi chạy lại menu này — script sẽ học đúng mã đối tác từ hóa đơn đó.';
+    }
+    const d = sample.invoiceDelivery;
+    const template = {
+      partnerDeliveryId: d.partnerDeliveryId || (d.partnerDelivery && d.partnerDelivery.id) || null,
+      partnerCode: (d.partnerDelivery && (d.partnerDelivery.code || "")) || "",
+      partnerName: (d.partnerDelivery && (d.partnerDelivery.name || "")) || "",
+      type: d.type != null ? d.type : null,
+      weight: d.weight != null ? d.weight : 500,
+      length: d.length != null ? d.length : 10,
+      width: d.width != null ? d.width : 10,
+      height: d.height != null ? d.height : 10
+    };
+    PropertiesService.getScriptProperties().setProperty("KV_DELIVERY_TEMPLATE", JSON.stringify(template));
+    return "Đã học mẫu vận đơn từ hóa đơn " + (sample.code || sample.id) + ":\n" +
+      "• Đối tác: " + (template.partnerName || "(không rõ tên)") +
+      " (id=" + template.partnerDeliveryId + ", code=" + (template.partnerCode || "-") + ")\n" +
+      "• type=" + template.type + ", khối lượng=" + template.weight + "g\n\n" +
+      "Từ giờ hóa đơn Daibiki tạo qua API sẽ gắn đúng đối tác này.";
+  });
+}
+
+
 // Đọc lại hóa đơn vừa tạo (kiểm chứng Thu khác + vận đơn). null = không đọc được.
 function kvFetchInvoiceDetail_(token, retailer, invoiceId) {
   try {
