@@ -16,6 +16,7 @@ function onOpen() {
     .addSeparator()
     .addItem("Cấu hình KiotViet API", "setupKiotVietApi")
     .addItem("Đồng bộ kho KiotViet", "syncKiotVietCatalog")
+    .addItem("Bật tra IMEI trực tiếp (chạy 1 lần)", "enableImeiLiveLookup")
     .addItem("Tạo hóa đơn KiotViet", "createKiotVietInvoices")
     .addItem("Tạo lại hóa đơn KiotViet (test)", "recreateKiotVietInvoicesTest")
     .addItem("Xem IMEI của SP (test)", "kvShowImeis")
