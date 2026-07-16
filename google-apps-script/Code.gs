@@ -1556,8 +1556,10 @@ function kvResolveForInvoice_(token, retailer, code, imei) {
 // khi SP trên KiotViet để giá 0/không có giá, để hóa đơn không bị 0 đồng.
 // giftDetails: các dòng hóa đơn bổ sung từ cột "Hàng tặng kèm" (có thể rỗng).
 // surcharges: các khoản thu khác (COD fee THK000001 cho đơn Daibiki, có thể rỗng).
-// isDaibiki: đơn ship Daibiki -> trừ 代引手数料 Yamato (bậc theo giá hàng) vào hóa đơn.
-function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId, fallbackPrice, giftDetails, surcharges, isDaibiki) {
+// delivery: thông tin giao hàng {deliveryCode, receiver, contactNumber, address}
+//   cho đơn Daibiki (null = không phải đơn giao hàng) — phí vận đơn Yamato
+//   (代引手数料 theo bậc giá hàng) được điền vào delivery.price (Phí áp dụng).
+function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId, fallbackPrice, giftDetails, surcharges, delivery) {
   const basePrice = product.basePrice != null ? Number(product.basePrice) : 0;
   const price = basePrice > 0 ? basePrice : (fallbackPrice != null ? fallbackPrice : 0);
   const detail = {
