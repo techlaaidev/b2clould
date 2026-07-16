@@ -1410,8 +1410,16 @@ function kvRunCreateInvoices_(force) {
                 " KHÔNG ghi nhận khoản Thu khác gửi kèm (API bỏ qua) — báo lại để đổi cách cộng phí.");
             }
             if (delivery && !detail.invoiceDelivery) {
-              errors.push("⚠ Dòng " + sheetRow + ": hóa đơn " + invCode +
-                " KHÔNG ghi nhận VẬN ĐƠN kèm theo (API bỏ qua) — sẽ không hiện ở màn hình Kiểm tra vận đơn.");
+              // Thử lần cuối: GẮN vận đơn bằng lệnh CẬP NHẬT hóa đơn (PUT).
+              const attached = invoice._deliveryPayload
+                ? kvAttachDeliveryToInvoice_(token, retailer, invoice.id, invoice._deliveryPayload)
+                : false;
+              if (!attached) {
+                errors.push("⚠ Dòng " + sheetRow + ": hóa đơn " + invCode +
+                  " KHÔNG ghi nhận VẬN ĐƠN (đã thử cả tạo kèm lẫn cập nhật sau) — " +
+                  "nhiều khả năng Public API của gian hàng chưa được bật tính năng giao hàng. " +
+                  "Hỏi KiotViet 1900 6522: 'Bật hỗ trợ invoiceDelivery cho Public API của gian hàng jamobileno1'.");
+              }
             }
           }
         }
