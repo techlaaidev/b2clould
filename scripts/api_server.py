@@ -293,7 +293,6 @@ def create_order_shipments(
     include_pdf_base64: bool,
 ) -> dict[str, Any]:
     output = []
-    to_print = []  # (row, entries) đã lưu nháp xong, chờ IN GỘP 1 lần cuối hàm
     for item in rows:
         row = normalize_order_row(map_input_row(item))
         row["pdf_base64"] = ""
