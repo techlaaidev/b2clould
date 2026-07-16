@@ -82,30 +82,85 @@ function createReadyShipments() {
       include_pdf_base64: true
     });
 
-    // PDF GỘP: server in cả loạt vào 1 file (2 nhãn / tờ A4) — lưu 1 lần lên
-    // Drive rồi dán cùng 1 link vào cột pdf_url của mọi dòng trong loạt.
-    const batchUrls = {};
-    const batchLinks = [];
-    (result.batch_pdfs || []).forEach(batch => {
-      if (!batch.pdf_base64) return;
-      const url = savePdfToDrive_(batch.pdf_base64, batch.pdf_filename);
-      batchUrls[batch.pdf_filename] = url;
-      batchLinks.push(url);
-    });
+    // PDF riêng từng đơn (1 nhãn / tờ A5). Muốn in 2 nhãn / tờ A4: sau khi
+    // các dòng đã có pdf_url, bôi đen chúng rồi chạy menu "In gộp phiếu".
     result.rows.forEach(row => {
-      if (row.pdf_batch && batchUrls[row.pdf_batch]) row.pdf_url = batchUrls[row.pdf_batch];
-      delete row.pdf_batch;
-      if (!row.pdf_base64) return; // tương thích server cũ (PDF từng đơn)
+      if (!row.pdf_base64) return;
       row.pdf_url = savePdfToDrive_(row.pdf_base64, row.pdf_filename || `${row.order_id}.pdf`);
       delete row.pdf_base64;
     });
 
     const warning = writeRowsByPosition_(sheet, result.rows, part.validSheetRows, part.valid);
-    const pdfNote = batchLinks.length
-      ? "\n\nPDF in gộp (mở 1 file, in tất cả nhãn):\n" + batchLinks.join("\n")
-      : "";
-    return localSummary_(part) + summarizeRows_(result.rows) + pdfNote + warning + localErrorDetails_(part);
+    return localSummary_(part) + summarizeRows_(result.rows) + warning + localErrorDetails_(part);
   });
+}
+
+
+// ===== In gộp phiếu: 2 nhãn / tờ A4 =====
+// Chạy SAU khi đã tạo vận đơn: bôi đen các dòng cần in — TẤT CẢ phải có Mã vận
+// đơn + pdf_url (đã phát hành trên Yamato). Server in lại cả loạt theo phôi
+// A4マルチ thành 1 file PDF. Kết quả hiện ở hộp thoại có link bấm được, và
+// được ghi thêm 1 dòng vào sheet "In gộp" (thời gian, số nhãn, link) để tra lại.
+function printMergedLabels() {
+  const ui = SpreadsheetApp.getUi();
+  SpreadsheetApp.getActive().toast("Đang gộp phiếu để in...", "B2 Cloud", 15);
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const read = readRows_(sheet);
+    if (!read.rows.length) {
+      ui.alert("Chưa chọn dòng nào. Hãy bôi đen các dòng cần in gộp rồi chạy lại.");
+      return;
+    }
+
+    const trackings = [];
+    const notReady = [];
+    read.rows.forEach((row, i) => {
+      const tracking = String(row["Mã vận đơn"] || "").trim();
+      const pdf = String(row["pdf_url"] || "").trim();
+      const who = row["Name"] ? " (" + row["Name"] + ")" : "";
+      if (!tracking || !pdf) notReady.push("Dòng " + read.sheetRows[i] + who);
+      else trackings.push(tracking);
+    });
+    if (notReady.length) {
+      ui.alert(
+        "Chưa in gộp được — các dòng sau chưa có Mã vận đơn / pdf_url " +
+        "(hãy chạy 'Tạo vận đơn cho đơn hợp lệ' trước):\n" + notReady.join("\n"));
+      return;
+    }
+
+    const result = callB2Api_("/api/orders/print", { tracking_numbers: trackings });
+    if (result.error) throw new Error(result.error);
+
+    const url = savePdfToDrive_(result.pdf_base64, result.pdf_filename);
+    logMergedPrint_(result.count, url);
+    showMergedPrintDialog_(result.count, url);
+  } catch (error) {
+    ui.alert("Lỗi: " + (error.message || error));
+  }
+}
+
+
+// Hộp thoại kết quả in gộp với link BẤM ĐƯỢC (ui.alert không bấm link được).
+function showMergedPrintDialog_(count, url) {
+  const html = HtmlService.createHtmlOutput(
+    '<div style="font:14px sans-serif;padding:6px">' +
+    '<p>Đã gộp <b>' + count + '</b> nhãn vào 1 file PDF (2 nhãn / tờ A4).</p>' +
+    '<p><a href="' + url + '" target="_blank" style="font-size:16px">📄 Mở file PDF để in</a></p>' +
+    '<p style="color:#666">Link cũng được lưu vào sheet "In gộp".</p></div>'
+  ).setWidth(430).setHeight(160);
+  SpreadsheetApp.getUi().showModalDialog(html, "In gộp phiếu — xong");
+}
+
+
+// Lịch sử in gộp: mỗi lần in thêm 1 dòng (thời gian | số nhãn | link PDF).
+function logMergedPrint_(count, url) {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName("In gộp");
+  if (!sh) {
+    sh = ss.insertSheet("In gộp");
+    sh.getRange(1, 1, 1, 3).setValues([["Thời gian", "Số nhãn", "Link PDF"]]);
+  }
+  sh.appendRow([new Date(), count, url]);
 }
 
 
