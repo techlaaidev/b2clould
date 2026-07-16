@@ -1530,6 +1530,98 @@ function kvLearnDeliveryTemplate() {
 }
 
 
+// ===== Kiểm tra tính năng GIAO HÀNG của Public API (test tự dọn) =====
+// Tạo 1 ĐẶT HÀNG test kèm orderDelivery (SP giá 0, ghi chú TEST) -> đọc lại
+// xem KiotViet có LƯU vận đơn không -> XOÁ đặt hàng test. Trả lời dứt điểm
+// "đã bật tính năng giao hàng cho API chưa" mà không cần chờ tổng đài.
+function kvCheckDeliveryFeature() {
+  runWithAlert_("Đang kiểm tra tính năng giao hàng của Public API...", () => {
+    const token = kvGetToken_();
+    const retailer = kvProp_("KV_RETAILER");
+    const kvHeaders = { Authorization: "Bearer " + token, Retailer: retailer };
+
+    // SP test: củ sạc 20W trong bộ quà (bán giá 0đ nên không ảnh hưởng doanh thu).
+    const product = kvGetProductWithSerials_(token, retailer, "SP012564");
+    if (!product || !product.id) throw new Error('Không tìm thấy SP test SP012564 trên KiotViet.');
+
+    const payload = {
+      branchId: kvCurrentBranchId_(),
+      description: "TEST kiểm tra API giao hàng — đơn này được script tự xoá",
+      orderDetails: [{
+        productId: product.id,
+        productCode: product.code,
+        productName: product.fullName || product.name || "",
+        quantity: 1,
+        price: 0
+      }],
+      orderDelivery: {
+        deliveryCode: "TEST-API-DELIVERY",
+        price: 0,
+        receiver: "TEST API",
+        contactNumber: "0000000000",
+        address: "TEST — don nay se bi xoa"
+      }
+    };
+    try {
+      const template = JSON.parse(
+        PropertiesService.getScriptProperties().getProperty("KV_DELIVERY_TEMPLATE") || "null");
+      if (template && template.partnerDeliveryId) {
+        payload.orderDelivery.partnerDeliveryId = template.partnerDeliveryId;
+      }
+    } catch (ignore) { /* chưa học mẫu -> test không kèm đối tác */ }
+
+    const resp = UrlFetchApp.fetch(KV_API_BASE + "/orders", {
+      method: "post",
+      contentType: "application/json",
+      headers: kvHeaders,
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    const text = resp.getContentText();
+    let data = null;
+    try { data = JSON.parse(text); } catch (ignore) { /* non-JSON */ }
+    if (resp.getResponseCode() >= 400) {
+      const reason = (data && data.responseStatus && data.responseStatus.message) ||
+        (data && (data.message || data.detail)) || text.slice(0, 250);
+      const isDeliveryGate = /delivery|giao hàng|not enabled/i.test(reason);
+      return "KẾT QUẢ: tạo đặt hàng test bị TỪ CHỐI.\nLỗi KiotViet: " + reason + "\n\n" +
+        (isDeliveryGate
+          ? "→ Tính năng giao hàng CHƯA BẬT cho Public API. Gọi 1900 6522: " +
+            '"Bật tính năng giao hàng cho Public API của gian hàng ' + retailer + '".'
+          : "→ Lỗi khác (không phải công tắc giao hàng) — gửi nguyên văn thông báo này để phân tích tiếp.");
+    }
+
+    const order = (data && (data.data || data)) || {};
+    const orderId = order.id;
+    let stored = false;
+    if (orderId) {
+      const check = UrlFetchApp.fetch(KV_API_BASE + "/orders/" + encodeURIComponent(orderId), {
+        method: "get", headers: kvHeaders, muteHttpExceptions: true
+      });
+      if (check.getResponseCode() < 400) {
+        try {
+          const detail = JSON.parse(check.getContentText());
+          const orderDetail = detail && (detail.data || detail);
+          stored = !!(orderDetail && orderDetail.orderDelivery);
+        } catch (ignore) { /* parse lỗi -> coi như không xác nhận được */ }
+      }
+      // Dọn dẹp: xoá đặt hàng test.
+      UrlFetchApp.fetch(KV_API_BASE + "/orders/" + encodeURIComponent(orderId), {
+        method: "delete", headers: kvHeaders, muteHttpExceptions: true
+      });
+    }
+
+    return stored
+      ? "✅ ĐÃ BẬT — KiotViet LƯU được vận đơn qua API.\n(Đặt hàng test " + (order.code || orderId) +
+        " đã tạo và tự xoá.)\n\n→ Vận đơn dùng được qua luồng ĐẶT HÀNG GIAO ĐI. Riêng gắn vận đơn vào " +
+        "HÓA ĐƠN vẫn bị chặn — muốn dùng luồng đặt hàng thì báo Claude code tiếp."
+      : "❌ CHƯA BẬT — đặt hàng test tạo được nhưng phần VẬN ĐƠN bị KiotViet bỏ qua.\n(Đơn test đã tự xoá.)\n\n" +
+        '→ Gọi KiotViet 1900 6522: "Bật tính năng giao hàng (orderDelivery/invoiceDelivery) cho Public API ' +
+        'của gian hàng ' + retailer + '".';
+  });
+}
+
+
 // Gắn vận đơn vào hóa đơn ĐÃ TẠO bằng PUT /invoices/{id}: đọc hóa đơn đầy đủ,
 // thêm invoiceDelivery rồi ghi ngược lại; kiểm chứng lại sau khi ghi.
 // true = vận đơn đã được KiotViet ghi nhận.
