@@ -1375,6 +1375,11 @@ function kvRunCreateInvoices_(force) {
           contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
           address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim()
         };
+        // Hóa đơn Daibiki bắt buộc kèm VẬN ĐƠN: phải tạo vận đơn Yamato thành
+        // công (có Mã vận đơn) trước, rồi mới tạo hóa đơn KiotViet.
+        if (delivery && !delivery.deliveryCode) {
+          throw new Error("Đơn Daibiki chưa có Mã vận đơn Yamato — hãy chạy 'Tạo vận đơn cho đơn hợp lệ' trước, rồi mới tạo hóa đơn KiotViet (hóa đơn cần kèm vận đơn).");
+        }
 
         // Hàng tặng kèm / phụ phí: thêm các SP của bộ đã chọn vào hóa đơn.
         const giftText = giftCol === -1 ? "" : String(raw[giftCol] || "").trim();
