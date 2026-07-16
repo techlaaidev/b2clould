@@ -1714,12 +1714,12 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
   // - đối tác giao hàng = KV_DELIVERY_PARTNER (ヤマト Nagoya)
   // - price (Phí áp dụng) = 代引手数料 Yamato theo bậc GIÁ HÀNG (không tính
   //   Thu khác) — là phí vận đơn, không phải giảm giá hóa đơn
-  // - usingCod: hóa đơn thu hộ tiền (COD)
+  // KHÔNG gửi usingCod / status: KiotViet từ chối hóa đơn COD "chưa hoàn
+  // thành" qua API ("invalid old invoice status") — hóa đơn tạo dạng hoàn
+  // thành kèm thông tin vận đơn, vẫn trừ kho + ghi doanh số + có mã vận đơn.
   if (delivery) {
-    payload.usingCod = true;
     payload.invoiceDelivery = {
       deliveryCode: delivery.deliveryCode || "",
-      status: 1, // Chờ xử lý
       price: yamatoCodFee_(price),
       receiver: delivery.receiver || "",
       contactNumber: delivery.contactNumber || "",
