@@ -332,44 +332,18 @@ def create_order_shipments(
             row["tracking_number"] = extract_tracking(saved)
             row["status"] = "SAVED"
             row["error_message"] = ""
-            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if issue_pdf:
-                to_print.append((row, feed_entries(saved)))
-        except Exception as exc:
-            row = set_order_error(row, f"Lỗi hệ thống khi tạo đơn trên Yamato B2: {exc}", status="ERROR")
-        output.append(row)
 
-    # In GỘP: mọi nhãn của cả loạt vào MỘT file PDF (B2 tự dàn 2 nhãn / tờ A4
-    # trên giấy マルチ送り状) thay vì mỗi đơn một file như trước. Nhóm theo
-    # print_type vì B2 chỉ in được 1 loại phôi mỗi lần.
-    batch_pdfs = []
-    if to_print:
-        groups: dict[str, list] = {}
-        for row, entries in to_print:
-            key = row.get("print_type") or row["service_type"]
-            groups.setdefault(key, []).append((row, entries))
-        for print_type, group in groups.items():
-            group_rows = [row for row, _ in group]
-            group_entries = [entry for _, entries in group for entry in entries]
-            try:
+            if issue_pdf:
+                # In riêng từng đơn (phôi 'm5': 1 nhãn / tờ A5). Muốn 2 nhãn /
+                # tờ A4 thì dùng menu "In gộp phiếu" -> /api/orders/print.
                 pdf_data = b2cloud.print_issue(
-                    session, print_type, {"feed": {"entry": group_entries}}
+                    session,
+                    row.get("print_type") or row["service_type"],
+                    saved,
                 )
-            except Exception as exc:
-                for row in group_rows:
-                    # Nháp đã nằm trên B2 (chưa phát hành) — chạy lại menu sẽ
-                    # dùng lại nháp và in tiếp, không tạo trùng.
-                    row["error_message"] = f"Đã lưu nháp trên B2 nhưng in vận đơn thất bại: {exc}"
-                continue
-            filename = f"yamato_labels_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{print_type}.pdf"
-            if include_pdf_base64:
-                batch_pdfs.append({
-                    "print_type": print_type,
-                    "pdf_filename": filename,
-                    "pdf_base64": base64.b64encode(pdf_data).decode("ascii"),
-                })
-            for row in group_rows:
-                row["pdf_batch"] = filename
+                if include_pdf_base64:
+                    row["pdf_base64"] = base64.b64encode(pdf_data).decode("ascii")
+                    row["pdf_filename"] = f"{row['order_id'] or 'shipment'}.pdf"
                 # "Đã tạo đơn" chỉ khi tra thấy đơn trong lịch sử Yamato B2 (có
                 # mã vận đơn thật). Chưa thấy (index lag) -> PENDING, người dùng
                 # chạy 'Kiểm tra và đồng bộ đơn' sau vài phút để chốt trạng thái.
@@ -382,11 +356,44 @@ def create_order_shipments(
                     row["tracking_number"] = ""
                     row["status"] = "PENDING"
                     row["error_message"] = PENDING_NOTE_VI
-                row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+            row["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as exc:
+            row = set_order_error(row, f"Lỗi hệ thống khi tạo đơn trên Yamato B2: {exc}", status="ERROR")
+        output.append(row)
     for row in output:
         row.update(map_output_row(row))
-    return {"rows": output, "batch_pdfs": batch_pdfs}
+    return {"rows": output}
+
+
+def reprint_shipments_merged(session, tracking_numbers: list[str]) -> dict[str, Any]:
+    """In lại NHIỀU vận đơn đã phát hành vào MỘT file PDF phôi 'm' (A4マルチ:
+    2 nhãn / tờ A4). Chỉ nhận đơn đã có mã vận đơn thật trong lịch sử B2."""
+    entries = []
+    missing = []
+    for tracking in tracking_numbers:
+        tracking = str(tracking or "").strip()
+        if not tracking:
+            continue
+        feed = b2cloud.search_history(session, tracking_number=tracking)
+        found = [
+            entry for entry in feed_entries(feed)
+            if str(entry.get("shipment", {}).get("tracking_number", "")).strip() == tracking
+        ]
+        if found:
+            entries.append(found[0])
+        else:
+            missing.append(tracking)
+    if missing:
+        return {"error": "Không tìm thấy trên Yamato B2: " + ", ".join(missing)}
+    if not entries:
+        return {"error": "Không có mã vận đơn nào để in."}
+    pdf_data = b2cloud.print_issue(session, "m", {"feed": {"entry": entries}})
+    filename = f"yamato_labels_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    return {
+        "count": len(entries),
+        "pdf_filename": filename,
+        "pdf_base64": base64.b64encode(pdf_data).decode("ascii"),
+    }
 
 
 # Bump on every deploy so /version confirms which code Render is actually running.
