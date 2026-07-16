@@ -359,11 +359,9 @@ function fixCarrierDropdown() {
 const DAIBIKI_FEE = 1500;
 
 
-// Điền cột Price cho MỌI dòng có Product Number. Price = số tiền THU HỘ cuối
-// cùng: giá ở cuối ô Product Number, trừ Số tiền đặt cọc nếu DP, đơn Daibiki
-// cộng thêm phí thu hộ theo cột "Thu khác" (ô trống -> mặc định DAIBIKI_FEE
-// 1.500¥, điền 0 = không thu phí) — cùng nguồn với khoản thu THK000001 trên
-// hóa đơn KiotViet nên 2 bên luôn khớp nhau.
+// Điền cột Price cho MỌI dòng có Product Number. Price = GIÁ GỐC sản phẩm
+// (số ở cuối ô Product Number) — KHÔNG trừ cọc, KHÔNG cộng Thu khác; đặt cọc
+// và phí Thu khác do server tự xử lý khi tạo vận đơn Yamato.
 // Chưa có cột Price → tự chèn một cột mới ngay cạnh phải Product Number.
 // Ô Price đã có giá trị thì GIỮ NGUYÊN (không ghi đè giá đã sửa tay).
 function fillPriceColumnFromProductNumber() {
