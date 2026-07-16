@@ -1845,6 +1845,7 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     try {
       const created = kvPostInvoice_(token, retailer, attempt);
       created._variantUsed = i + 1; // để báo lại biến thể nào được chấp nhận
+      created._deliveryPayload = payload.invoiceDelivery; // bản đầy đủ, dùng cho bước gắn lại
       return created;
     } catch (err) {
       lastError = err;
