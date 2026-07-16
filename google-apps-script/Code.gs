@@ -1529,6 +1529,30 @@ function kvLearnDeliveryTemplate() {
 }
 
 
+// Gắn vận đơn vào hóa đơn ĐÃ TẠO bằng PUT /invoices/{id}: đọc hóa đơn đầy đủ,
+// thêm invoiceDelivery rồi ghi ngược lại; kiểm chứng lại sau khi ghi.
+// true = vận đơn đã được KiotViet ghi nhận.
+function kvAttachDeliveryToInvoice_(token, retailer, invoiceId, deliveryPayload) {
+  try {
+    const detail = kvFetchInvoiceDetail_(token, retailer, invoiceId);
+    if (!detail) return false;
+    detail.invoiceDelivery = deliveryPayload;
+    const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices/" + encodeURIComponent(invoiceId), {
+      method: "put",
+      contentType: "application/json",
+      headers: { Authorization: "Bearer " + token, Retailer: retailer },
+      payload: JSON.stringify(detail),
+      muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() >= 400) return false;
+    const after = kvFetchInvoiceDetail_(token, retailer, invoiceId);
+    return !!(after && after.invoiceDelivery);
+  } catch (ignore) {
+    return false;
+  }
+}
+
+
 // Đọc lại hóa đơn vừa tạo (kiểm chứng Thu khác + vận đơn). null = không đọc được.
 function kvFetchInvoiceDetail_(token, retailer, invoiceId) {
   try {
