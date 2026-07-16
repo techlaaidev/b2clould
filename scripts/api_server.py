@@ -57,6 +57,10 @@ class CreateOrdersRequest(RowsRequest):
     include_pdf_base64: bool = True
 
 
+class PrintRequest(BaseModel):
+    tracking_numbers: list[str] = Field(default_factory=list)
+
+
 class TrackingRequest(BaseModel):
     view: str = "history"
     service_type: str = ""
