@@ -1580,12 +1580,17 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
   if (customerId) payload.customerId = customerId; // gắn khách; bỏ trống → khách lẻ
   // Tên trường ĐÚNG theo tài liệu KiotViet Public API là "surchages" (thiếu r).
   if (surcharges && surcharges.length) payload.surchages = surcharges;
-  // Đơn Daibiki: trừ 代引手数料 Yamato (330/440/660/1.100¥ theo bậc GIÁ HÀNG,
-  // không tính Thu khác) dưới dạng giảm giá hóa đơn -> tổng hóa đơn = tiền
-  // thực nhận về tài khoản.
-  if (isDaibiki) {
-    const codFee = yamatoCodFee_(price);
-    if (codFee > 0) payload.discount = codFee;
+  // Đơn Daibiki: hóa đơn BÁN GIAO HÀNG — 代引手数料 Yamato (330/440/660/1.100¥
+  // theo bậc GIÁ HÀNG, không tính Thu khác) là PHÍ VẬN ĐƠN, điền vào
+  // invoiceDelivery.price (Phí áp dụng), không phải giảm giá hóa đơn.
+  if (delivery) {
+    payload.invoiceDelivery = {
+      deliveryCode: delivery.deliveryCode || "",
+      price: yamatoCodFee_(price),
+      receiver: delivery.receiver || "",
+      contactNumber: delivery.contactNumber || "",
+      address: delivery.address || ""
+    };
   }
 
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices", {
