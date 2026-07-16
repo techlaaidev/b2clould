@@ -836,9 +836,15 @@ function onEdit(e) {
     const headers = headerRow_(sheet);
     const col = e.range.getColumn();
 
-    // Gõ IMEI → tự tra tên SP từ chỉ mục (lập khi đồng bộ).
+    // Gõ IMEI → tự tra tên SP. Nếu đã "Bật tra IMEI trực tiếp" (installable
+    // trigger onEditKvImei_ — được phép gọi API) thì nhường cho trigger đó xử
+    // lý, vì onEdit simple trigger KHÔNG được phép gọi UrlFetchApp.
     const imeiCol = headers.indexOf(KV_IMEI_HEADER) + 1;
-    if (imeiCol !== 0 && col === imeiCol) { kvFillNameFromImei_(e, sheet, headers); return; }
+    if (imeiCol !== 0 && col === imeiCol) {
+      if (PropertiesService.getScriptProperties().getProperty("KV_IMEI_LIVE")) return;
+      kvFillNameFromImei_(e, sheet, headers);
+      return;
+    }
 
     const prodCol = headers.indexOf(KV_NAME_HEADER) + 1;
     if (prodCol === 0 || col !== prodCol) return;
