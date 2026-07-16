@@ -740,6 +740,7 @@ const KV_SELLER_HEADER = "Người nhập đơn";            // map với NGƯ�
 const KV_GIFT_HEADER = "Hàng tặng kèm";               // bộ quà / phụ phí thêm vào hóa đơn KiotViet
 const KV_SURCHARGE_HEADER = "Thu khác";               // phí COD thu của khách -> khoản thu khác trên hóa đơn
 const KV_COD_SURCHARGE_CODE = "THK000001";            // mã khoản thu 決済手数料・Cash on Delivery Fee trên KiotViet
+const KV_DELIVERY_PARTNER = "ヤマト Nagoya";          // đối tác giao hàng trên KiotViet cho đơn Daibiki (Yamato)
 const KV_NAME_MATCH_MIN = 0.6;                        // tên SP KiotViet phải khớp >=60% từ khoá của Product Number
 
 // Tên bộ tặng kèm / phụ phí -> các mã SP KiotViet sẽ thêm vào hóa đơn.
