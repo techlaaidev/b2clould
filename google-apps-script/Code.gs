@@ -1709,16 +1709,25 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
   if (customerId) payload.customerId = customerId; // gắn khách; bỏ trống → khách lẻ
   // Tên trường ĐÚNG theo tài liệu KiotViet Public API là "surchages" (thiếu r).
   if (surcharges && surcharges.length) payload.surchages = surcharges;
-  // Đơn Daibiki: hóa đơn BÁN GIAO HÀNG — 代引手数料 Yamato (330/440/660/1.100¥
-  // theo bậc GIÁ HÀNG, không tính Thu khác) là PHÍ VẬN ĐƠN, điền vào
-  // invoiceDelivery.price (Phí áp dụng), không phải giảm giá hóa đơn.
+  // Đơn Daibiki: hóa đơn BÁN GIAO HÀNG, kèm VẬN ĐƠN Yamato:
+  // - deliveryCode = Mã vận đơn vừa lấy khi tạo đơn trên Yamato B2
+  // - đối tác giao hàng = KV_DELIVERY_PARTNER (ヤマト Nagoya)
+  // - price (Phí áp dụng) = 代引手数料 Yamato theo bậc GIÁ HÀNG (không tính
+  //   Thu khác) — là phí vận đơn, không phải giảm giá hóa đơn
+  // - usingCod: hóa đơn thu hộ tiền (COD)
   if (delivery) {
+    payload.usingCod = true;
     payload.invoiceDelivery = {
       deliveryCode: delivery.deliveryCode || "",
+      status: 1, // Chờ xử lý
       price: yamatoCodFee_(price),
       receiver: delivery.receiver || "",
       contactNumber: delivery.contactNumber || "",
-      address: delivery.address || ""
+      address: delivery.address || "",
+      partnerDelivery: {
+        code: KV_DELIVERY_PARTNER,
+        name: KV_DELIVERY_PARTNER
+      }
     };
   }
 
