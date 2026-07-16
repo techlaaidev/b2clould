@@ -1731,6 +1731,36 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     };
   }
 
+  if (!delivery) return kvPostInvoice_(token, retailer, payload);
+
+  // KiotViet khắt khe với trạng thái hóa đơn giao hàng qua API: thử lần lượt
+  // từ biến thể ĐẦY ĐỦ nhất (hóa đơn Đang xử lý + thu hộ COD — vận đơn sẽ
+  // hiện ở màn hình "Kiểm tra vận đơn") lùi dần về tối giản; biến thể nào
+  // được chấp nhận thì dùng. Chỉ thử tiếp khi đúng lỗi trạng thái.
+  const variants = [
+    { status: 3, usingCod: true, deliveryStatus: 1 }, // Đang xử lý + COD + vận đơn Chờ xử lý
+    { usingCod: true, deliveryStatus: 1 },            // COD + vận đơn Chờ xử lý
+    {}                                                // tối giản
+  ];
+  let lastError = null;
+  for (let i = 0; i < variants.length; i++) {
+    const variant = variants[i];
+    const attempt = JSON.parse(JSON.stringify(payload));
+    if (variant.status) attempt.status = variant.status;
+    if (variant.usingCod) attempt.usingCod = true;
+    if (variant.deliveryStatus) attempt.invoiceDelivery.status = variant.deliveryStatus;
+    try {
+      return kvPostInvoice_(token, retailer, attempt);
+    } catch (err) {
+      lastError = err;
+      if (!/invalid.*invoice status|invoice status/i.test(String(err.message || err))) throw err;
+    }
+  }
+  throw lastError;
+}
+
+
+function kvPostInvoice_(token, retailer, payload) {
   const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices", {
     method: "post",
     contentType: "application/json",
