@@ -19,6 +19,7 @@ function onOpen() {
     .addItem("Bật tra IMEI trực tiếp (chạy 1 lần)", "enableImeiLiveLookup")
     .addItem("Gắn dropdown KiotViet (nhanh, không đồng bộ kho)", "applyKvDropdowns")
     .addItem("Học mẫu vận đơn KiotViet (chạy 1 lần)", "kvLearnDeliveryTemplate")
+    .addItem("Kiểm tra API giao hàng đã bật chưa (test tự xoá)", "kvCheckDeliveryFeature")
     .addItem("Tạo hóa đơn KiotViet", "createKiotVietInvoices")
     .addItem("Tạo lại hóa đơn KiotViet (test)", "recreateKiotVietInvoicesTest")
     .addItem("Xem IMEI của SP (test)", "kvShowImeis")
