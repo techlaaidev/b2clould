@@ -936,6 +936,106 @@ function kvWriteCatalog_(rows) {
 // Gõ IMEI vào cột IMEI → tra bảng chỉ mục (lập khi đồng bộ) → tự điền tên SP + _kvCode.
 // - IMEI trống: không đụng gì (giữ tên đang có).
 // - IMEI không có trong kho CN hiện tại (sai / đã bán / CN khác): xoá tên + mã (không điền gì).
+// ===== Tra IMEI trực tiếp (installable trigger — được phép gọi API) =====
+// Bật 1 lần từ menu: mỗi lần nhập IMEI sẽ hỏi KiotViet các SP THAY ĐỔI từ lần
+// đồng bộ trước (lastModifiedFrom) để cập nhật chỉ mục rồi mới tra — kho luôn
+// mới mà không phải "Đồng bộ kho KiotViet" thủ công.
+function enableImeiLiveLookup() {
+  const ss = SpreadsheetApp.getActive();
+  ScriptApp.getProjectTriggers().forEach(trigger => {
+    if (trigger.getHandlerFunction() === "onEditKvImei_") ScriptApp.deleteTrigger(trigger);
+  });
+  ScriptApp.newTrigger("onEditKvImei_").forSpreadsheet(ss).onEdit().create();
+  PropertiesService.getScriptProperties().setProperty("KV_IMEI_LIVE", "1");
+  SpreadsheetApp.getUi().alert(
+    'Đã bật tra IMEI trực tiếp.\nMỗi lần nhập IMEI (Enter), hệ thống hỏi thẳng KiotViet các thay đổi mới nhất rồi tra sản phẩm.\nVẫn cần "Đồng bộ kho KiotViet" lần đầu để có chỉ mục gốc.');
+}
+
+
+function onEditKvImei_(e) {
+  try {
+    if (!e || !e.range) return;
+    const sheet = e.range.getSheet();
+    if (sheet.getName() === KV_CATALOG_SHEET || sheet.getName() === KV_IMEI_INDEX_SHEET) return;
+    if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
+    if (e.range.getRow() === 1) return;
+    const headers = headerRow_(sheet);
+    const imeiCol = headers.indexOf(KV_IMEI_HEADER) + 1;
+    if (imeiCol === 0 || e.range.getColumn() !== imeiCol) return;
+
+    // Cập nhật kho tức thì trước khi tra; lỗi mạng thì dùng chỉ mục hiện có.
+    try {
+      kvIncrementalImeiRefresh_(kvGetToken_(), kvProp_("KV_RETAILER"));
+    } catch (err) {
+      SpreadsheetApp.getActive().toast(
+        "Không cập nhật được kho mới nhất (" + (err.message || err) + ") — dùng chỉ mục hiện có.", "KiotViet", 5);
+    }
+    kvFillNameFromImei_(e, sheet, headers);
+  } catch (err) {
+    SpreadsheetApp.getActive().toast("KiotViet: " + (err.message || err), "Lỗi", 5);
+  }
+}
+
+
+// Đồng bộ nhanh: chỉ hỏi KiotViet các SP thay đổi từ mốc KV_IMEI_SYNCED_AT
+// (lùi 30 phút phòng lệch giờ) rồi thay các dòng chỉ mục IMEI của đúng các SP
+// đó. Trả về false khi chưa từng đồng bộ toàn bộ (chưa có mốc).
+function kvIncrementalImeiRefresh_(token, retailer) {
+  const props = PropertiesService.getScriptProperties();
+  const last = props.getProperty("KV_IMEI_SYNCED_AT");
+  if (!last) return false;
+  const started = Date.now();
+  const fromText = Utilities.formatDate(
+    new Date(Number(last) - 30 * 60 * 1000), "GMT+7", "yyyy-MM-dd'T'HH:mm:ss");
+  const branchId = kvCurrentBranchId_();
+
+  const changed = {};  // mã SP có thay đổi
+  const newRows = [];  // [imei, code, fullName] còn bán được ở CN hiện tại
+  const pageSize = 100;
+  let current = 0;
+  for (let page = 0; page < 20; page++) { // trần 2.000 SP thay đổi / lần
+    const url = KV_API_BASE + "/products?pageSize=" + pageSize + "&currentItem=" + current +
+      "&includeInventory=false&includeSerials=true&lastModifiedFrom=" + encodeURIComponent(fromText);
+    const resp = UrlFetchApp.fetch(url, {
+      method: "get",
+      headers: { Authorization: "Bearer " + token, Retailer: retailer },
+      muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() >= 400) {
+      throw new Error("KiotViet products HTTP " + resp.getResponseCode());
+    }
+    const data = JSON.parse(resp.getContentText());
+    const batch = data.data || [];
+    batch.forEach(p => {
+      const code = String(p.code || "");
+      if (!code) return;
+      changed[code] = true;
+      (p.productSerials || []).forEach(s => {
+        if (Number(s.status) !== 1 || Number(s.branchId) !== branchId) return;
+        const num = String(s.serialNumber || "").trim();
+        if (num) newRows.push([num, code, p.fullName || p.name || ""]);
+      });
+    });
+    current += pageSize;
+    if (!batch.length || current >= (data.total || 0)) break;
+  }
+
+  if (Object.keys(changed).length) {
+    const sh = SpreadsheetApp.getActive().getSheetByName(KV_IMEI_INDEX_SHEET);
+    if (sh) {
+      const lastRow = sh.getLastRow();
+      const rows = lastRow < 2 ? [] : sh.getRange(2, 1, lastRow - 1, 3).getValues();
+      const all = rows.filter(r => !changed[String(r[1] || "")]).concat(newRows);
+      sh.clearContents();
+      sh.getRange(1, 1, 1, 3).setValues([["imei", "code", "fullName"]]);
+      if (all.length) sh.getRange(2, 1, all.length, 3).setValues(all);
+    }
+  }
+  props.setProperty("KV_IMEI_SYNCED_AT", String(started));
+  return true;
+}
+
+
 // Nhân viên chỉ cần gõ 5 SỐ CUỐI của IMEI (hoặc nhiều hơn / đủ IMEI):
 // - khớp đúng 1 IMEI → tự ghi IMEI ĐẦY ĐỦ lại vào ô (tạo hóa đơn cần đủ số)
 //   và điền tên SP + mã.
