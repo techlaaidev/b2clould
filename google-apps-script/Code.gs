@@ -378,11 +378,7 @@ function fillPriceColumnFromProductNumber() {
     }
     const col = {
       prod: headers.indexOf("Product Number"),
-      price: headers.indexOf("Price"),
-      pay: headers.indexOf("Thanh toán"),
-      deposit: headers.indexOf("Số tiền đặt cọc"),
-      ttype: headers.indexOf("Type of transaction"),
-      extraFee: headers.indexOf(KV_SURCHARGE_HEADER)
+      price: headers.indexOf("Price")
     };
 
     const lastRow = sheet.getLastRow();
