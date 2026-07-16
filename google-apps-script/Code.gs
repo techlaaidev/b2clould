@@ -180,8 +180,8 @@ function localValidateRow_(row) {
   need("Mobile", "Thiếu số điện thoại (cột Mobile)");
   need("Product Number", "Thiếu sản phẩm (cột Product Number)");
 
-  // Cột Price = SỐ TIỀN THU HỘ cuối cùng (đã trừ sẵn đặt cọc DP) — được ưu
-  // tiên; giá ở cuối Product Number chỉ là fallback cho dòng cũ chưa có Price.
+  // Cột Price = GIÁ GỐC sản phẩm — được ưu tiên; giá ở cuối Product Number
+  // chỉ là fallback cho dòng cũ chưa có Price.
   const prod = String(row["Product Number"] || "").trim();
   const priceRaw = String(row["Price"] || "").trim();
   const priceCell = priceRaw ? parsePriceCell_(priceRaw) : null;
