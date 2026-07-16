@@ -1395,6 +1395,10 @@ function kvRunCreateInvoices_(force) {
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
         ok++;
         if (surcharges.length) okFee++;
+        if (invoice._variantUsed && invoice._variantUsed > 1) {
+          errors.push("ℹ Dòng " + sheetRow + ": KiotViet chỉ chấp nhận biến thể vận đơn #" +
+            invoice._variantUsed + "/6 (bỏ bớt trạng thái/đối tác) — xem popup ⚠ bên dưới nếu vận đơn không được ghi nhận.");
+        }
         // Tự kiểm chứng: đọc lại hóa đơn vừa tạo xem KiotViet có GHI NHẬN
         // khoản Thu khác + VẬN ĐƠN không (API có thể âm thầm bỏ qua trường lạ).
         if (invoice.id && (surcharges.length || delivery)) {
