@@ -1248,10 +1248,22 @@ function kvRunCreateInvoices_(force) {
           soldById = kvResolveSellerId_(kvUsers, sellerName);
         }
 
-        // SP giá 0 trên KiotViet → lấy GIÁ HÀNG gốc ở cuối cột Product Number.
-        // KHÔNG dùng cột Price: Price = tiền thu hộ (đơn Daibiki đã cộng
-        // 1.500¥ phí, DP đã trừ cọc) nên không phải giá bán của sản phẩm.
-        const paidPrice = prodNumCol === -1 ? null : parsePriceFromProductNumber_(raw[prodNumCol]);
+        // SP giá 0 trên KiotViet → GIÁ GỐC sản phẩm: ưu tiên cột Price,
+        // fallback số ở cuối cột Product Number.
+        const priceCellKv = priceCol === -1 ? null : parsePriceCell_(raw[priceCol]);
+        const paidPrice = priceCellKv != null
+          ? priceCellKv
+          : (prodNumCol === -1 ? null : parsePriceFromProductNumber_(raw[prodNumCol]));
+
+        // Đơn Daibiki: hóa đơn kiểu BÁN GIAO HÀNG — phí vận đơn Yamato
+        // (330/440/660/1.100¥ theo bậc giá hàng) ghi vào Phí áp dụng của phần
+        // giao hàng, kèm mã vận đơn + người nhận. KHÔNG phải giảm giá hóa đơn.
+        const delivery = !isDaibikiKv ? null : {
+          deliveryCode: trackingColKv === -1 ? "" : String(raw[trackingColKv] || "").trim(),
+          receiver: custNameCol === -1 ? "" : String(raw[custNameCol] || "").trim(),
+          contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
+          address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim()
+        };
 
         // Hàng tặng kèm / phụ phí: thêm các SP của bộ đã chọn vào hóa đơn.
         const giftText = giftCol === -1 ? "" : String(raw[giftCol] || "").trim();
