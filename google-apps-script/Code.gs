@@ -390,41 +390,22 @@ function fillPriceColumnFromProductNumber() {
     let filled = 0;
     let kept = 0;
     const skippedNoPrice = [];
-    const skippedDeposit = [];
     values.forEach((raw, i) => {
       if (!String(raw[col.prod] || "").trim()) return; // dòng không có SP
       if (String(priceValues[i][0] || "").trim() !== "") { kept++; return; } // đã có giá → giữ nguyên
 
-      let price = parsePriceFromProductNumber_(raw[col.prod]);
+      const price = parsePriceFromProductNumber_(raw[col.prod]);
       if (price == null) { skippedNoPrice.push(i + 2); return; }
-
-      const pay = col.pay === -1 ? "" : String(raw[col.pay] || "").trim().toUpperCase();
-      if (pay === "DP") {
-        const deposit = col.deposit === -1 ? null : parsePriceCell_(raw[col.deposit]);
-        if (deposit == null || deposit > price) { skippedDeposit.push(i + 2); return; }
-        price -= deposit;
-      }
-      // Đơn Daibiki: cộng phí thu hộ khách chịu (đặt cọc đủ 100% thì thôi).
-      // Mức phí theo cột "Thu khác"; ô trống -> DAIBIKI_FEE, điền 0 = miễn phí.
-      const ttype = col.ttype === -1 ? "" : String(raw[col.ttype] || "").trim();
-      if (ttype === "Daibiki" && price > 0) {
-        const fee = col.extraFee === -1 ? null : parsePriceCell_(raw[col.extraFee]);
-        price += fee != null ? fee : DAIBIKI_FEE;
-      }
       priceValues[i][0] = price;
       filled++;
     });
     priceRange.setValues(priceValues);
 
-    let out = "Đã điền cột Price cho " + filled + " dòng (giá lấy từ Product Number, DP đã trừ đặt cọc, đơn Daibiki đã cộng " + DAIBIKI_FEE + "¥ phí thu hộ).";
+    let out = "Đã điền cột Price cho " + filled + " dòng (GIÁ GỐC sản phẩm lấy từ cuối Product Number).";
     if (kept) out += "\n• Giữ nguyên " + kept + " dòng đã có sẵn giá trong cột Price.";
     if (skippedNoPrice.length) {
       out += "\n⚠ " + skippedNoPrice.length + " dòng không đọc được giá ở cuối Product Number (dòng: " +
         skippedNoPrice.slice(0, 20).join(", ") + ") — điền tay vào cột Price.";
-    }
-    if (skippedDeposit.length) {
-      out += "\n⚠ " + skippedDeposit.length + " dòng DP thiếu/sai Số tiền đặt cọc (dòng: " +
-        skippedDeposit.slice(0, 20).join(", ") + ") — sửa đặt cọc rồi chạy lại.";
     }
     return out;
   });
