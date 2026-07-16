@@ -1784,7 +1784,10 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     if (variant.status) attempt.status = variant.status;
     if (variant.usingCod) attempt.usingCod = true;
     if (variant.deliveryStatus) attempt.invoiceDelivery.status = variant.deliveryStatus;
-    if (!variant.partner) delete attempt.invoiceDelivery.partnerDelivery;
+    if (!variant.partner) {
+      delete attempt.invoiceDelivery.partnerDelivery;
+      delete attempt.invoiceDelivery.partnerDeliveryId;
+    }
     try {
       const created = kvPostInvoice_(token, retailer, attempt);
       created._variantUsed = i + 1; // để báo lại biến thể nào được chấp nhận
