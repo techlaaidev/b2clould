@@ -65,8 +65,8 @@ def test_parse_row_without_label_prefix():
 
 
 def test_price_column_overrides_trailing_price():
-    # Cột Price = tiền thu hộ cuối cùng, được ưu tiên hơn giá ở cuối Product
-    # Number và dùng THẲNG — không cộng thêm phí Daibiki lần nữa.
+    # Cột Price = GIÁ GỐC sản phẩm, được ưu tiên hơn giá ở cuối Product Number.
+    # Server tự cộng phí Thu khác (mặc định 1500) khi tính tiền thu hộ.
     row = {
         "product_number": "COD_iPad 11 128GB WIFI BNIB blue - 61300",
         "price": "59.800",
@@ -75,12 +75,12 @@ def test_price_column_overrides_trailing_price():
     }
     error = derive_payment_fields(row)
     assert error == ""
-    assert row["amount"] == "59800"
+    assert row["amount"] == "61300"  # 59800 + 1500 phí
     assert row["item_name1"] == "iPad 11 128GB WIFI BNIB blue"
 
 
 def test_price_column_works_without_trailing_price():
-    # Product Number chỉ còn tên SP, giá nằm ở cột Price riêng.
+    # Product Number chỉ còn tên SP, giá gốc nằm ở cột Price riêng.
     row = {
         "product_number": "iPhone 13 128GB blue",
         "price": "61300y",
@@ -89,25 +89,24 @@ def test_price_column_works_without_trailing_price():
     }
     error = derive_payment_fields(row)
     assert error == ""
-    assert row["amount"] == "61300"
-    assert row["cod_amount"] == "61300"
+    assert row["amount"] == "62800"  # 61300 + 1500 phí
+    assert row["cod_amount"] == "62800"
     assert row["item_name1"] == "iPhone 13 128GB blue"
 
 
-def test_price_cell_is_final_collect_amount_for_dp():
-    # Cột Price đã trừ sẵn đặt cọc (menu "Điền cột Price") — dùng thẳng,
-    # KHÔNG trừ đặt cọc lần nữa, và không cần cột Số tiền đặt cọc.
+def test_price_cell_dp_subtracts_deposit_and_adds_fee():
+    # Price = giá gốc; server trừ đặt cọc DP rồi cộng phí Thu khác mặc định.
     row = {
         "product_number": "COD_iPhone 13 128GB - 100000",
-        "price": "70000",
+        "price": "100000",
         "type_of_transaction": "Daibiki",
         "payment_status": "DP",
-        "deposit_amount": "",
+        "deposit_amount": "30000",
     }
     error = derive_payment_fields(row)
     assert error == ""
-    assert row["amount"] == "70000"
-    assert row["cod_amount"] == "70000"
+    assert row["amount"] == "71500"  # 100000 - 30000 + 1500
+    assert row["cod_amount"] == "71500"
 
 
 def test_extra_fee_column_overrides_default_daibiki_fee():
