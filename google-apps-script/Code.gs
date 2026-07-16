@@ -1394,13 +1394,20 @@ function kvRunCreateInvoices_(force) {
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
         ok++;
+        if (surcharges.length) okFee++;
         // Tự kiểm chứng: đọc lại hóa đơn vừa tạo xem KiotViet có GHI NHẬN
-        // khoản Thu khác không (API có thể âm thầm bỏ qua trường này).
-        if (surcharges.length) {
-          okFee++;
-          if (invoice.id && !kvInvoiceHasSurcharge_(token, retailer, invoice.id)) {
-            errors.push("⚠ Dòng " + sheetRow + ": hóa đơn " + invCode +
-              " tạo OK nhưng KiotViet KHÔNG ghi nhận khoản Thu khác gửi kèm (API bỏ qua) — báo lại để đổi cách cộng phí.");
+        // khoản Thu khác + VẬN ĐƠN không (API có thể âm thầm bỏ qua trường lạ).
+        if (invoice.id && (surcharges.length || delivery)) {
+          const detail = kvFetchInvoiceDetail_(token, retailer, invoice.id);
+          if (detail) {
+            if (surcharges.length && !(detail.invoiceOrderSurcharges || []).length) {
+              errors.push("⚠ Dòng " + sheetRow + ": hóa đơn " + invCode +
+                " KHÔNG ghi nhận khoản Thu khác gửi kèm (API bỏ qua) — báo lại để đổi cách cộng phí.");
+            }
+            if (delivery && !detail.invoiceDelivery) {
+              errors.push("⚠ Dòng " + sheetRow + ": hóa đơn " + invCode +
+                " KHÔNG ghi nhận VẬN ĐƠN kèm theo (API bỏ qua) — sẽ không hiện ở màn hình Kiểm tra vận đơn.");
+            }
           }
         }
       } catch (err) {
