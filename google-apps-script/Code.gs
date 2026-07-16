@@ -1327,9 +1327,9 @@ function kvGetDefaultUserId_(token, retailer) {
 }
 
 
-// 代引手数料 Yamato trừ của SHOP theo bậc giá trị đơn hàng (KHÔNG tính Thu
-// khác) — ghi thành giảm trừ trên hóa đơn KiotViet để doanh thu khớp tiền
-// thực nhận. Chỉ áp cho đơn ship Daibiki.
+// 代引手数料 Yamato — PHÍ VẬN ĐƠN của đơn hàng, tính theo bậc giá trị đơn
+// (KHÔNG tính Thu khác). Ghi vào invoiceDelivery.price (Phí áp dụng) của hóa
+// đơn Bán giao hàng trên KiotViet. Chỉ áp cho đơn ship Daibiki.
 function yamatoCodFee_(value) {
   if (!value || value <= 0) return 0;
   if (value <= 9999) return 330;
