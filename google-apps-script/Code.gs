@@ -1726,17 +1726,39 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
   // - price (Phí áp dụng) = 代引手数料 Yamato theo bậc GIÁ HÀNG (không tính
   //   Thu khác) — là phí vận đơn, không phải giảm giá hóa đơn
   if (delivery) {
+    // Mẫu vận đơn học từ hóa đơn giao hàng thật (menu "Học mẫu vận đơn") —
+    // chứa partnerDeliveryId ĐÚNG của đối tác ヤマト Nagoya + type/khối lượng
+    // mà KiotViet đã chấp nhận. Chưa học -> fallback khớp theo tên (dễ lỗi).
+    let template = null;
+    try {
+      template = JSON.parse(
+        PropertiesService.getScriptProperties().getProperty("KV_DELIVERY_TEMPLATE") || "null");
+    } catch (ignore) { /* mẫu hỏng -> bỏ qua */ }
+
     payload.invoiceDelivery = {
       deliveryCode: delivery.deliveryCode || "",
       price: yamatoCodFee_(price),
       receiver: delivery.receiver || "",
       contactNumber: delivery.contactNumber || "",
       address: delivery.address || "",
-      partnerDelivery: {
+      weight: template && template.weight != null ? template.weight : 500,
+      length: template && template.length != null ? template.length : 10,
+      width: template && template.width != null ? template.width : 10,
+      height: template && template.height != null ? template.height : 10
+    };
+    if (template && template.type != null) payload.invoiceDelivery.type = template.type;
+    if (template && template.partnerDeliveryId) {
+      payload.invoiceDelivery.partnerDeliveryId = template.partnerDeliveryId;
+      payload.invoiceDelivery.partnerDelivery = {
+        code: template.partnerCode || KV_DELIVERY_PARTNER,
+        name: template.partnerName || KV_DELIVERY_PARTNER
+      };
+    } else {
+      payload.invoiceDelivery.partnerDelivery = {
         code: KV_DELIVERY_PARTNER,
         name: KV_DELIVERY_PARTNER
-      }
-    };
+      };
+    }
   }
 
   if (!delivery) return kvPostInvoice_(token, retailer, payload);
