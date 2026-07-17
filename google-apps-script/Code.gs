@@ -1920,6 +1920,8 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
       receiver: delivery.receiver || "",
       contactNumber: delivery.contactNumber || "",
       address: delivery.address || "",
+      status: 1,           // Chờ xử lý (theo payload mẫu KiotViet)
+      usingPriceCod: true, // thu hộ tiền COD — cờ nằm ở CẤP VẬN ĐƠN
       weight: template && template.weight != null ? template.weight : 500,
       length: template && template.length != null ? template.length : 10,
       width: template && template.width != null ? template.width : 10,
