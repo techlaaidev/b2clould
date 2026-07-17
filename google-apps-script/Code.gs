@@ -1397,10 +1397,6 @@ function kvRunCreateInvoices_(force) {
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
         ok++;
         if (surcharges.length) okFee++;
-        if (invoice._variantUsed && invoice._variantUsed > 1) {
-          errors.push("ℹ Dòng " + sheetRow + ": KiotViet chỉ chấp nhận biến thể vận đơn #" +
-            invoice._variantUsed + "/6 (bỏ bớt trạng thái/đối tác) — xem popup ⚠ bên dưới nếu vận đơn không được ghi nhận.");
-        }
         // Tự kiểm chứng: đọc lại hóa đơn vừa tạo xem KiotViet có GHI NHẬN
         // khoản Thu khác + VẬN ĐƠN không (API có thể âm thầm bỏ qua trường lạ).
         if (invoice.id && (surcharges.length || delivery)) {
@@ -1411,16 +1407,11 @@ function kvRunCreateInvoices_(force) {
                 " KHÔNG ghi nhận khoản Thu khác gửi kèm (API bỏ qua) — báo lại để đổi cách cộng phí.");
             }
             if (delivery && !detail.invoiceDelivery) {
-              // Thử lần cuối: GẮN vận đơn bằng lệnh CẬP NHẬT hóa đơn (PUT).
-              const attached = invoice._deliveryPayload
-                ? kvAttachDeliveryToInvoice_(token, retailer, invoice.id, invoice._deliveryPayload)
-                : false;
-              if (!attached) {
-                errors.push("⚠ Dòng " + sheetRow + ": hóa đơn " + invCode +
-                  " KHÔNG ghi nhận VẬN ĐƠN (đã thử cả tạo kèm lẫn cập nhật sau) — " +
-                  "nhiều khả năng Public API của gian hàng chưa được bật tính năng giao hàng. " +
-                  "Hỏi KiotViet 1900 6522: 'Bật hỗ trợ invoiceDelivery cho Public API của gian hàng jamobileno1'.");
-              }
+              // Không thể gắn vận đơn sau khi tạo (hóa đơn "Hoàn thành" không
+              // cho sửa trạng thái) — nếu tới đây tức payload tạo kèm có vấn đề.
+              errors.push("⚠ Dòng " + sheetRow + ": hóa đơn " + invCode +
+                " KHÔNG ghi nhận VẬN ĐƠN dù đã gửi usingCod=true + deliveryDetail — " +
+                "gửi nguyên văn cảnh báo này để phân tích tiếp.");
             }
           }
         }
