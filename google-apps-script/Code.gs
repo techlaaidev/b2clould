@@ -1174,13 +1174,10 @@ function kvProp_(key) {
 // Customer = "IG/WA Account" (tra có sẵn → dùng lại, chưa có → tạo mới); trống → khách lẻ.
 // Price = product basePrice from KiotViet; branch = chi nhánh hiện tại (17397).
 // Menu thường: bỏ qua dòng đã có hóa đơn (không đẩy trùng).
-function createKiotVietInvoices() { kvRunCreateInvoices_(false); }
+function createKiotVietInvoices() { kvRunCreateInvoices_(); }
 
-// Menu test: ĐẨY LẠI cả dòng đã có hóa đơn (ghi đè mã HĐ mới). Dùng khi test.
-function recreateKiotVietInvoicesTest() { kvRunCreateInvoices_(true); }
-
-function kvRunCreateInvoices_(force) {
-  runWithAlert_(force ? "Đang tạo LẠI hóa đơn KiotViet (test)..." : "Đang tạo hóa đơn KiotViet...", () => {
+function kvRunCreateInvoices_() {
+  runWithAlert_("Đang tạo hóa đơn KiotViet...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const headers = headerRow_(sheet);
     const nameCol = headers.indexOf(KV_NAME_HEADER);
@@ -1409,142 +1406,6 @@ function yamatoCodFee_(value) {
   if (value <= 29999) return 440;
   if (value <= 99999) return 660;
   return 1100; // 100,000 - 300,000円
-}
-
-
-// ===== Học "mẫu vận đơn" từ 1 hóa đơn giao hàng bạn đã tạo TAY trên KiotViet =====
-// KiotViet nhận diện đối tác giao hàng bằng partnerDeliveryId (mã số nội bộ,
-// KHÔNG phải tên hiển thị) — gửi sai thì server báo "Object reference not set".
-// Cách chắc chắn: đọc lại một hóa đơn Bán giao hàng thật (tạo tay, đối tác
-// ヤマト Nagoya) rồi dùng đúng bộ giá trị đó cho mọi hóa đơn tạo qua API.
-function kvLearnDeliveryTemplate() {
-  runWithAlert_("Đang tìm hóa đơn giao hàng mẫu trên KiotViet...", () => {
-    const token = kvGetToken_();
-    const retailer = kvProp_("KV_RETAILER");
-    const resp = UrlFetchApp.fetch(
-      KV_API_BASE + "/invoices?pageSize=100&orderBy=createdDate&orderDirection=Desc&includeInvoiceDelivery=true",
-      { method: "get", headers: { Authorization: "Bearer " + token, Retailer: retailer }, muteHttpExceptions: true });
-    const text = resp.getContentText();
-    if (resp.getResponseCode() >= 400) {
-      throw new Error("KiotViet invoices HTTP " + resp.getResponseCode() + ": " + text.slice(0, 150));
-    }
-    const list = (JSON.parse(text).data) || [];
-    const hasPartner = inv => inv && inv.invoiceDelivery &&
-      (inv.invoiceDelivery.partnerDeliveryId ||
-       (inv.invoiceDelivery.partnerDelivery && inv.invoiceDelivery.partnerDelivery.code));
-    let sample = list.filter(hasPartner)[0];
-    if (!sample) {
-      // Danh sách không kèm chi tiết giao hàng -> đọc chi tiết 20 hóa đơn gần nhất.
-      for (let i = 0; i < Math.min(list.length, 20) && !sample; i++) {
-        const detail = kvFetchInvoiceDetail_(token, retailer, list[i].id);
-        if (hasPartner(detail)) sample = detail;
-      }
-    }
-    if (!sample) {
-      return 'Chưa tìm thấy hóa đơn nào có VẬN ĐƠN kèm đối tác trong 100 hóa đơn gần nhất.\n\n' +
-        'Cách làm: trên KiotViet, tạo TAY 1 hóa đơn "Bán giao hàng" (chọn đối tác ヤマト Nagoya, ' +
-        'điền đại 1 SP bất kỳ) rồi chạy lại menu này — script sẽ học đúng mã đối tác từ hóa đơn đó.';
-    }
-    const d = sample.invoiceDelivery;
-    const template = {
-      partnerDeliveryId: d.partnerDeliveryId || (d.partnerDelivery && d.partnerDelivery.id) || null,
-      partnerCode: (d.partnerDelivery && (d.partnerDelivery.code || "")) || "",
-      partnerName: (d.partnerDelivery && (d.partnerDelivery.name || "")) || "",
-      type: d.type != null ? d.type : null,
-      weight: d.weight != null ? d.weight : 500,
-      length: d.length != null ? d.length : 10,
-      width: d.width != null ? d.width : 10,
-      height: d.height != null ? d.height : 10
-    };
-    PropertiesService.getScriptProperties().setProperty("KV_DELIVERY_TEMPLATE", JSON.stringify(template));
-    return "Đã học mẫu vận đơn từ hóa đơn " + (sample.code || sample.id) + ":\n" +
-      "• Đối tác: " + (template.partnerName || "(không rõ tên)") +
-      " (id=" + template.partnerDeliveryId + ", code=" + (template.partnerCode || "-") + ")\n" +
-      "• type=" + template.type + ", khối lượng=" + template.weight + "g\n\n" +
-      "Từ giờ hóa đơn Daibiki tạo qua API sẽ gắn đúng đối tác này.";
-  });
-}
-
-
-// ===== Kiểm tra tính năng GIAO HÀNG của Public API (test tự dọn) =====
-// Tạo 1 HÓA ĐƠN test (SP giá 0) theo đúng công thức đã kiểm chứng:
-// usingCod=true + deliveryDetail -> đọc lại xem KiotViet có LƯU vận đơn
-// không -> XOÁ hóa đơn test bằng DELETE /invoices (body {id, isVoidPayment}).
-// LƯU Ý: KHÔNG test qua /orders — gian hàng đang tắt "Cho phép đặt hàng"
-// nên /orders luôn bị chặn, không nói lên gì về tính năng giao hàng.
-function kvCheckDeliveryFeature() {
-  runWithAlert_("Đang kiểm tra tính năng giao hàng của Public API...", () => {
-    const token = kvGetToken_();
-    const retailer = kvProp_("KV_RETAILER");
-    const kvHeaders = { Authorization: "Bearer " + token, Retailer: retailer };
-
-    // SP test: củ sạc 20W trong bộ quà (không quản lý serial, bán giá 0đ).
-    const product = kvGetProductWithSerials_(token, retailer, "SP012564");
-    if (!product || !product.id) throw new Error('Không tìm thấy SP test SP012564 trên KiotViet.');
-
-    const payload = {
-      branchId: kvCurrentBranchId_(),
-      soldById: kvGetDefaultUserId_(token, retailer),
-      isApplyVoucher: false,
-      usingCod: true, // cờ "Bán giao hàng" — bắt buộc để deliveryDetail được lưu
-      invoiceDetails: [{
-        productId: product.id,
-        productCode: product.code,
-        productName: product.fullName || product.name || "",
-        quantity: 1,
-        price: 0
-      }],
-      deliveryDetail: {
-        deliveryCode: "TEST-API-DELIVERY",
-        price: 0,
-        receiver: "TEST API",
-        contactNumber: "0000000000",
-        address: "TEST — hoa don nay se bi xoa",
-        status: 1,
-        usingPriceCod: false,
-        weight: 100, length: 10, width: 10, height: 10
-      }
-    };
-    try {
-      const template = JSON.parse(
-        PropertiesService.getScriptProperties().getProperty("KV_DELIVERY_TEMPLATE") || "null");
-      if (template && template.partnerDeliveryId) {
-        payload.deliveryDetail.partnerDeliveryId = template.partnerDeliveryId;
-      }
-    } catch (ignore) { /* chưa học mẫu -> test không kèm đối tác */ }
-
-    let invoice;
-    try {
-      invoice = kvPostInvoice_(token, retailer, payload);
-    } catch (err) {
-      return "KẾT QUẢ: tạo hóa đơn test bị TỪ CHỐI.\nLỗi KiotViet: " + (err.message || err) +
-        "\n\n→ Gửi nguyên văn thông báo này để phân tích tiếp.";
-    }
-
-    const detail = kvFetchInvoiceDetail_(token, retailer, invoice.id);
-    const stored = !!(detail && detail.invoiceDelivery);
-
-    // Dọn dẹp: xoá hóa đơn test. Endpoint đúng là DELETE /invoices với BODY
-    // {id, isVoidPayment} — KHÔNG phải /invoices/{id} (trả 404).
-    const del = UrlFetchApp.fetch(KV_API_BASE + "/invoices", {
-      method: "delete",
-      contentType: "application/json",
-      headers: kvHeaders,
-      payload: JSON.stringify({ id: invoice.id, isVoidPayment: true }),
-      muteHttpExceptions: true
-    });
-    const cleaned = del.getResponseCode() < 400;
-    const cleanNote = cleaned
-      ? "(Hóa đơn test " + (invoice.code || invoice.id) + " đã tạo và tự xoá.)"
-      : "⚠ KHÔNG tự xoá được hóa đơn test " + (invoice.code || invoice.id) + " — hủy tay trên KiotViet.";
-
-    return stored
-      ? "✅ HOẠT ĐỘNG — KiotViet LƯU được vận đơn khi tạo hóa đơn qua API " +
-        "(usingCod=true + deliveryDetail).\n" + cleanNote
-      : "❌ VẪN BỊ BỎ QUA — hóa đơn test tạo được nhưng vận đơn không được lưu " +
-        "dù đã gửi usingCod=true + deliveryDetail.\n" + cleanNote +
-        "\n\n→ Gửi nguyên văn thông báo này để phân tích tiếp.";
-  });
 }
 
 
