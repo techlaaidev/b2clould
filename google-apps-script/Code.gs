@@ -1232,9 +1232,8 @@ function kvRunCreateInvoices_() {
       if (!name && !code) continue; // empty row
 
       // Đã có mã hóa đơn (không phải LỖI) → bỏ qua để không đẩy trùng.
-      // Trừ khi force (menu "Tạo lại ... test") thì vẫn đẩy lại, ghi đè mã mới.
       const existing = String(raw[resultCol - 1] || "").trim();
-      if (!force && existing && existing.indexOf("LỖI") !== 0) { skipped++; continue; }
+      if (existing && existing.indexOf("LỖI") !== 0) { skipped++; continue; }
 
       try {
         if (!code) throw new Error(`Chưa chọn SP KiotViet (thiếu mã). Chọn lại từ gợi ý ở cột "${KV_NAME_HEADER}".`);
