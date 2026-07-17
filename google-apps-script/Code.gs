@@ -1944,30 +1944,33 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
 
   if (!delivery) return kvPostInvoice_(token, retailer, payload);
 
-  // KiotViet khắt khe với hóa đơn giao hàng qua API: thử lần lượt từ biến thể
-  // ĐẦY ĐỦ nhất (hóa đơn Đang xử lý + thu hộ COD + đối tác — vận đơn hiện ở
-  // màn hình "Kiểm tra vận đơn") lùi dần: bỏ trạng thái, rồi bỏ đối tác giao
-  // hàng (partnerDelivery.code sai mã hay gây "Object reference not set").
-  // Chỉ thử tiếp khi gặp lỗi trạng thái / lỗi null từ server KiotViet.
+  // KiotViet khắt khe với hóa đơn giao hàng qua API: thử lần lượt các biến
+  // thể, ưu tiên PAYLOAD MẪU của KiotViet (makeInvoice + usingPriceCod +
+  // status trong vận đơn), lùi dần về tối giản. Chỉ thử tiếp khi gặp lỗi
+  // trạng thái / lỗi null từ server KiotViet.
   const variants = [
-    { status: 3, usingCod: true, deliveryStatus: 1, partner: true },
-    { usingCod: true, deliveryStatus: 1, partner: true },
-    { partner: true },
-    { status: 3, usingCod: true, deliveryStatus: 1, partner: false },
-    { usingCod: true, deliveryStatus: 1, partner: false },
-    { partner: false }
+    { makeInvoice: true, partner: true },                          // payload mẫu KiotViet
+    { partner: true },                                             // mẫu, không makeInvoice
+    { makeInvoice: true, usingCod: true, invStatus: 3, partner: true },
+    { makeInvoice: true, partner: false },
+    { partner: false },
+    { partner: false, minimal: true }                              // tối giản (chắc chắn tạo được)
   ];
   const retryable = /invalid.*invoice status|invoice status|object reference not set/i;
   let lastError = null;
   for (let i = 0; i < variants.length; i++) {
     const variant = variants[i];
     const attempt = JSON.parse(JSON.stringify(payload));
-    if (variant.status) attempt.status = variant.status;
+    if (variant.makeInvoice) attempt.makeInvoice = true;
     if (variant.usingCod) attempt.usingCod = true;
-    if (variant.deliveryStatus) attempt.invoiceDelivery.status = variant.deliveryStatus;
+    if (variant.invStatus) attempt.status = variant.invStatus;
     if (!variant.partner) {
       delete attempt.invoiceDelivery.partnerDelivery;
       delete attempt.invoiceDelivery.partnerDeliveryId;
+    }
+    if (variant.minimal) {
+      delete attempt.invoiceDelivery.status;
+      delete attempt.invoiceDelivery.usingPriceCod;
     }
     try {
       const created = kvPostInvoice_(token, retailer, attempt);
