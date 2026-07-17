@@ -699,6 +699,8 @@ const KV_GIFT_HEADER = "Hàng tặng kèm";               // bộ quà / phụ p
 const KV_SURCHARGE_HEADER = "Thu khác";               // phí COD thu của khách -> khoản thu khác trên hóa đơn
 const KV_COD_SURCHARGE_CODE = "THK000001";            // mã khoản thu 決済手数料・Cash on Delivery Fee trên KiotViet
 const KV_DELIVERY_PARTNER = "ヤマト Nagoya";          // đối tác giao hàng trên KiotViet cho đơn Daibiki (Yamato)
+const KV_DELIVERY_PARTNER_ID = 6242;                  // partnerDeliveryId của ヤマト Nagoya (xác minh qua API 17/07/2026)
+const KV_DELIVERY_PARTNER_CODE = "DT000004";          // mã đối tác ヤマト Nagoya trên KiotViet
 const KV_NAME_MATCH_MIN = 0.6;                        // tên SP KiotViet phải khớp >=60% từ khoá của Product Number
 
 // Tên bộ tặng kèm / phụ phí -> các mã SP KiotViet sẽ thêm vào hóa đơn.
@@ -1796,109 +1798,6 @@ function ensureHeaderReturnCol_(sheet, header) {
 }
 
 
-// ===== Diagnostic: list IMEIs/serials KiotViet returns for a product =====
-// Prompts for a product keyword, finds its SP code in the synced catalog, then asks
-// KiotViet for that product WITH serials and shows the IMEI list. If nothing comes back
-// it dumps the raw field names so we can see the real schema for this account.
-function kvShowImeis() {
-  const ui = SpreadsheetApp.getUi();
-  const r = ui.prompt("Xem IMEI KiotViet", "Nhập tên/từ khoá sản phẩm:", ui.ButtonSet.OK_CANCEL);
-  if (r.getSelectedButton() !== ui.Button.OK) return;
-  const kw = r.getResponseText().trim();
-  if (!kw) return;
-
-  runWithAlert_("Đang lấy IMEI từ KiotViet...", () => {
-    const catalog = kvLoadCatalog_();
-    if (!catalog) throw new Error('Chưa đồng bộ kho. Chạy "Đồng bộ kho KiotViet" trước.');
-
-    let code;
-    let picked;
-    if (Object.prototype.hasOwnProperty.call(catalog.byName, kw)) {
-      picked = kw;
-      code = catalog.byName[kw];
-    } else {
-      const matches = kvSearch_(catalog.names, kw, 1);
-      if (!matches.length) throw new Error('Không thấy SP khớp "' + kw + '".');
-      picked = matches[0];
-      code = catalog.byName[matches[0]];
-    }
-
-    const token = kvGetToken_();
-    const retailer = kvProp_("KV_RETAILER");
-    const product = kvGetProductWithSerials_(token, retailer, code);
-    if (!product) throw new Error('Không tìm thấy SP mã "' + code + '".');
-
-    // `detail` = the object that actually carries the serial list (by-id sometimes has it
-    // when the by-code response doesn't), so all raw dumps below read from `detail`.
-    let detail = product;
-    let allSerials = kvExtractSerials_(product);
-    let triedById = false;
-    if (!allSerials.length && product.isLotSerialControl && product.id) {
-      triedById = true;
-      const byId = kvGetProductByIdWithSerials_(token, retailer, product.id);
-      if (byId) { detail = byId; allSerials = kvExtractSerials_(byId); }
-    }
-
-    // Chỉ quan tâm serial thuộc chi nhánh hiện tại (17397).
-    const branchId = kvCurrentBranchId_();
-    const serials = allSerials.filter(s => Number(s.branchId) === branchId);
-
-    const onHandBranch = (detail.inventories || [])
-      .filter(i => Number(i.branchId) === branchId)
-      .reduce((sum, i) => sum + Number(i.onHand || 0), 0);
-
-    let out = "SP: " + picked + "\nMã: " + code + "\n";
-    out += "Quản lý IMEI (isLotSerialControl): " + product.isLotSerialControl + "\n";
-    out += "Giá bán (basePrice): " +
-      (product.basePrice != null ? product.basePrice : "(không có trường basePrice)") + "\n";
-    out += "Chi nhánh hiện tại: " + branchId + "\n";
-    out += "Tồn kho ở CN " + branchId + " (onHand): " + onHandBranch + "\n";
-
-    if (!serials.length) {
-      out += "\nKhông có IMEI/serial nào của chi nhánh " + branchId + ".\n";
-      if (product.isLotSerialControl === false) {
-        out += "→ SP này KHÔNG bật quản lý IMEI trong KiotViet, nên không có IMEI để đối chiếu.\n";
-      } else if (allSerials.length) {
-        out += "→ SP có " + allSerials.length + " serial nhưng đều thuộc chi nhánh khác.\n";
-      } else {
-        out += "→ SP có bật quản lý IMEI nhưng list rỗng" + (triedById ? " (đã thử cả endpoint theo id)" : "") + ".\n";
-      }
-    } else {
-      const hist = {};
-      serials.forEach(s => { const k = String(s.status); hist[k] = (hist[k] || 0) + 1; });
-      const histStr = Object.keys(hist).sort().map(k => "status " + k + ": " + hist[k]).join(" | ");
-      const inStock = serials.filter(s => Number(s.status) === 1);
-      out += "\nSerial ở CN " + branchId + ": " + serials.length + " (gồm cả đã bán)\n";
-      out += "Phân bố theo status: " + histStr + "\n";
-      out += "→ status 1 = còn hàng (" + inStock.length + " cái), status 0 = đã bán.\n\n";
-      out += "IMEI còn bán được ở CN " + branchId + ":\n";
-      out += inStock.length
-        ? inStock.slice(0, 60).map(s => "• " + s.serial).join("\n")
-        : "(không có)";
-    }
-
-    // Dò trường giá: liệt kê mọi trường top-level có giá trị SỐ (để tìm trường tiền
-    // ngoài basePrice), + dump riêng priceBooks (bảng giá) nếu KiotViet trả về.
-    out += "\n\n--- Dò trường giá ---\n";
-    const numericFields = Object.keys(product)
-      .filter(k => typeof product[k] === "number")
-      .map(k => k + " = " + product[k]);
-    out += "Các trường dạng số: " + (numericFields.join(" | ") || "(không có)") + "\n";
-
-    const priceBooks = product.priceBooks || product.priceBook || detail.priceBooks;
-    if (priceBooks && priceBooks.length) {
-      out += "priceBooks (bảng giá):\n";
-      out += priceBooks.slice(0, 20).map(p =>
-        "• " + (p.priceBookName || p.priceBookId || "?") + " = " + p.price).join("\n");
-    } else {
-      out += "priceBooks: (không có trong response)\n";
-    }
-    out += "\n\nTất cả tên trường KiotViet trả về:\n" + Object.keys(product).join(", ");
-    return out;
-  });
-}
-
-
 function kvGetProductWithSerials_(token, retailer, code) {
   const url = KV_API_BASE + "/products/code/" + encodeURIComponent(code) +
     "?includeSerials=true&includeInventory=true";
@@ -1928,21 +1827,4 @@ function kvGetProductByIdWithSerials_(token, retailer, id) {
   if (httpCode === 404) return null;
   if (httpCode >= 400) throw new Error(`KiotViet product(id) HTTP ${httpCode}: ${text.slice(0, 200)}`);
   return JSON.parse(text);
-}
-
-
-// Returns [{serial, status, branchId}]. KiotViet keeps every serial ever attached to the
-// product (incl. already-sold ones) across all branches, so callers must filter by status
-// and branchId to get the IMEIs sellable at the current branch.
-function kvExtractSerials_(product) {
-  const arr = product.productSerials || product.serials || product.serialNumbers || [];
-  const out = [];
-  (arr || []).forEach(s => {
-    if (typeof s === "string") { out.push({ serial: s, status: "", branchId: "" }); return; }
-    const num = s.serialNumber || s.serial || s.imei || s.code || "";
-    if (!num) return;
-    const status = (s.status != null) ? s.status : (s.statusValue != null ? s.statusValue : "");
-    out.push({ serial: num, status: status, branchId: s.branchId });
-  });
-  return out;
 }
