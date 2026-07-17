@@ -256,8 +256,7 @@ function partitionRowsLocally_(sheet, read, keepTracked) {
     if (!carrier) {
       errors.unshift({ col: "Đơn vị giao hàng", msg: "Thiếu cột Đơn vị giao hàng (chọn YAMATO hoặc JAPANPOST)" });
     } else if (carrier !== "YAMATO") {
-      // Chỉ nhận đúng YAMATO — giá trị cũ "JAMATO" phải sửa lại (menu
-      // "Sửa dropdown Đơn vị giao hàng" đổi hàng loạt một lần).
+      // Chỉ nhận đúng YAMATO (giá trị cũ "JAMATO" là cách viết sai, phải sửa lại).
       errors.unshift({ col: "Đơn vị giao hàng", msg: 'Cột Đơn vị giao hàng không hợp lệ: "' + carrier + '" (chỉ nhận YAMATO hoặc JAPANPOST)' });
     }
 
