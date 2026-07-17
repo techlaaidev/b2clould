@@ -1914,75 +1914,42 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
         PropertiesService.getScriptProperties().getProperty("KV_DELIVERY_TEMPLATE") || "null");
     } catch (ignore) { /* mẫu hỏng -> bỏ qua */ }
 
-    payload.invoiceDelivery = {
+    // BẮT BUỘC: usingCod=true ở CẤP HÓA ĐƠN — đây là cờ "Bán giao hàng".
+    // Thiếu nó, KiotViet vẫn trả 200 nhưng ÂM THẦM bỏ qua toàn bộ khối giao
+    // hàng và chốt hóa đơn "Hoàn thành" (đã kiểm chứng thực tế 17/07/2026:
+    // HD045022 tạo qua API thành công với usingCod=true + deliveryDetail).
+    payload.usingCod = true;
+    // Tên trường lúc TẠO/SỬA là "deliveryDetail" (theo tài liệu 2.12.3);
+    // "invoiceDelivery" chỉ là tên trường KiotViet trả về khi ĐỌC hóa đơn.
+    payload.deliveryDetail = {
       deliveryCode: delivery.deliveryCode || "",
       price: yamatoCodFee_(price),
       receiver: delivery.receiver || "",
       contactNumber: delivery.contactNumber || "",
       address: delivery.address || "",
-      status: 1,           // Chờ xử lý (theo payload mẫu KiotViet)
+      status: 1,           // Chờ xử lý (trạng thái vận đơn)
       usingPriceCod: true, // thu hộ tiền COD — cờ nằm ở CẤP VẬN ĐƠN
       weight: template && template.weight != null ? template.weight : 500,
       length: template && template.length != null ? template.length : 10,
       width: template && template.width != null ? template.width : 10,
       height: template && template.height != null ? template.height : 10
     };
-    if (template && template.type != null) payload.invoiceDelivery.type = template.type;
+    if (template && template.type != null) payload.deliveryDetail.type = template.type;
     if (template && template.partnerDeliveryId) {
-      payload.invoiceDelivery.partnerDeliveryId = template.partnerDeliveryId;
-      payload.invoiceDelivery.partnerDelivery = {
+      payload.deliveryDetail.partnerDeliveryId = template.partnerDeliveryId;
+      payload.deliveryDetail.partnerDelivery = {
         code: template.partnerCode || KV_DELIVERY_PARTNER,
         name: template.partnerName || KV_DELIVERY_PARTNER
       };
     } else {
-      payload.invoiceDelivery.partnerDelivery = {
+      payload.deliveryDetail.partnerDelivery = {
         code: KV_DELIVERY_PARTNER,
         name: KV_DELIVERY_PARTNER
       };
     }
   }
 
-  if (!delivery) return kvPostInvoice_(token, retailer, payload);
-
-  // KiotViet khắt khe với hóa đơn giao hàng qua API: thử lần lượt các biến
-  // thể, ưu tiên PAYLOAD MẪU của KiotViet (makeInvoice + usingPriceCod +
-  // status trong vận đơn), lùi dần về tối giản. Chỉ thử tiếp khi gặp lỗi
-  // trạng thái / lỗi null từ server KiotViet.
-  const variants = [
-    { makeInvoice: true, partner: true },                          // payload mẫu KiotViet
-    { partner: true },                                             // mẫu, không makeInvoice
-    { makeInvoice: true, usingCod: true, invStatus: 3, partner: true },
-    { makeInvoice: true, partner: false },
-    { partner: false },
-    { partner: false, minimal: true }                              // tối giản (chắc chắn tạo được)
-  ];
-  const retryable = /invalid.*invoice status|invoice status|object reference not set/i;
-  let lastError = null;
-  for (let i = 0; i < variants.length; i++) {
-    const variant = variants[i];
-    const attempt = JSON.parse(JSON.stringify(payload));
-    if (variant.makeInvoice) attempt.makeInvoice = true;
-    if (variant.usingCod) attempt.usingCod = true;
-    if (variant.invStatus) attempt.status = variant.invStatus;
-    if (!variant.partner) {
-      delete attempt.invoiceDelivery.partnerDelivery;
-      delete attempt.invoiceDelivery.partnerDeliveryId;
-    }
-    if (variant.minimal) {
-      delete attempt.invoiceDelivery.status;
-      delete attempt.invoiceDelivery.usingPriceCod;
-    }
-    try {
-      const created = kvPostInvoice_(token, retailer, attempt);
-      created._variantUsed = i + 1; // để báo lại biến thể nào được chấp nhận
-      created._deliveryPayload = payload.invoiceDelivery; // bản đầy đủ, dùng cho bước gắn lại
-      return created;
-    } catch (err) {
-      lastError = err;
-      if (!retryable.test(String(err.message || err))) throw err;
-    }
-  }
-  throw lastError;
+  return kvPostInvoice_(token, retailer, payload);
 }
 
 
