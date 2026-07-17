@@ -9,20 +9,14 @@ function onOpen() {
     .addItem("Kiểm tra và đồng bộ đơn", "validateAndSyncOrders")
     .addItem("Tạo vận đơn cho đơn hợp lệ", "createReadyShipments")
     .addItem("In gộp phiếu đã tạo (2 nhãn/tờ A4)", "printMergedLabels")
-    .addItem("Sửa dropdown Đơn vị giao hàng", "fixCarrierDropdown")
     .addItem("Điền cột Price từ Product Number", "fillPriceColumnFromProductNumber")
     .addSeparator()
     .addItem("Tạo CSV Japan Post (YuPack R)", "generateJapanPostCsv")
     .addSeparator()
     .addItem("Cấu hình KiotViet API", "setupKiotVietApi")
-    .addItem("Đồng bộ kho KiotViet", "syncKiotVietCatalog")
-    .addItem("Bật tra IMEI trực tiếp (chạy 1 lần)", "enableImeiLiveLookup")
-    .addItem("Gắn dropdown KiotViet (nhanh, không đồng bộ kho)", "applyKvDropdowns")
-    .addItem("Học mẫu vận đơn KiotViet (chạy 1 lần)", "kvLearnDeliveryTemplate")
-    .addItem("Kiểm tra API giao hàng đã bật chưa (test tự xoá)", "kvCheckDeliveryFeature")
+    .addItem("Đồng bộ nhanh KiotViet (nhân viên/quà/SP thay đổi)", "syncKiotVietQuick")
+    .addItem("Đồng bộ kho KiotViet (TOÀN BỘ — chậm, ít khi cần)", "syncKiotVietCatalog")
     .addItem("Tạo hóa đơn KiotViet", "createKiotVietInvoices")
-    .addItem("Tạo lại hóa đơn KiotViet (test)", "recreateKiotVietInvoicesTest")
-    .addItem("Xem IMEI của SP (test)", "kvShowImeis")
     .addToUi();
 }
 
