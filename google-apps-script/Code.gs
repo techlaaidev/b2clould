@@ -928,9 +928,10 @@ function onEditKvImei_(e) {
 }
 
 
-// Đồng bộ nhanh: chỉ hỏi KiotViet các SP thay đổi từ mốc KV_IMEI_SYNCED_AT
-// (lùi 30 phút phòng lệch giờ) rồi thay các dòng chỉ mục IMEI của đúng các SP
-// đó. Trả về false khi chưa từng đồng bộ toàn bộ (chưa có mốc).
+// Đồng bộ gia tăng: chỉ hỏi KiotViet các SP thay đổi từ mốc KV_IMEI_SYNCED_AT
+// (lùi 30 phút phòng lệch giờ) rồi vá vào CHỈ MỤC IMEI + DANH MỤC SP của đúng
+// các SP đó — vài giây thay vì quét cả kho. Trả về false khi chưa từng đồng
+// bộ toàn bộ (chưa có mốc); ngược lại trả {products, imeis} để báo cáo.
 function kvIncrementalImeiRefresh_(token, retailer) {
   const props = PropertiesService.getScriptProperties();
   const last = props.getProperty("KV_IMEI_SYNCED_AT");
@@ -942,6 +943,7 @@ function kvIncrementalImeiRefresh_(token, retailer) {
 
   const changed = {};  // mã SP có thay đổi
   const newRows = [];  // [imei, code, fullName] còn bán được ở CN hiện tại
+  const catRows = [];  // [code, fullName] — vá vào danh mục SP (SP mới/đổi tên)
   const pageSize = 100;
   let current = 0;
   for (let page = 0; page < 20; page++) { // trần 2.000 SP thay đổi / lần
@@ -961,10 +963,12 @@ function kvIncrementalImeiRefresh_(token, retailer) {
       const code = String(p.code || "");
       if (!code) return;
       changed[code] = true;
+      const full = p.fullName || p.name || "";
+      if (full) catRows.push([code, full]);
       (p.productSerials || []).forEach(s => {
         if (Number(s.status) !== 1 || Number(s.branchId) !== branchId) return;
         const num = String(s.serialNumber || "").trim();
-        if (num) newRows.push([num, code, p.fullName || p.name || ""]);
+        if (num) newRows.push([num, code, full]);
       });
     });
     current += pageSize;
@@ -972,6 +976,7 @@ function kvIncrementalImeiRefresh_(token, retailer) {
   }
 
   if (Object.keys(changed).length) {
+    // Vá chỉ mục IMEI: bỏ các dòng của SP thay đổi, thay bằng dữ liệu mới.
     const sh = SpreadsheetApp.getActive().getSheetByName(KV_IMEI_INDEX_SHEET);
     if (sh) {
       const lastRow = sh.getLastRow();
@@ -981,9 +986,42 @@ function kvIncrementalImeiRefresh_(token, retailer) {
       sh.getRange(1, 1, 1, 3).setValues([["imei", "code", "fullName"]]);
       if (all.length) sh.getRange(2, 1, all.length, 3).setValues(all);
     }
+    // Vá danh mục SP (dropdown gợi ý tên): SP mới được thêm, SP đổi tên được thay.
+    const cat = SpreadsheetApp.getActive().getSheetByName(KV_CATALOG_SHEET);
+    if (cat && catRows.length) {
+      const lastRow = cat.getLastRow();
+      const rows = lastRow < 2 ? [] : cat.getRange(2, 1, lastRow - 1, 2).getValues();
+      const all = rows.filter(r => !changed[String(r[0] || "")]).concat(catRows);
+      cat.clearContents();
+      cat.getRange(1, 1, 1, 2).setValues([["code", "fullName"]]);
+      if (all.length) cat.getRange(2, 1, all.length, 2).setValues(all);
+    }
   }
   props.setProperty("KV_IMEI_SYNCED_AT", String(started));
-  return true;
+  return { products: Object.keys(changed).length, imeis: newRows.length };
+}
+
+
+// ===== Đồng bộ nhanh: nhân viên mới + bộ quà + SP thay đổi (vài giây) =====
+// Thay cho "Đồng bộ kho (TOÀN BỘ)" vốn phải quét cả nghìn SP:
+// 1. Dropdown "Người nhập đơn": 1 lệnh API /users — nhân viên mới có ngay.
+// 2. Dropdown "Hàng tặng kèm": lấy từ KV_GIFT_SETS trong code — tức thì.
+// 3. Danh mục SP + chỉ mục IMEI: chỉ hỏi các SP THAY ĐỔI từ lần đồng bộ
+//    trước (lastModifiedFrom) rồi vá vào dữ liệu nền.
+// Chỉ cần "Đồng bộ kho (TOÀN BỘ)" đúng 1 lần đầu; sau đó luôn dùng menu này.
+function syncKiotVietQuick() {
+  runWithAlert_("Đang đồng bộ nhanh KiotViet...", () => {
+    const token = kvGetToken_();
+    const retailer = kvProp_("KV_RETAILER");
+    const notes = kvApplySellerDropdown_(token, retailer) + kvApplyGiftDropdown_();
+    const stat = kvIncrementalImeiRefresh_(token, retailer);
+    if (stat === false) {
+      return 'Chưa có dữ liệu nền — hãy chạy "Đồng bộ kho KiotViet (TOÀN BỘ)" 1 lần đầu, ' +
+        'các lần sau chỉ cần Đồng bộ nhanh.' + notes;
+    }
+    return "Đồng bộ nhanh xong:\n• SP thay đổi từ lần đồng bộ trước: " + stat.products +
+      " (đã vá danh mục + " + stat.imeis + " IMEI)." + notes;
+  });
 }
 
 
