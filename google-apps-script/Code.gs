@@ -897,21 +897,10 @@ function kvWriteCatalog_(rows) {
 // - IMEI trống: không đụng gì (giữ tên đang có).
 // - IMEI không có trong kho CN hiện tại (sai / đã bán / CN khác): xoá tên + mã (không điền gì).
 // ===== Tra IMEI trực tiếp (installable trigger — được phép gọi API) =====
-// Bật 1 lần từ menu: mỗi lần nhập IMEI sẽ hỏi KiotViet các SP THAY ĐỔI từ lần
-// đồng bộ trước (lastModifiedFrom) để cập nhật chỉ mục rồi mới tra — kho luôn
-// mới mà không phải "Đồng bộ kho KiotViet" thủ công.
-function enableImeiLiveLookup() {
-  const ss = SpreadsheetApp.getActive();
-  ScriptApp.getProjectTriggers().forEach(trigger => {
-    if (trigger.getHandlerFunction() === "onEditKvImei_") ScriptApp.deleteTrigger(trigger);
-  });
-  ScriptApp.newTrigger("onEditKvImei_").forSpreadsheet(ss).onEdit().create();
-  PropertiesService.getScriptProperties().setProperty("KV_IMEI_LIVE", "1");
-  SpreadsheetApp.getUi().alert(
-    'Đã bật tra IMEI trực tiếp.\nMỗi lần nhập IMEI (Enter), hệ thống hỏi thẳng KiotViet các thay đổi mới nhất rồi tra sản phẩm.\nVẫn cần "Đồng bộ kho KiotViet" lần đầu để có chỉ mục gốc.');
-}
-
-
+// Trigger onEditKvImei_ đã được cài sẵn trên spreadsheet (Script Property
+// KV_IMEI_LIVE=1). Mỗi lần nhập IMEI, hệ thống hỏi KiotViet các SP THAY ĐỔI
+// từ lần đồng bộ trước (lastModifiedFrom) để cập nhật chỉ mục rồi mới tra.
+// KHÔNG xoá hàm này: xoá là trigger đã cài sẽ báo lỗi mỗi lần sửa ô.
 function onEditKvImei_(e) {
   try {
     if (!e || !e.range) return;
