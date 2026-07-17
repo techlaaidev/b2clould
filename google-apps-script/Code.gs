@@ -1655,9 +1655,9 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
   // - price (Phí áp dụng) = 代引手数料 Yamato theo bậc GIÁ HÀNG (không tính
   //   Thu khác) — là phí vận đơn, không phải giảm giá hóa đơn
   if (delivery) {
-    // Mẫu vận đơn học từ hóa đơn giao hàng thật (menu "Học mẫu vận đơn") —
-    // chứa partnerDeliveryId ĐÚNG của đối tác ヤマト Nagoya + type/khối lượng
-    // mà KiotViet đã chấp nhận. Chưa học -> fallback khớp theo tên (dễ lỗi).
+    // Mẫu vận đơn đã học từ hóa đơn giao hàng thật (Script Property
+    // KV_DELIVERY_TEMPLATE) — nếu có thì ưu tiên; không có thì dùng bộ giá trị
+    // ヤマト Nagoya đã ghim cứng (KV_DELIVERY_PARTNER_ID/CODE).
     let template = null;
     try {
       template = JSON.parse(
