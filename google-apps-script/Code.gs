@@ -1692,8 +1692,9 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
         name: template.partnerName || KV_DELIVERY_PARTNER
       };
     } else {
+      payload.deliveryDetail.partnerDeliveryId = KV_DELIVERY_PARTNER_ID;
       payload.deliveryDetail.partnerDelivery = {
-        code: KV_DELIVERY_PARTNER,
+        code: KV_DELIVERY_PARTNER_CODE,
         name: KV_DELIVERY_PARTNER
       };
     }
