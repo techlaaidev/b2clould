@@ -1643,19 +1643,6 @@ function kvResolveGiftDetails_(token, retailer, cellText, productCache) {
 }
 
 
-// Chỉ gắn dropdown "Người nhập đơn" + "Hàng tặng kèm" — vài giây, KHÔNG đồng
-// bộ lại kho. Dùng khi vừa thêm cột mới mà kho đã đồng bộ từ trước.
-function applyKvDropdowns() {
-  runWithAlert_("Đang gắn dropdown KiotViet...", () => {
-    const token = kvGetToken_();
-    const retailer = kvProp_("KV_RETAILER");
-    const notes = (kvApplySellerDropdown_(token, retailer) + kvApplyGiftDropdown_()).trim();
-    return notes ||
-      ('Không tìm thấy cột "' + KV_SELLER_HEADER + '" hoặc "' + KV_GIFT_HEADER + '" trên sheet này — kiểm tra lại header.');
-  });
-}
-
-
 // Gắn dropdown các bộ tặng kèm / phụ phí cho cột "Hàng tặng kèm" (nếu có).
 // setAllowInvalid(true) để vẫn gõ tay được nhiều mục: "SET 20W-CtoC, Shipping cost 600".
 function kvApplyGiftDropdown_() {
