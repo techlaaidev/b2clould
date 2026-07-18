@@ -152,14 +152,27 @@ function showMergedPrintDialog_(count, url) {
 
 
 // Lịch sử in gộp: mỗi lần in thêm 1 dòng (thời gian | số nhãn | link PDF).
-function logMergedPrint_(count, url) {
+// isKiotViet: link ghi vào cột "Link PDF KiotViet"; ngược lại (Yamato) vào
+// cột "Link PDF". Tìm cột theo TÊN header trên sheet "In gộp", thiếu thì tự thêm.
+function logMergedPrint_(count, url, isKiotViet) {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName("In gộp");
   if (!sh) {
     sh = ss.insertSheet("In gộp");
-    sh.getRange(1, 1, 1, 3).setValues([["Thời gian", "Số nhãn", "Link PDF"]]);
+    sh.getRange(1, 1, 1, 4).setValues([["Thời gian", "Số nhãn", "Link PDF", "Link PDF KiotViet"]]);
   }
-  sh.appendRow([new Date(), count, url]);
+  const headers = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1))
+    .getDisplayValues()[0].map(h => String(h).trim());
+  const findCol = name => {
+    let col = headers.indexOf(name) + 1;
+    if (!col) { col = headers.length + 1; headers.push(name); sh.getRange(1, col).setValue(name); }
+    return col;
+  };
+  const linkCol = findCol(isKiotViet ? "Link PDF KiotViet" : "Link PDF");
+  const row = sh.getLastRow() + 1;
+  sh.getRange(row, findCol("Thời gian")).setValue(new Date());
+  sh.getRange(row, findCol("Số nhãn")).setValue(count);
+  sh.getRange(row, linkCol).setValue(url);
 }
 
 
