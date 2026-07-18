@@ -336,7 +336,9 @@ function fillPriceColumnFromProductNumber() {
     }
     const col = {
       prod: headers.indexOf("Product Number"),
-      price: headers.indexOf("Price")
+      price: headers.indexOf("Price"),
+      ttype: headers.indexOf("Type of transaction"),
+      extraFee: headers.indexOf(KV_SURCHARGE_HEADER)
     };
 
     const lastRow = sheet.getLastRow();
