@@ -61,6 +61,11 @@ class PrintRequest(BaseModel):
     tracking_numbers: list[str] = Field(default_factory=list)
 
 
+class RenderPdfRequest(BaseModel):
+    html: str = ""
+    filename: str = "document.pdf"
+
+
 class TrackingRequest(BaseModel):
     view: str = "history"
     service_type: str = ""
