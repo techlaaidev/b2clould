@@ -1657,10 +1657,16 @@ function kvSlipsPdfBlob_(rows, filename, token, retailer) {
     '.total td{font-size:15px;border-top:1px dashed #999}' +
     '.page{page-break-after:always}' +
     '</style>';
+  const cache = {};
+  const parts = rows.map(row => kvSlipHtmlAuto_(row, token, retailer, cache));
   let html = style;
-  for (let i = 0; i < rows.length; i += 2) {
-    html += '<div class="page">' + kvSlipHtml_(rows[i]) +
-      (rows[i + 1] ? kvSlipHtml_(rows[i + 1]) : '') + '</div>';
+  if (cache.usedTemplate) {
+    // Mẫu in KiotViet: mỗi hóa đơn 1 trang (mẫu tự quyết bố cục).
+    html += parts.map(part => '<div class="page">' + part + "</div>").join("");
+  } else {
+    for (let i = 0; i < parts.length; i += 2) {
+      html += '<div class="page">' + parts[i] + (parts[i + 1] || "") + "</div>";
+    }
   }
   return Utilities.newBlob(html, "text/html", filename + ".html")
     .getAs("application/pdf").setName(filename);
