@@ -316,9 +316,10 @@ function localOnlySummary_(part) {
 const DAIBIKI_FEE = 1500;
 
 
-// Điền cột Price cho MỌI dòng có Product Number. Price = GIÁ GỐC sản phẩm
-// (số ở cuối ô Product Number) — KHÔNG trừ cọc, KHÔNG cộng Thu khác; đặt cọc
-// và phí Thu khác do server tự xử lý khi tạo vận đơn Yamato.
+// Điền cột Price cho MỌI dòng có Product Number. Giá ở CUỐI Product Number
+// là số khách trả (đơn Daibiki ĐÃ GỒM phí thu hộ) -> Price = GIÁ THẬT sản
+// phẩm: đơn Daibiki lấy giá đó TRỪ Thu khác (ô trống -> 1.500¥), đơn khác
+// giữ nguyên. Yamato thu hộ vẫn lấy thẳng giá cuối Product Number.
 // Chưa có cột Price → tự chèn một cột mới ngay cạnh phải Product Number.
 // Ô Price đã có giá trị thì GIỮ NGUYÊN (không ghi đè giá đã sửa tay).
 function fillPriceColumnFromProductNumber() {
