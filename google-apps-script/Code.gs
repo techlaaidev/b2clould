@@ -1708,7 +1708,9 @@ function printMergedKvSlips() {
     }
     const filename = "kiotviet_phieu_giao_" +
       Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyyMMdd_HHmm") + ".pdf";
-    const url = saveBlobToDrive_(kvSlipsPdfBlob_(rows, filename));
+    const token = kvGetToken_();
+    const retailer = kvProp_("KV_RETAILER");
+    const url = saveBlobToDrive_(kvSlipsPdfBlob_(rows, filename, token, retailer));
     logMergedPrint_(rows.length, url);
     showMergedPrintDialog_(rows.length, url);
   } catch (error) {
