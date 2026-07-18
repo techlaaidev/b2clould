@@ -1703,6 +1703,21 @@ function kvSlipsPdfBlob_(rows, filename, token, retailer) {
     }
   }
   const html = style + pages.join(pageBreak);
+
+  // Ưu tiên render trên server B2 (/api/pdf/render): có font Nhật + khổ trang
+  // chuẩn, mẫu in KiotViet ra đúng 1 trang/hóa đơn. Server lỗi -> fallback bộ
+  // chuyển của Google (không có font Nhật, có thể vỡ trang).
+  try {
+    const rendered = callB2Api_("/api/pdf/render", { html: html, filename: filename });
+    if (rendered && rendered.pdf_base64) {
+      return Utilities.newBlob(
+        Utilities.base64Decode(rendered.pdf_base64), "application/pdf", filename);
+    }
+  } catch (renderErr) {
+    SpreadsheetApp.getActive().toast(
+      "Server render PDF lỗi (" + (renderErr.message || renderErr) + ") — dùng bộ chuyển dự phòng.",
+      "B2 Cloud", 6);
+  }
   return Utilities.newBlob(html, "text/html", filename + ".html")
     .getAs("application/pdf").setName(filename);
 }
