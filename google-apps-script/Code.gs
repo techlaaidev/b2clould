@@ -1540,8 +1540,111 @@ function kvSlipHtml_(row) {
 }
 
 
-// Dựng PDF các phiếu giao hàng: 2 phiếu / tờ A4 (phiếu lẻ cuối chiếm nửa trên).
-function kvSlipsPdfBlob_(rows, filename) {
+// ===== In theo MẪU IN KiotViet (納品書) — tuỳ chọn =====
+// Cách bật: trên KiotViet mở Thiết lập -> Quản lý mẫu in -> mẫu hóa đơn cần
+// dùng, copy toàn bộ HTML của mẫu. Trong Apps Script editor bấm (+) -> HTML,
+// đặt tên file ĐÚNG là "MauInKiotViet", dán HTML vào rồi Lưu. Từ đó phiếu PDF
+// dựng đúng theo mẫu (dữ liệu thật đọc từ GET /invoices), mỗi hóa đơn 1 trang.
+// Chưa có file mẫu -> dùng phiếu mặc định kvSlipHtml_ (2 phiếu / tờ A4).
+function kvLoadPrintTemplate_() {
+  try {
+    return HtmlService.createHtmlOutputFromFile("MauInKiotViet").getContent();
+  } catch (ignore) {
+    return null; // chưa tạo file mẫu -> dùng phiếu mặc định
+  }
+}
+
+
+function kvFormatMoney_(value) {
+  return value == null || value === "" ? "" : Number(value).toLocaleString("en-US");
+}
+
+
+// Đổ dữ liệu hóa đơn vào mẫu in KiotViet: thay các token {Xxx_Yyy} và nhân bản
+// dòng bảng chi tiết (dòng <tr> chứa {Ten_Hang}/{Ma_Hang}) theo từng sản phẩm.
+function kvRenderInvoiceTemplate_(template, inv, row) {
+  const surTotal = ((inv && inv.invoiceOrderSurcharges) || [])
+    .reduce((sum, s) => sum + Number(s.price || s.surValue || 0), 0);
+  const tokens = {
+    "Ten_Cua_Hang": (inv && inv.branchName) || JP_SENDER_NAME,
+    "Dia_Chi_Cua_Hang": JP_SENDER_ADDRESS,
+    "Dia_Chi_Chi_Nhanh": JP_SENDER_ADDRESS,
+    "Dien_Thoai_Cua_Hang": JP_SENDER_PHONE,
+    "Ma_Hoa_Don": (inv && inv.code) || "",
+    "Ngay_Thang_Nam": inv && inv.purchaseDate ? String(inv.purchaseDate).slice(0, 10) : "",
+    "Ngay_Thang_Nam_Tao": inv && inv.createdDate ? String(inv.createdDate).slice(0, 10) : "",
+    "Khach_Hang": (inv && inv.customerName) || row["Name"] || "",
+    "So_Dien_Thoai_KH": row["Mobile"] || "",
+    "So_Dien_Thoai": row["Mobile"] || "",
+    "Dia_Chi_Khach_Hang": row["Address"] || "",
+    "Dia_Chi_Giao_Hang": row["Address"] || "",
+    "Nguoi_Ban_Hang": (inv && inv.soldByName) || row[KV_SELLER_HEADER] || "",
+    "Ghi_Chu": (inv && inv.description) || "",
+    "Tong_Tien_Hang": kvFormatMoney_(inv && inv.total != null ? inv.total - surTotal : null),
+    "Chiet_Khau_Hoa_Don": kvFormatMoney_((inv && inv.discount) || 0),
+    "Thu_Khac": kvFormatMoney_(surTotal),
+    "Tong_Cong": kvFormatMoney_(inv && inv.total),
+    "Khach_Can_Tra": kvFormatMoney_(inv && inv.total),
+    "Thu_Ho_COD": kvFormatMoney_(rowCollectAmount_(row)),
+    "Ma_Van_Don": row["Mã vận đơn"] || "",
+    "Doi_Tac_Giao_Hang": KV_DELIVERY_PARTNER
+  };
+
+  let html = template;
+  const details = (inv && inv.invoiceDetails) || [];
+  const trBlocks = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  const lineTpl = trBlocks.filter(tr => /\{(Ten_Hang|Ma_Hang|Don_Gia|Thanh_Tien)\}/.test(tr))[0];
+  if (lineTpl) {
+    const lines = details.map((d, i) => lineTpl
+      .replace(/\{STT\}/g, String(i + 1))
+      .replace(/\{Ma_Hang\}/g, d.productCode || "")
+      .replace(/\{Ten_Hang\}/g, (d.productName || "") + (d.serialNumbers ? "<br>IMEI: " + d.serialNumbers : ""))
+      .replace(/\{So_Luong\}/g, String(d.quantity != null ? d.quantity : 1))
+      .replace(/\{Don_Gia\}/g, kvFormatMoney_(d.price))
+      .replace(/\{Giam_Gia(_Hang)?\}/g, kvFormatMoney_(d.discount || 0))
+      .replace(/\{Thanh_Tien\}/g, kvFormatMoney_(d.subTotal != null ? d.subTotal : d.price))
+    ).join("");
+    html = html.replace(lineTpl, lines);
+  }
+
+  Object.keys(tokens).forEach(key => {
+    html = html.replace(new RegExp("\\{" + key + "\\}", "g"), String(tokens[key]));
+  });
+  // Token không có dữ liệu còn sót lại -> xoá cho sạch trang in.
+  html = html.replace(/\{[A-Za-z][A-Za-z0-9_]*\}/g, "");
+  return html;
+}
+
+
+// Phiếu của 1 dòng: có mẫu in KiotViet -> render theo mẫu (đọc hóa đơn thật
+// qua API); không có mẫu / không đọc được hóa đơn -> phiếu mặc định.
+function kvSlipHtmlAuto_(row, token, retailer, cache) {
+  if (cache.template === undefined) cache.template = kvLoadPrintTemplate_();
+  if (!cache.template) return kvSlipHtml_(row);
+  const code = String(row[KV_INVOICE_RESULT_HEADER] || "").trim();
+  let inv = null;
+  if (code && code.indexOf("LỖI") !== 0 && token) {
+    try {
+      const resp = UrlFetchApp.fetch(KV_API_BASE + "/invoices/code/" + encodeURIComponent(code), {
+        method: "get",
+        headers: { Authorization: "Bearer " + token, Retailer: retailer },
+        muteHttpExceptions: true
+      });
+      if (resp.getResponseCode() < 400) {
+        const data = JSON.parse(resp.getContentText());
+        inv = data && (data.data || data);
+      }
+    } catch (ignore) { /* lỗi mạng -> dùng phiếu mặc định */ }
+  }
+  if (!inv) return kvSlipHtml_(row);
+  cache.usedTemplate = true;
+  return kvRenderInvoiceTemplate_(cache.template, inv, row);
+}
+
+
+// Dựng PDF các phiếu giao hàng. Mẫu in KiotViet: mỗi hóa đơn 1 trang;
+// phiếu mặc định: 2 phiếu / tờ A4 (phiếu lẻ cuối chiếm nửa trên).
+function kvSlipsPdfBlob_(rows, filename, token, retailer) {
   const style = '<style>' +
     'body{font-family:Arial,sans-serif;font-size:12px;margin:0;padding:0}' +
     '.slip{box-sizing:border-box;height:128mm;border:1px solid #333;border-radius:6px;' +
