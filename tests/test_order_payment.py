@@ -233,8 +233,8 @@ def test_daibiki_deposit_partial_collects_remainder():
     error = prepare_form_order(row)
     assert error == ""
     assert row["service_type"] == "2"  # still 代引
-    assert row["amount"] == "71500"    # price - deposit + 1500 phí thu hộ
-    assert row["cod_amount"] == "71500"
+    assert row["amount"] == "70000"    # giá cuối Product Number - đặt cọc
+    assert row["cod_amount"] == "70000"
 
 
 def test_daibiki_full_deposit_ships_prepaid():
