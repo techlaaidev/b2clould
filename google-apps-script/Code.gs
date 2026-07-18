@@ -1359,12 +1359,19 @@ function kvRunCreateInvoices_() {
           soldById = kvResolveSellerId_(kvUsers, sellerName);
         }
 
-        // SP giá 0 trên KiotViet → GIÁ GỐC sản phẩm: ưu tiên cột Price,
-        // fallback số ở cuối cột Product Number.
+        // SP giá 0 trên KiotViet → GIÁ THẬT sản phẩm: ưu tiên cột Price;
+        // fallback giá cuối Product Number (đơn Daibiki trừ đi Thu khác vì
+        // giá đó đã gồm phí thu hộ).
         const priceCellKv = priceCol === -1 ? null : parsePriceCell_(raw[priceCol]);
-        const paidPrice = priceCellKv != null
-          ? priceCellKv
-          : (prodNumCol === -1 ? null : parsePriceFromProductNumber_(raw[prodNumCol]));
+        let paidPrice = priceCellKv;
+        if (paidPrice == null && prodNumCol !== -1) {
+          paidPrice = parsePriceFromProductNumber_(raw[prodNumCol]);
+          if (paidPrice != null && isDaibikiKv) {
+            const feeForPrice = surchargeCol === -1 ? null : parsePriceCell_(raw[surchargeCol]);
+            paidPrice -= feeForPrice != null ? feeForPrice : DAIBIKI_FEE;
+            if (paidPrice < 0) paidPrice = null;
+          }
+        }
 
         // Đơn Daibiki: hóa đơn kiểu BÁN GIAO HÀNG — phí vận đơn Yamato
         // (330/440/660/1.100¥ theo bậc giá hàng) ghi vào Phí áp dụng của phần
