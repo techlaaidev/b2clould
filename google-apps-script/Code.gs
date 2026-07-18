@@ -1691,15 +1691,19 @@ function kvSlipsPdfBlob_(rows, filename, token, retailer) {
     '</style>';
   const cache = {};
   const parts = rows.map(row => kvSlipHtmlAuto_(row, token, retailer, cache));
-  let html = style;
+  // Ngắt trang chỉ đặt GIỮA các phiếu (đặt sau phiếu cuối sẽ dư 1 trang trắng).
+  const pageBreak = '<div style="page-break-after:always"></div>';
+  let pages;
   if (cache.usedTemplate) {
     // Mẫu in KiotViet: mỗi hóa đơn 1 trang (mẫu tự quyết bố cục).
-    html += parts.map(part => '<div class="page">' + part + "</div>").join("");
+    pages = parts;
   } else {
+    pages = [];
     for (let i = 0; i < parts.length; i += 2) {
-      html += '<div class="page">' + parts[i] + (parts[i + 1] || "") + "</div>";
+      pages.push(parts[i] + (parts[i + 1] || ""));
     }
   }
+  const html = style + pages.join(pageBreak);
   return Utilities.newBlob(html, "text/html", filename + ".html")
     .getAs("application/pdf").setName(filename);
 }
