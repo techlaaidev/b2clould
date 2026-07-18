@@ -196,12 +196,15 @@ def derive_payment_fields(row):
         return ""
 
     item_name, total_price = parse_product_number(row.get("product_number"))
-    # Cột Price trên sheet = GIÁ GỐC sản phẩm (không gồm phí Thu khác) — được
-    # ưu tiên hơn giá ở cuối Product Number. Đặt cọc và phí Thu khác do server
-    # xử lý bên dưới khi tính tiền thu hộ.
-    price_cell = parse_price_cell(row.get("price"))
-    if price_cell is not None:
-        total_price = price_cell
+    # Giá ở CUỐI Product Number = số tiền khách trả khi nhận hàng (ĐÃ GỒM phí
+    # thu hộ ~1.500¥) -> Yamato thu hộ dùng THẲNG giá này (chỉ trừ đặt cọc DP).
+    # Cột Price = GIÁ THẬT sản phẩm (đã bóc phí, dùng cho hóa đơn KiotViet);
+    # chỉ khi Product Number không có giá mới dựng lại: Price + Thu khác.
+    if total_price is None:
+        price_cell = parse_price_cell(row.get("price"))
+        if price_cell is not None:
+            fee = parse_price_cell(row.get("extra_fee"))
+            total_price = price_cell + (fee if fee is not None else DAIBIKI_CUSTOMER_FEE)
     if item_name and not (row.get("item_name1") or "").strip():
         row["item_name1"] = item_name
     # Enforce Yamato's 品名 width limit on whatever name we end up with.
