@@ -350,22 +350,36 @@ function fillPriceColumnFromProductNumber() {
     let filled = 0;
     let kept = 0;
     const skippedNoPrice = [];
+    const skippedNegative = [];
     values.forEach((raw, i) => {
       if (!String(raw[col.prod] || "").trim()) return; // dòng không có SP
       if (String(priceValues[i][0] || "").trim() !== "") { kept++; return; } // đã có giá → giữ nguyên
 
-      const price = parsePriceFromProductNumber_(raw[col.prod]);
+      let price = parsePriceFromProductNumber_(raw[col.prod]);
       if (price == null) { skippedNoPrice.push(i + 2); return; }
+
+      // Đơn Daibiki: giá cuối Product Number đã gồm phí thu hộ -> bóc phí ra
+      // để Price là giá thật SP (phí theo cột Thu khác, trống -> 1.500¥).
+      const ttype = col.ttype === -1 ? "" : String(raw[col.ttype] || "").trim().toLowerCase();
+      if (ttype === "daibiki") {
+        const fee = col.extraFee === -1 ? null : parsePriceCell_(raw[col.extraFee]);
+        price -= fee != null ? fee : DAIBIKI_FEE;
+        if (price < 0) { skippedNegative.push(i + 2); return; }
+      }
       priceValues[i][0] = price;
       filled++;
     });
     priceRange.setValues(priceValues);
 
-    let out = "Đã điền cột Price cho " + filled + " dòng (GIÁ GỐC sản phẩm lấy từ cuối Product Number).";
+    let out = "Đã điền cột Price cho " + filled + " dòng (giá THẬT sản phẩm: giá cuối Product Number, đơn Daibiki đã trừ Thu khác/" + DAIBIKI_FEE + "¥ phí).";
     if (kept) out += "\n• Giữ nguyên " + kept + " dòng đã có sẵn giá trong cột Price.";
     if (skippedNoPrice.length) {
       out += "\n⚠ " + skippedNoPrice.length + " dòng không đọc được giá ở cuối Product Number (dòng: " +
         skippedNoPrice.slice(0, 20).join(", ") + ") — điền tay vào cột Price.";
+    }
+    if (skippedNegative.length) {
+      out += "\n⚠ " + skippedNegative.length + " dòng có giá nhỏ hơn phí Thu khác (dòng: " +
+        skippedNegative.slice(0, 20).join(", ") + ") — kiểm tra lại giá/phí.";
     }
     return out;
   });
