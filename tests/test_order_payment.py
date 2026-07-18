@@ -352,8 +352,8 @@ def test_validate_local_passes_daibiki_without_shipper_or_invoice():
     assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (代引/COD)
     assert row["label_type"] == "COD"
     assert row["payment_method"] == "COD"
-    assert row["amount"] == "38800"  # giá hàng + 1500 phí thu hộ
-    assert row["cod_amount"] == "38800"
+    assert row["amount"] == "37300"  # giá cuối Product Number (đã gồm phí)
+    assert row["cod_amount"] == "37300"
     assert row["item_name1"] == "iPhone 11 128GB White"
 
 
