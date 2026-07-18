@@ -170,7 +170,9 @@ function logMergedPrint_(count, url, isKiotViet) {
   };
   const linkCol = findCol(isKiotViet ? "Link PDF KiotViet" : "Link PDF");
   const row = sh.getLastRow() + 1;
-  sh.getRange(row, findCol("Thời gian")).setValue(new Date());
+  // Ép định dạng có giờ phút giây — ô mới hay bị Sheets hiển thị mỗi ngày.
+  sh.getRange(row, findCol("Thời gian")).setValue(new Date())
+    .setNumberFormat("dd/MM/yyyy HH:mm:ss");
   sh.getRange(row, findCol("Số nhãn")).setValue(count);
   sh.getRange(row, linkCol).setValue(url);
 }
