@@ -1265,6 +1265,7 @@ function kvRunCreateInvoices_() {
     }
 
     const resultCol = ensureHeaderReturnCol_(sheet, KV_INVOICE_RESULT_HEADER);
+    const slipCol = ensureHeaderReturnCol_(sheet, KV_SLIP_PDF_HEADER);
     const values = sheet.getDataRange().getDisplayValues();
     const selected = getSelectedRowSet_(sheet);
 
