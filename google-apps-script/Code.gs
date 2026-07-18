@@ -1687,7 +1687,6 @@ function kvSlipsPdfBlob_(rows, filename, token, retailer) {
     'td{padding:3px 4px;vertical-align:top}' +
     'td:first-child{width:88px;color:#555}' +
     '.total td{font-size:15px;border-top:1px dashed #999}' +
-    '.page{page-break-after:always}' +
     '</style>';
   const cache = {};
   const parts = rows.map(row => kvSlipHtmlAuto_(row, token, retailer, cache));
