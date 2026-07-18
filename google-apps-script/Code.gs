@@ -1405,6 +1405,20 @@ function kvRunCreateInvoices_() {
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
         ok++;
         if (surcharges.length) okFee++;
+
+        // Đơn Daibiki: dựng PHIẾU GIAO HÀNG PDF ("tài liệu thứ 2") và ghi
+        // link vào cột pdf_url_kiot_viet — in gộp sau bằng menu riêng.
+        if (delivery) {
+          try {
+            const rowObj = {};
+            headers.forEach((header, idx) => { if (header) rowObj[header] = raw[idx]; });
+            rowObj[KV_INVOICE_RESULT_HEADER] = invCode;
+            const slipUrl = saveBlobToDrive_(kvSlipsPdfBlob_([rowObj], "kiotviet_" + invCode + ".pdf"));
+            sheet.getRange(sheetRow, slipCol).setValue(slipUrl);
+          } catch (slipErr) {
+            errors.push("⚠ Dòng " + sheetRow + ": không dựng được phiếu giao hàng PDF: " + (slipErr.message || slipErr));
+          }
+        }
         // Tự kiểm chứng: đọc lại hóa đơn vừa tạo xem KiotViet có GHI NHẬN
         // khoản Thu khác + VẬN ĐƠN không (API có thể âm thầm bỏ qua trường lạ).
         if (invoice.id && (surcharges.length || delivery)) {
