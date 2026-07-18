@@ -319,7 +319,7 @@ def test_prepare_form_order_sets_non_dm_service_type():
     assert row["service_type"] == "2"  # Daibiki -> 宅急便コレクト (代引/COD)
     assert row["print_type"] == "m5"  # A5マルチ: PDF từng đơn 1 nhãn / tờ A5
     assert row["label_type"] == "COD"
-    assert row["amount"] == "62800"  # giá hàng + 1500 phí thu hộ
+    assert row["amount"] == "61300"  # giá cuối Product Number (đã gồm phí)
 
 
 def test_validate_local_surfaces_unpaid_banktransfer():
