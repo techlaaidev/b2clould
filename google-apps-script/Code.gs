@@ -1591,7 +1591,14 @@ function kvRenderInvoiceTemplate_(template, inv, row) {
     "Tong_Cong": kvFormatMoney_(inv && inv.total),
     "Khach_Can_Tra": kvFormatMoney_(inv && inv.total),
     "Thu_Ho_COD": kvFormatMoney_(rowCollectAmount_(row)),
+    "Tien_Thu_Ho": kvFormatMoney_(rowCollectAmount_(row)),
+    "Ma_Don_Hang": (inv && (inv.orderCode || inv.code)) || "",
     "Ma_Van_Don": row["Mã vận đơn"] || "",
+    "Ma_Van_Don_Ma_Vach": String(row["Mã vận đơn"] || "").trim()
+      ? '<img alt="' + String(row["Mã vận đơn"]).trim() +
+        '" src="https://quickchart.io/barcode?type=code128&height=45&text=' +
+        encodeURIComponent(String(row["Mã vận đơn"]).trim()) + '" style="height:45px">'
+      : "",
     "Doi_Tac_Giao_Hang": KV_DELIVERY_PARTNER
   };
 
