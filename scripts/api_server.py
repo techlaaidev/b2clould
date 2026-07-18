@@ -406,7 +406,7 @@ def reprint_shipments_merged(session, tracking_numbers: list[str]) -> dict[str, 
 
 
 # Bump on every deploy so /version confirms which code Render is actually running.
-APP_VERSION = "2026-07-17a-collect-from-product-number"
+APP_VERSION = "2026-07-17b-server-pdf-render"
 
 
 @app.get("/health")
