@@ -9,6 +9,7 @@ function onOpen() {
     .addItem("Kiểm tra và đồng bộ đơn", "validateAndSyncOrders")
     .addItem("Tạo vận đơn cho đơn hợp lệ", "createReadyShipments")
     .addItem("In gộp phiếu đã tạo (2 nhãn/tờ A4)", "printMergedLabels")
+    .addItem("In gộp phiếu giao hàng KiotViet (2 phiếu/tờ A4)", "printMergedKvSlips")
     .addItem("Điền cột Price từ Product Number", "fillPriceColumnFromProductNumber")
     .addSeparator()
     .addItem("Tạo CSV Japan Post (YuPack R)", "generateJapanPostCsv")
