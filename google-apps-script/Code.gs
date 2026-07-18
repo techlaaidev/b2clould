@@ -1616,6 +1616,7 @@ function kvRenderInvoiceTemplate_(template, inv, row) {
       return lineTpl
         .replace(/\{STT\}/g, String(i + 1))
         .replace(/\{Ma_Hang\}/g, d.productCode || "")
+        .replace(/\{Ten_Hang_Hoa_Don_Gian\}/g, d.productName || "")
         .replace(/\{Ten_Hang\}/g, d.productName || "")
         .replace(/\{IMEI\}/g, d.serialNumbers || "")
         .replace(/\{So_Luong\}/g, String(d.quantity != null ? d.quantity : 1))
