@@ -4,3 +4,4 @@ PyMuPDF>=1.21.1
 pytest>=7
 fastapi>=0.111,<1
 uvicorn[standard]>=0.30,<1
+xhtml2pdf>=0.2.16,<0.3
