@@ -1776,7 +1776,7 @@ function printMergedKvSlips() {
     const token = kvGetToken_();
     const retailer = kvProp_("KV_RETAILER");
     const url = saveBlobToDrive_(kvSlipsPdfBlob_(rows, filename, token, retailer));
-    logMergedPrint_(rows.length, url);
+    logMergedPrint_(rows.length, url, true); // link vào cột "Link PDF KiotViet"
     showMergedPrintDialog_(rows.length, url);
   } catch (error) {
     ui.alert("Lỗi: " + (error.message || error));
