@@ -480,6 +480,24 @@ def create_orders(request: CreateOrdersRequest):
     )
 
 
+@app.post("/api/pdf/render", dependencies=[Depends(require_api_key)])
+def render_pdf_endpoint(request: RenderPdfRequest):
+    """HTML phiếu giao hàng KiotViet (đã điền dữ liệu) -> PDF A4 1 trang/hóa đơn.
+
+    Apps Script gọi endpoint này thay cho bộ chuyển của Google (thiếu font Nhật,
+    vỡ trang). Render bằng xhtml2pdf + Noto Sans JP (scripts/slip_pdf.py).
+    """
+    if not request.html.strip():
+        raise HTTPException(status_code=400, detail="html must not be empty.")
+    from scripts.slip_pdf import render_pdf  # import muộn: chỉ tải khi cần
+
+    pdf_data = render_pdf(request.html)
+    return {
+        "pdf_filename": request.filename,
+        "pdf_base64": base64.b64encode(pdf_data).decode("ascii"),
+    }
+
+
 @app.post("/api/orders/print", dependencies=[Depends(require_api_key)])
 def print_orders_merged(request: PrintRequest):
     if not request.tracking_numbers:
