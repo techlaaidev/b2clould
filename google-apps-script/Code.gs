@@ -1413,7 +1413,7 @@ function kvRunCreateInvoices_() {
             const rowObj = {};
             headers.forEach((header, idx) => { if (header) rowObj[header] = raw[idx]; });
             rowObj[KV_INVOICE_RESULT_HEADER] = invCode;
-            const slipUrl = saveBlobToDrive_(kvSlipsPdfBlob_([rowObj], "kiotviet_" + invCode + ".pdf"));
+            const slipUrl = saveBlobToDrive_(kvSlipsPdfBlob_([rowObj], "kiotviet_" + invCode + ".pdf", token, retailer));
             sheet.getRange(sheetRow, slipCol).setValue(slipUrl);
           } catch (slipErr) {
             errors.push("⚠ Dòng " + sheetRow + ": không dựng được phiếu giao hàng PDF: " + (slipErr.message || slipErr));
