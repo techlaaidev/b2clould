@@ -70,6 +70,16 @@ def sanitize_html(html: str) -> str:
     for old, new in _COMPACT_REPLACEMENTS:
         html = html.replace(old, new)
     html = re.sub(r"<p>&nbsp;</p>", "", html)
+    # xhtml2pdf bỏ qua float:right nên ảnh QR rơi về giữa trang — ép đoạn chứa
+    # ảnh căn phải, và chú thích ("Google Maps"/"Scan to Register") ngay dưới
+    # ảnh cũng căn phải theo (các <p> căn giữa khác giữ nguyên).
+    html = re.sub(r"<p>(\s*<img)", r'<p style="text-align:right">\1', html, flags=re.I)
+    html = re.sub(
+        r'(<img[^>]*>\s*</p>\s*)<p style="text-align:center">',
+        r'\1<p style="text-align:right">',
+        html,
+        flags=re.I,
+    )
     return html
 
 
