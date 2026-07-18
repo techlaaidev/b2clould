@@ -1592,19 +1592,38 @@ function kvRenderInvoiceTemplate_(template, inv, row) {
 
   let html = template;
   const details = (inv && inv.invoiceDetails) || [];
+  const surcharges = (inv && inv.invoiceOrderSurcharges) || [];
   const trBlocks = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
-  const lineTpl = trBlocks.filter(tr => /\{(Ten_Hang|Ma_Hang|Don_Gia|Thanh_Tien)\}/.test(tr))[0];
+
+  // Dòng chi tiết sản phẩm: nhân bản <tr> chứa token hàng hóa theo từng SP.
+  const lineTpl = trBlocks.filter(tr => /\{(Ten_Hang|Ma_Hang|Don_Gia|Don_Gia_Sau_Chiet_Khau|Thanh_Tien|IMEI)\}/.test(tr))[0];
   if (lineTpl) {
-    const lines = details.map((d, i) => lineTpl
-      .replace(/\{STT\}/g, String(i + 1))
-      .replace(/\{Ma_Hang\}/g, d.productCode || "")
-      .replace(/\{Ten_Hang\}/g, (d.productName || "") + (d.serialNumbers ? "<br>IMEI: " + d.serialNumbers : ""))
-      .replace(/\{So_Luong\}/g, String(d.quantity != null ? d.quantity : 1))
-      .replace(/\{Don_Gia\}/g, kvFormatMoney_(d.price))
-      .replace(/\{Giam_Gia(_Hang)?\}/g, kvFormatMoney_(d.discount || 0))
-      .replace(/\{Thanh_Tien\}/g, kvFormatMoney_(d.subTotal != null ? d.subTotal : d.price))
-    ).join("");
+    const lines = details.map((d, i) => {
+      const unitPrice = Number(d.price || 0);
+      const unitAfter = unitPrice - Number(d.discount || 0);
+      return lineTpl
+        .replace(/\{STT\}/g, String(i + 1))
+        .replace(/\{Ma_Hang\}/g, d.productCode || "")
+        .replace(/\{Ten_Hang\}/g, d.productName || "")
+        .replace(/\{IMEI\}/g, d.serialNumbers || "")
+        .replace(/\{So_Luong\}/g, String(d.quantity != null ? d.quantity : 1))
+        .replace(/\{Don_Gia\}/g, kvFormatMoney_(unitPrice))
+        .replace(/\{Don_Gia_Sau_Chiet_Khau\}/g, kvFormatMoney_(unitAfter))
+        .replace(/\{Giam_Gia(_Hang)?\}/g, kvFormatMoney_(d.discount || 0))
+        .replace(/\{Thanh_Tien\}/g, kvFormatMoney_(d.subTotal != null ? d.subTotal : unitAfter));
+    }).join("");
     html = html.replace(lineTpl, lines);
+  }
+
+  // Dòng "khoản thu khác": nhân bản <tr> chứa {Ten_Loai_Thu_Khac}/{Muc_Thu_Khac}
+  // theo từng khoản thu trên hóa đơn (COD fee THK000001...).
+  const surTpl = trBlocks.filter(tr => /\{(Ten_Loai_Thu_Khac|Muc_Thu_Khac)\}/.test(tr))[0];
+  if (surTpl) {
+    const surLines = surcharges.map(s => surTpl
+      .replace(/\{Ten_Loai_Thu_Khac\}/g, s.surchargeName || s.surchargeCode || "Thu khác")
+      .replace(/\{Muc_Thu_Khac\}/g, kvFormatMoney_(s.price != null ? s.price : s.surValue))
+    ).join("");
+    html = html.replace(surTpl, surLines);
   }
 
   Object.keys(tokens).forEach(key => {
