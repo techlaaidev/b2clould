@@ -1548,7 +1548,12 @@ function kvSlipHtml_(row) {
 // Chưa có file mẫu -> dùng phiếu mặc định kvSlipHtml_ (2 phiếu / tờ A4).
 function kvLoadPrintTemplate_() {
   try {
-    return HtmlService.createHtmlOutputFromFile("MauInKiotViet").getContent();
+    const html = HtmlService.createHtmlOutputFromFile("MauInKiotViet").getContent();
+    // Bộ chuyển HTML->PDF của Google khác trình in của KiotViet: ảnh
+    // height:100% bị phình hết trang và position:fixed vỡ layout -> vá lại.
+    return html
+      .replace(/height:\s*100%/gi, "height:auto")
+      .replace(/position:\s*fixed/gi, "position:static");
   } catch (ignore) {
     return null; // chưa tạo file mẫu -> dùng phiếu mặc định
   }
