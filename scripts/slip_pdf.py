@@ -54,6 +54,14 @@ _COMPACT_REPLACEMENTS = [
 
 def sanitize_html(html: str) -> str:
     """Vá các kiểu CSS làm vỡ trang + nén nhẹ để mẫu in vừa 1 trang A4."""
+    # Bỏ vỏ boilerplate nếu mẫu được dán kèm khung file HTML của Apps Script
+    # (<!DOCTYPE html><html><head>...</head><body>...) — tài liệu lồng tài liệu
+    # làm xhtml2pdf dàn trang sai.
+    html = re.sub(r"<!DOCTYPE[^>]*>", "", html, flags=re.I)
+    html = re.sub(r"<head[^>]*>[\s\S]*?</head>", "", html, flags=re.I)
+    html = re.sub(r"</?(?:html|body)[^>]*>", "", html, flags=re.I)
+    # MỌI khai báo font Arial (kể cả viết không dấu cách) -> font Nhật NotoJP.
+    html = re.sub(r"font-family:\s*Arial[^;\"'}<]*", "font-family: notojp", html, flags=re.I)
     html = re.sub(r"height:\s*100%", "height:auto", html, flags=re.I)
     html = re.sub(r"position:\s*fixed", "position:static", html, flags=re.I)
     # Mẫu KiotViet cấm ngắt giữa <tr>, nhưng khối promo là MỘT <tr> khổng lồ
