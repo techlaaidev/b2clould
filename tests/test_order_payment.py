@@ -109,11 +109,12 @@ def test_trailing_price_dp_subtracts_deposit_only():
     assert row["cod_amount"] == "70000"
 
 
-def test_extra_fee_column_overrides_default_daibiki_fee():
-    # Cột "Thu khác" quyết định mức phí thu hộ: 2000 thay cho mặc định 1500,
-    # và 0 = miễn phí (không cộng gì).
+def test_extra_fee_used_when_rebuilding_collect_from_price():
+    # Chỉ khi Product Number KHÔNG có giá: thu hộ = Price + Thu khác
+    # (2000 thay mặc định 1500; 0 = không phí).
     row = {
-        "product_number": "COD_iPhone 13 128GB - 100000",
+        "product_number": "iPhone 13 128GB",
+        "price": "100000",
         "extra_fee": "2000",
         "type_of_transaction": "Daibiki",
         "payment_status": "",
@@ -122,7 +123,8 @@ def test_extra_fee_column_overrides_default_daibiki_fee():
     assert row["amount"] == "102000"
 
     free = {
-        "product_number": "COD_iPhone 13 128GB - 100000",
+        "product_number": "iPhone 13 128GB",
+        "price": "100000",
         "extra_fee": "0",
         "type_of_transaction": "Daibiki",
         "payment_status": "",
