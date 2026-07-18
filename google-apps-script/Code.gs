@@ -1473,6 +1473,126 @@ function yamatoCodFee_(value) {
 }
 
 
+// ===== Phiếu giao hàng KiotViet (PDF tự dựng) =====
+// Public API của KiotViet không có API in phiếu, nên phiếu giao hàng ("tài
+// liệu thứ 2" của màn Bán giao hàng) được dựng lại từ dữ liệu trên sheet:
+// khách + SP/IMEI + tặng kèm + giá thật + Thu khác + số THU HỘ + mã vận đơn.
+
+// Số tiền THU HỘ của dòng: giá cuối Product Number (đã gồm phí) - đặt cọc DP;
+// không có giá ở Product Number -> Price + Thu khác - đặt cọc.
+function rowCollectAmount_(row) {
+  let gross = parsePriceFromProductNumber_(row["Product Number"]);
+  if (gross == null) {
+    const price = parsePriceCell_(row["Price"]);
+    if (price == null) return null;
+    const fee = parsePriceCell_(row[KV_SURCHARGE_HEADER]);
+    gross = price + (fee != null ? fee : DAIBIKI_FEE);
+  }
+  if (String(row["Thanh toán"] || "").trim().toUpperCase() === "DP") {
+    const deposit = parsePriceCell_(row["Số tiền đặt cọc"]);
+    if (deposit != null) gross -= deposit;
+  }
+  return gross;
+}
+
+
+function kvSlipHtml_(row) {
+  const esc = value => String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const yen = value => value == null ? "-" : Number(value).toLocaleString("en-US") + "¥";
+  const price = parsePriceCell_(row["Price"]);
+  const feeRaw = parsePriceCell_(row[KV_SURCHARGE_HEADER]);
+  const fee = feeRaw != null ? feeRaw : DAIBIKI_FEE;
+  const deposit = String(row["Thanh toán"] || "").trim().toUpperCase() === "DP"
+    ? parsePriceCell_(row["Số tiền đặt cọc"]) : null;
+  const gift = String(row[KV_GIFT_HEADER] || "").trim();
+  return (
+    '<div class="slip">' +
+    '<div class="head"><b>' + esc(JP_SENDER_NAME) + '</b> — PHIẾU GIAO HÀNG (KiotViet)' +
+    '<span class="inv">' + esc(row[KV_INVOICE_RESULT_HEADER] || "") + '</span></div>' +
+    '<table>' +
+    '<tr><td>Khách</td><td><b>' + esc(row["Name"]) + '</b> — ' + esc(row["Mobile"]) + '</td></tr>' +
+    '<tr><td>Địa chỉ</td><td>' + esc(row["Address"]) + '</td></tr>' +
+    '<tr><td>Sản phẩm</td><td>' + esc(row[KV_NAME_HEADER] || row["Product Number"]) +
+      (String(row[KV_IMEI_HEADER] || "").trim() ? '<br>IMEI: ' + esc(row[KV_IMEI_HEADER]) : '') + '</td></tr>' +
+    (gift ? '<tr><td>Tặng kèm</td><td>' + esc(gift) + '</td></tr>' : '') +
+    '<tr><td>Tiền</td><td>Giá SP: ' + yen(price) + ' &nbsp;|&nbsp; Thu khác (COD fee): ' + yen(fee) +
+      (deposit != null ? ' &nbsp;|&nbsp; Đặt cọc: -' + yen(deposit) : '') + '</td></tr>' +
+    '<tr class="total"><td>THU HỘ (COD)</td><td><b>' + yen(rowCollectAmount_(row)) + '</b></td></tr>' +
+    '<tr><td>Vận chuyển</td><td>' + esc(KV_DELIVERY_PARTNER) + ' — Mã vận đơn: <b>' +
+      esc(row["Mã vận đơn"] || "") + '</b></td></tr>' +
+    '</table></div>');
+}
+
+
+// Dựng PDF các phiếu giao hàng: 2 phiếu / tờ A4 (phiếu lẻ cuối chiếm nửa trên).
+function kvSlipsPdfBlob_(rows, filename) {
+  const style = '<style>' +
+    'body{font-family:Arial,sans-serif;font-size:12px;margin:0;padding:0}' +
+    '.slip{box-sizing:border-box;height:128mm;border:1px solid #333;border-radius:6px;' +
+      'padding:10px 14px;margin-bottom:8mm;overflow:hidden}' +
+    '.head{font-size:14px;border-bottom:1px solid #999;padding-bottom:6px;margin-bottom:8px}' +
+    '.inv{float:right;color:#444}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'td{padding:3px 4px;vertical-align:top}' +
+    'td:first-child{width:88px;color:#555}' +
+    '.total td{font-size:15px;border-top:1px dashed #999}' +
+    '.page{page-break-after:always}' +
+    '</style>';
+  let html = style;
+  for (let i = 0; i < rows.length; i += 2) {
+    html += '<div class="page">' + kvSlipHtml_(rows[i]) +
+      (rows[i + 1] ? kvSlipHtml_(rows[i + 1]) : '') + '</div>';
+  }
+  return Utilities.newBlob(html, "text/html", filename + ".html")
+    .getAs("application/pdf").setName(filename);
+}
+
+
+function saveBlobToDrive_(blob) {
+  const folderId = PropertiesService.getScriptProperties().getProperty("B2_PDF_FOLDER_ID");
+  const file = folderId ? DriveApp.getFolderById(folderId).createFile(blob) : DriveApp.createFile(blob);
+  return file.getUrl();
+}
+
+
+// In gộp phiếu giao hàng KiotViet — luồng y hệt "In gộp phiếu" bên Yamato:
+// bôi đen các dòng cần in, TẤT CẢ phải đã có Hóa đơn KiotViet; kết quả hiện ở
+// hộp thoại có link bấm được + ghi 1 dòng vào sheet "In gộp".
+function printMergedKvSlips() {
+  const ui = SpreadsheetApp.getUi();
+  SpreadsheetApp.getActive().toast("Đang gộp phiếu giao hàng KiotViet...", "B2 Cloud", 15);
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const read = readRows_(sheet);
+    if (!read.rows.length) {
+      ui.alert("Chưa chọn dòng nào. Hãy bôi đen các dòng cần in gộp rồi chạy lại.");
+      return;
+    }
+    const rows = [];
+    const notReady = [];
+    read.rows.forEach((row, i) => {
+      const inv = String(row[KV_INVOICE_RESULT_HEADER] || "").trim();
+      const who = row["Name"] ? " (" + row["Name"] + ")" : "";
+      if (!inv || inv.indexOf("LỖI") === 0) notReady.push("Dòng " + read.sheetRows[i] + who);
+      else rows.push(row);
+    });
+    if (notReady.length) {
+      ui.alert('Chưa in gộp được — các dòng sau chưa có "Hóa đơn KiotViet" ' +
+        "(hãy 'Tạo hóa đơn KiotViet' trước):\n" + notReady.join("\n"));
+      return;
+    }
+    const filename = "kiotviet_phieu_giao_" +
+      Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyyMMdd_HHmm") + ".pdf";
+    const url = saveBlobToDrive_(kvSlipsPdfBlob_(rows, filename));
+    logMergedPrint_(rows.length, url);
+    showMergedPrintDialog_(rows.length, url);
+  } catch (error) {
+    ui.alert("Lỗi: " + (error.message || error));
+  }
+}
+
+
 // Đọc lại hóa đơn vừa tạo (kiểm chứng Thu khác + vận đơn). null = không đọc được.
 function kvFetchInvoiceDetail_(token, retailer, invoiceId) {
   try {
