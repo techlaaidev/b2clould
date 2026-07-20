@@ -62,6 +62,15 @@ def _unwrap_single_cell_tables(html: str) -> str:
         root = lxml_html.fragment_fromstring(html, create_parent="div")
     except Exception:
         return html  # HTML lạ -> giữ nguyên, đừng làm hỏng
+    # Bảng chi tiết sản phẩm (có border): nới cột 商品名 (ô thứ 2) rộng hơn để
+    # tên SP xuống ít dòng như bản in web -> bảng thấp lại, phiếu gọn 1 trang.
+    for table in root.xpath(".//table[@border='1']"):
+        for tr in table.xpath("./tbody/tr | ./tr"):
+            cells = tr.xpath("./td | ./th")
+            if len(cells) >= 2:
+                second = cells[1]
+                second.set("style", (second.get("style") or "") + ";width:38%")
+
     changed = True
     while changed:
         changed = False
