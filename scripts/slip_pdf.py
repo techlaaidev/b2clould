@@ -41,7 +41,7 @@ def _ensure_font() -> None:
 
 _PAGE_CSS = (
     "<style>"
-    "@page {size: A4; margin: 6mm 9mm;}"
+    "@page {size: A4; margin: 4mm 9mm;}"
     "body, div, td, p, span, strong {font-family: notojp;}"
     # Trình duyệt GỘP lề trên/dưới của 2 đoạn liền nhau (còn ~1em), engine PDF
     # thì cộng dồn (2em) làm phiếu giãn dài gấp đôi so với mẫu gốc — chỉnh lề
