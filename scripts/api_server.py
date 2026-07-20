@@ -406,7 +406,7 @@ def reprint_shipments_merged(session, tracking_numbers: list[str]) -> dict[str, 
 
 
 # Bump on every deploy so /version confirms which code Render is actually running.
-APP_VERSION = "2026-07-18a-qr-align-right"
+APP_VERSION = "2026-07-20a-slip-exact-template"
 
 
 @app.get("/health")
