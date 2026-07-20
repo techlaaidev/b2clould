@@ -45,25 +45,9 @@ _PAGE_CSS = (
     "</style>"
 )
 
-# Nén nhẹ mẫu in cho vừa 1 trang A4. THỨ TỰ các cặp thay thế là cố ý (đã kiểm
-# chứng bằng mắt với mẫu 納品書 thật) — đổi thứ tự sẽ ra cỡ chữ khác.
-_COMPACT_REPLACEMENTS = [
-    ("font-size:20px", "font-size:17px"),
-    ("font-size:18px", "font-size:16px"),
-    ("font-size:15px", "font-size:13px"),
-    ("font-size:13px", "font-size:12px"),
-    ("font-size:12px", "font-size:10px"),
-    ("font-size:11px", "font-size:9px"),
-    ("width:150px", "width:105px"),
-    ("width:95px", "width:70px"),
-    ("margin:10px 0 15px", "margin:4px 0 6px"),
-    ("margin-bottom:30px", "margin-bottom:10px"),
-    ("Arial, sans-serif", "notojp"),
-]
-
-
 def sanitize_html(html: str) -> str:
-    """Vá các kiểu CSS làm vỡ trang + nén nhẹ để mẫu in vừa 1 trang A4."""
+    """Chỉ vá những gì engine PDF không hỗ trợ — GIỮ NGUYÊN cỡ chữ, khoảng
+    cách, kích thước ảnh của mẫu in gốc (không nén, không chỉnh)."""
     # Bỏ vỏ boilerplate nếu mẫu được dán kèm khung file HTML của Apps Script
     # (<!DOCTYPE html><html><head>...</head><body>...) — tài liệu lồng tài liệu
     # làm xhtml2pdf dàn trang sai.
