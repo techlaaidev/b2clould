@@ -9,6 +9,7 @@ import io
 import re
 from pathlib import Path
 
+from lxml import html as lxml_html
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from xhtml2pdf import pisa
