@@ -14,7 +14,9 @@ from reportlab.pdfbase.ttfonts import TTFont
 from xhtml2pdf import pisa
 from xhtml2pdf.default import DEFAULT_FONT
 
-FONT_PATH = Path(__file__).resolve().parents[1] / "fonts" / "NotoSansJP-Regular.ttf"
+_FONT_DIR = Path(__file__).resolve().parents[1] / "fonts"
+FONT_PATH = _FONT_DIR / "NotoSansJP-Regular.ttf"
+BOLD_FONT_PATH = _FONT_DIR / "NotoSansJP-Bold.ttf"
 _font_ready = False
 
 
@@ -24,6 +26,14 @@ def _ensure_font() -> None:
         return
     if FONT_PATH.exists():
         pdfmetrics.registerFont(TTFont("NotoJP", str(FONT_PATH)))
+        bold = str(BOLD_FONT_PATH if BOLD_FONT_PATH.exists() else FONT_PATH)
+        # Đăng ký cả bản ĐẬM để <strong>/<b> in đậm thật (thiếu thì tiêu đề
+        # render bằng nét thường, nhìn "mờ" so với mẫu in gốc).
+        pdfmetrics.registerFont(TTFont("NotoJP-Bold", bold))
+        pdfmetrics.registerFontFamily(
+            "NotoJP", normal="NotoJP", bold="NotoJP-Bold",
+            italic="NotoJP", boldItalic="NotoJP-Bold",
+        )
         DEFAULT_FONT["notojp"] = "NotoJP"
     _font_ready = True
 
