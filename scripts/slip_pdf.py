@@ -61,9 +61,6 @@ def sanitize_html(html: str) -> str:
     # Mẫu KiotViet cấm ngắt giữa <tr>, nhưng khối promo là MỘT <tr> khổng lồ
     # nên bị đẩy nguyên sang trang sau -> cho phép ngắt.
     html = re.sub(r"page-break-inside:\s*avoid", "page-break-inside: auto", html, flags=re.I)
-    for old, new in _COMPACT_REPLACEMENTS:
-        html = html.replace(old, new)
-    html = re.sub(r"<p>&nbsp;</p>", "", html)
     # xhtml2pdf bỏ qua float:right nên ảnh QR rơi về giữa trang — ép đoạn chứa
     # ảnh căn phải, và chú thích ("Google Maps"/"Scan to Register") ngay dưới
     # ảnh cũng căn phải theo (các <p> căn giữa khác giữ nguyên).
