@@ -46,6 +46,41 @@ _PAGE_CSS = (
     "</style>"
 )
 
+def _unwrap_single_cell_tables(html: str) -> str:
+    """Bảng chỉ có 1 hàng × 1 ô -> <div> (hiển thị y hệt, nhưng cắt trang được).
+
+    Engine PDF coi mỗi <tr> là một khối KHÔNG THỂ cắt giữa chừng; mẫu KiotViet
+    bọc cả nửa dưới phiếu trong một <tr> khổng lồ nên khối đó bị đẩy nguyên
+    sang trang sau. Mở bọc để nội dung chảy tự nhiên. Bảng nhiều ô (bảng sản
+    phẩm, khối chữ + QR 2 cột) giữ nguyên.
+    """
+    try:
+        root = lxml_html.fragment_fromstring(html, create_parent="div")
+    except Exception:
+        return html  # HTML lạ -> giữ nguyên, đừng làm hỏng
+    changed = True
+    while changed:
+        changed = False
+        for table in root.findall(".//table"):
+            trs = table.xpath("./tbody/tr | ./tr")
+            if len(trs) != 1:
+                continue
+            cells = trs[0].xpath("./td | ./th")
+            if len(cells) != 1:
+                continue
+            cell = cells[0]
+            div = lxml_html.Element("div")
+            style = (table.get("style") or "") + ";" + (cell.get("style") or "")
+            if style.strip(";"):
+                div.set("style", style.strip(";"))
+            div.text = cell.text
+            for child in list(cell):
+                div.append(child)
+            table.getparent().replace(table, div)
+            changed = True
+    return lxml_html.tostring(root, encoding="unicode")
+
+
 def sanitize_html(html: str) -> str:
     """Chỉ vá những gì engine PDF không hỗ trợ — GIỮ NGUYÊN cỡ chữ, khoảng
     cách, kích thước ảnh của mẫu in gốc (không nén, không chỉnh)."""
