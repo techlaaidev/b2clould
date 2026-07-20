@@ -43,6 +43,9 @@ _PAGE_CSS = (
     "<style>"
     "@page {size: A4; margin: 4mm 9mm;}"
     "body, div, td, p, span, strong {font-family: notojp;}"
+    # Cột 商品名 rộng hơn để tên sản phẩm xuống ít dòng (giống bản in web),
+    # nhờ đó bảng thấp lại và phiếu gọn trong 1 trang.
+    "table[border='1'] td:nth-child(2) {width: 38%;}"
     # Trình duyệt GỘP lề trên/dưới của 2 đoạn liền nhau (còn ~1em), engine PDF
     # thì cộng dồn (2em) làm phiếu giãn dài gấp đôi so với mẫu gốc — chỉnh lề
     # đoạn văn về ~1 nửa để khoảng cách giống hệt bản xem trước của KiotViet.
