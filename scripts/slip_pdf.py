@@ -136,6 +136,7 @@ def sanitize_html(html: str) -> str:
     # nên bị đẩy nguyên sang trang sau -> cho phép ngắt.
     html = re.sub(r"page-break-inside:\s*avoid", "page-break-inside: auto", html, flags=re.I)
     html = _unwrap_single_cell_tables(html)
+    html = _wrap_emoji(html)
     # xhtml2pdf bỏ qua float:right nên ảnh QR rơi về giữa trang — ép đoạn chứa
     # ảnh căn phải, và chú thích ("Google Maps"/"Scan to Register") ngay dưới
     # ảnh cũng căn phải theo (các <p> căn giữa khác giữ nguyên).
