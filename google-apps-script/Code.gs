@@ -1683,8 +1683,12 @@ function kvRenderInvoiceTemplate_(template, inv, row) {
 // Phiếu của 1 dòng: có mẫu in KiotViet -> render theo mẫu (đọc hóa đơn thật
 // qua API); không có mẫu / không đọc được hóa đơn -> phiếu mặc định.
 function kvSlipHtmlAuto_(row, token, retailer, cache) {
-  if (cache.template === undefined) cache.template = kvLoadPrintTemplate_();
-  if (!cache.template) return kvSlipHtml_(row);
+  // Mẫu theo cột "Ngôn ngữ phiếu" của TỪNG dòng (in gộp có thể trộn Nhật/Việt).
+  const lang = kvSlipLang_(row[KV_SLIP_LANG_HEADER]);
+  if (!cache.templates) cache.templates = {};
+  if (cache.templates[lang] === undefined) cache.templates[lang] = kvLoadPrintTemplate_(lang);
+  const template = cache.templates[lang];
+  if (!template) return kvSlipHtml_(row);
   const code = String(row[KV_INVOICE_RESULT_HEADER] || "").trim();
   let inv = null;
   if (code && code.indexOf("LỖI") !== 0 && token) {
