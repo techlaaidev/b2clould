@@ -811,7 +811,8 @@ function syncKiotVietCatalog() {
     kvWriteImeiIndex_(imeiRows);
     // Mốc thời gian cho đồng bộ nhanh (lastModifiedFrom) khi nhập IMEI.
     PropertiesService.getScriptProperties().setProperty("KV_IMEI_SYNCED_AT", String(started));
-    const sellerNote = kvApplySellerDropdown_(token, retailer) + kvApplyGiftDropdown_();
+    const sellerNote = kvApplySellerDropdown_(token, retailer) + kvApplyGiftDropdown_() +
+      kvApplySlipLangDropdown_();
     const note = rows.length >= total ? "" : " (một phần — chạy lại để lấy tiếp)";
     return `Đã đồng bộ ${rows.length}/${total} sản phẩm KiotViet${note}.\n` +
       `Chỉ mục IMEI (CN ${branchId}): ${imeiRows.length} IMEI.` +
