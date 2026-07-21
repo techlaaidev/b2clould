@@ -1561,9 +1561,26 @@ function kvSlipHtml_(row) {
 // đặt tên file ĐÚNG là "MauInKiotViet", dán HTML vào rồi Lưu. Từ đó phiếu PDF
 // dựng đúng theo mẫu (dữ liệu thật đọc từ GET /invoices), mỗi hóa đơn 1 trang.
 // Chưa có file mẫu -> dùng phiếu mặc định kvSlipHtml_ (2 phiếu / tờ A4).
-function kvLoadPrintTemplate_() {
+// Tên file mẫu theo ngôn ngữ phiếu (tạo trong Apps Script: (+) -> HTML).
+const KV_TEMPLATE_FILES = { JP: "MauInKiotViet", VN: "MauInKiotVietVN" };
+const KV_SLIP_LANG_HEADER = "Ngôn ngữ phiếu";   // cột chọn Nhật/Việt trên sheet
+const KV_SLIP_LANG_DEFAULT = "JP";              // ô trống -> mẫu tiếng Nhật
+
+
+// Giá trị ô "Ngôn ngữ phiếu" -> mã mẫu (JP/VN). Trống/không hiểu -> mặc định.
+function kvSlipLang_(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return KV_SLIP_LANG_DEFAULT;
+  if (/vi[ệe]t|vn|vi$/.test(text)) return "VN";
+  if (/nh[aậ]t|jp|ja$/.test(text)) return "JP";
+  return KV_SLIP_LANG_DEFAULT;
+}
+
+
+function kvLoadPrintTemplate_(lang) {
+  const fileName = KV_TEMPLATE_FILES[lang] || KV_TEMPLATE_FILES[KV_SLIP_LANG_DEFAULT];
   try {
-    const html = HtmlService.createHtmlOutputFromFile("MauInKiotViet").getContent();
+    const html = HtmlService.createHtmlOutputFromFile(fileName).getContent();
     // Bộ chuyển HTML->PDF của Google khác trình in của KiotViet: ảnh
     // height:100% bị phình hết trang và position:fixed vỡ layout -> vá lại.
     return html
