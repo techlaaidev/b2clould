@@ -1706,7 +1706,7 @@ function kvSlipHtmlAuto_(row, token, retailer, cache) {
   }
   if (!inv) return kvSlipHtml_(row);
   cache.usedTemplate = true;
-  return kvRenderInvoiceTemplate_(cache.template, inv, row);
+  return kvRenderInvoiceTemplate_(template, inv, row);
 }
 
 
