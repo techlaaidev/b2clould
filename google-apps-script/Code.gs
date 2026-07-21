@@ -1048,7 +1048,8 @@ function syncKiotVietQuick() {
   runWithAlert_("Đang đồng bộ nhanh KiotViet...", () => {
     const token = kvGetToken_();
     const retailer = kvProp_("KV_RETAILER");
-    const notes = kvApplySellerDropdown_(token, retailer) + kvApplyGiftDropdown_();
+    const notes = kvApplySellerDropdown_(token, retailer) + kvApplyGiftDropdown_() +
+      kvApplySlipLangDropdown_();
     const stat = kvIncrementalImeiRefresh_(token, retailer);
     if (stat === false) {
       return 'Chưa có dữ liệu nền — hãy chạy "Đồng bộ kho KiotViet (TOÀN BỘ)" 1 lần đầu, ' +
