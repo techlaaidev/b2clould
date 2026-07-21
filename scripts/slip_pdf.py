@@ -37,7 +37,31 @@ def _ensure_font() -> None:
             italic="NotoJP", boldItalic="NotoJP-Bold",
         )
         DEFAULT_FONT["notojp"] = "NotoJP"
+    if EMOJI_FONT_PATH.exists():
+        # Font Nhật không có emoji (📱 🔔 trong mẫu tiếng Việt) -> ô vuông.
+        pdfmetrics.registerFont(TTFont("NotoEmoji", str(EMOJI_FONT_PATH)))
+        DEFAULT_FONT["notoemoji"] = "NotoEmoji"
     _font_ready = True
+
+
+# Emoji nằm ngoài BMP + các dải ký hiệu hay dùng trong mẫu in.
+_EMOJI_RE = re.compile(
+    "([\U0001F300-\U0001FAFF☀-➿⬀-⯿️])"
+)
+
+
+def _wrap_emoji(html: str) -> str:
+    """Bọc emoji vào <span> dùng font emoji (xhtml2pdf không tự fallback font)."""
+    if not EMOJI_FONT_PATH.exists():
+        return html
+    parts = re.split(r"(<[^>]+>)", html)  # không đụng vào bên trong thẻ
+    for i, part in enumerate(parts):
+        if part.startswith("<"):
+            continue
+        parts[i] = _EMOJI_RE.sub(
+            r'<span style="font-family: notoemoji">\1</span>', part
+        )
+    return "".join(parts)
 
 
 _PAGE_CSS = (
