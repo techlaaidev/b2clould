@@ -18,6 +18,7 @@ from xhtml2pdf.default import DEFAULT_FONT
 _FONT_DIR = Path(__file__).resolve().parents[1] / "fonts"
 FONT_PATH = _FONT_DIR / "NotoSansJP-Regular.ttf"
 BOLD_FONT_PATH = _FONT_DIR / "NotoSansJP-Bold.ttf"
+EMOJI_FONT_PATH = _FONT_DIR / "NotoEmoji-Regular.ttf"
 _font_ready = False
 
 
