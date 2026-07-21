@@ -1902,6 +1902,18 @@ function kvResolveGiftDetails_(token, retailer, cellText, productCache) {
 }
 
 
+// Dropdown "Ngôn ngữ phiếu" (nếu sheet có cột): chọn mẫu in Nhật / Việt.
+function kvApplySlipLangDropdown_() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const col = headerMap_(sheet)[KV_SLIP_LANG_HEADER];
+  if (!col) return "";
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(["Nhật", "Việt"], true).setAllowInvalid(true).build();
+  sheet.getRange(2, col, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
+  return '\nDropdown "' + KV_SLIP_LANG_HEADER + '": Nhật / Việt (trống = Nhật).';
+}
+
+
 // Gắn dropdown các bộ tặng kèm / phụ phí cho cột "Hàng tặng kèm" (nếu có).
 // setAllowInvalid(true) để vẫn gõ tay được nhiều mục: "SET 20W-CtoC, Shipping cost 600".
 function kvApplyGiftDropdown_() {
