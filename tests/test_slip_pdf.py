@@ -57,3 +57,17 @@ def test_render_japanese_single_page():
     text = doc[0].get_text()
     # Chữ Nhật phải render ra ký tự thật, không phải ô vuông/trống.
     assert "納品書" in text
+
+
+def test_render_vietnamese_diacritics():
+    # Mẫu in bản tiếng Việt: dấu phải đúng, không rơi mất khi qua PDF.
+    html = (
+        '<div style="font-family:Arial, sans-serif">'
+        "<p>📱 Cảm ơn bạn đã mua sắm tại MOBAPPY!</p>"
+        "<p>Ưu đãi thành viên mới — Hệ thống bán lẻ di động tại Nhật</p>"
+        "</div>"
+    )
+    doc = fitz.open(stream=render_pdf(html), filetype="pdf")
+    text = doc[0].get_text()
+    assert "Cảm ơn bạn đã mua sắm" in text
+    assert "Hệ thống bán lẻ di động" in text
