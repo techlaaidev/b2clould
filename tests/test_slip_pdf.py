@@ -5,12 +5,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import fitz
 
-from scripts.slip_pdf import FONT_PATH, render_pdf, sanitize_html
+from scripts.slip_pdf import (
+    BOLD_FONT_PATH,
+    EMOJI_FONT_PATH,
+    FONT_PATH,
+    render_pdf,
+    sanitize_html,
+)
 
 
-def test_font_file_bundled():
-    # Font Nhật phải nằm trong repo để Render deploy kèm (chữ CJK không thành ô vuông).
+def test_font_files_bundled():
+    # Font phải nằm trong repo để Render deploy kèm: thiếu Nhật -> chữ CJK ô
+    # vuông; thiếu Bold -> <strong> mất nét đậm; thiếu Emoji -> 📱🔔 ô vuông.
     assert FONT_PATH.exists()
+    assert BOLD_FONT_PATH.exists()
+    assert EMOJI_FONT_PATH.exists()
+
+
+def test_emoji_wrapped_in_emoji_font():
+    out = sanitize_html("<p>📱 Cảm ơn bạn</p>")
+    assert "notoemoji" in out
+    assert "Cảm ơn bạn" in out
 
 
 def test_sanitize_fixes_page_breaking_css():
