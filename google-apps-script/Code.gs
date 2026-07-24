@@ -824,30 +824,49 @@ function syncKiotVietCatalog() {
 }
 
 
-// Dòng mới có dữ liệu đơn (Name / Product Number) mà ô Order Date còn trống
-// -> tự điền ngày hôm nay. Chạy cho cả khi dán nhiều dòng cùng lúc; ô đã có
-// ngày thì GIỮ NGUYÊN (không ghi đè ngày nhập tay).
-function autoFillOrderDate_(e, sheet, headers) {
+// Các cột "có dữ liệu đơn" — chỉ cần MỘT trong số này có giá trị là coi như
+// dòng đơn hợp lệ và cần Order Date.
+const ORDER_DATA_HEADERS = ["Name", "Product Number", "IG/WA Account", "Address"];
+
+
+// Điền Order Date = hôm nay cho mọi dòng từ `first` đến `last` có dữ liệu đơn
+// mà ô Order Date còn trống (ô đã có ngày thì GIỮ NGUYÊN). Đọc/ghi theo lô để
+// nhanh và tránh timeout khi quét cả sheet.
+function fillOrderDatesInRange_(sheet, headers, first, last) {
   const dateCol = Math.max(headers.indexOf("Order Date"), headers.indexOf("Orderdate")) + 1;
-  if (dateCol === 0) return;
-  const nameCol = headers.indexOf("Name") + 1;
-  const prodCol = headers.indexOf("Product Number") + 1;
-  if (nameCol === 0 && prodCol === 0) return;
+  if (dateCol === 0) return 0;
+  const dataCols = ORDER_DATA_HEADERS
+    .map(h => headers.indexOf(h)).filter(i => i !== -1);
+  if (!dataCols.length) return 0;
 
-  const first = Math.max(e.range.getRow(), 2); // bỏ qua dòng tiêu đề
-  const last = e.range.getRow() + e.range.getNumRows() - 1;
-  if (last < first) return;
+  first = Math.max(first, 2); // bỏ dòng tiêu đề
+  if (last < first) return 0;
 
+  const width = sheet.getLastColumn();
+  const values = sheet.getRange(first, 1, last - first + 1, width).getDisplayValues();
+  const dateVals = sheet.getRange(first, dateCol, last - first + 1, 1).getValues();
   const today = new Date();
-  for (let row = first; row <= last; row++) {
-    const dateCell = sheet.getRange(row, dateCol);
-    if (String(dateCell.getDisplayValue() || "").trim()) continue; // đã có ngày
-    const hasData =
-      (nameCol && String(sheet.getRange(row, nameCol).getDisplayValue() || "").trim()) ||
-      (prodCol && String(sheet.getRange(row, prodCol).getDisplayValue() || "").trim());
-    if (!hasData) continue;
-    dateCell.setValue(today).setNumberFormat("dd/MM/yyyy");
+  let filled = 0;
+  values.forEach((rowVals, i) => {
+    if (String(dateVals[i][0] || "").toString().trim()) return; // đã có ngày
+    const hasData = dataCols.some(c => String(rowVals[c] || "").trim());
+    if (!hasData) return;
+    dateVals[i][0] = today;
+    filled++;
+  });
+  if (filled) {
+    sheet.getRange(first, dateCol, dateVals.length, 1)
+      .setValues(dateVals).setNumberFormat("dd/MM/yyyy");
   }
+  return filled;
+}
+
+
+// Điền Order Date cho các dòng vừa được chỉnh (nhập/dán tay). Đơn từ FORM web
+// ghi bằng API không kích hoạt onEdit -> cần trigger định giờ backfillOrderDates_.
+function autoFillOrderDate_(e, sheet, headers) {
+  fillOrderDatesInRange_(sheet, headers, e.range.getRow(),
+    e.range.getRow() + e.range.getNumRows() - 1);
 }
 
 
