@@ -19,6 +19,10 @@ function onOpen() {
     .addItem("Đồng bộ kho KiotViet (TOÀN BỘ — chậm, ít khi cần)", "syncKiotVietCatalog")
     .addItem("Tạo hóa đơn KiotViet", "createKiotVietInvoices")
     .addToUi();
+
+  // Mở sheet -> tự điền Order Date cho dòng mới (kể cả đơn từ form đổ về từ
+  // lần mở trước). Không cần trigger/nút. Bọc try để không chặn menu.
+  try { backfillOrderDates_(); } catch (ignore) { /* thiếu quyền lúc mở -> bỏ qua */ }
 }
 
 
