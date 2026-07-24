@@ -56,6 +56,15 @@ def test_parse_keeps_inner_code_and_uses_last_number_as_price():
     assert "iPhone 15 pro" in name
 
 
+def test_parse_buyback_equation_uses_final_amount():
+    # Ô có phép tính thu cũ đổi mới: giá thật là số SAU dấu '=' (khách trả).
+    name, price = parse_product_number(
+        "TF - iPhone 15 Pro 128GB CPO BNIB Black - 121,800y-Buyback 57,000 = 64,800y"
+    )
+    assert price == 64800
+    assert name == "iPhone 15 Pro 128GB CPO BNIB Black"
+
+
 def test_parse_row_without_label_prefix():
     name, price = parse_product_number(
         "iPhone 12 pro 128gb graphite rank B Bh 100% 64633 - 46300y"
