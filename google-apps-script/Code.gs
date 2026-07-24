@@ -824,15 +824,45 @@ function syncKiotVietCatalog() {
 }
 
 
+// Dòng mới có dữ liệu đơn (Name / Product Number) mà ô Order Date còn trống
+// -> tự điền ngày hôm nay. Chạy cho cả khi dán nhiều dòng cùng lúc; ô đã có
+// ngày thì GIỮ NGUYÊN (không ghi đè ngày nhập tay).
+function autoFillOrderDate_(e, sheet, headers) {
+  const dateCol = Math.max(headers.indexOf("Order Date"), headers.indexOf("Orderdate")) + 1;
+  if (dateCol === 0) return;
+  const nameCol = headers.indexOf("Name") + 1;
+  const prodCol = headers.indexOf("Product Number") + 1;
+  if (nameCol === 0 && prodCol === 0) return;
+
+  const first = Math.max(e.range.getRow(), 2); // bỏ qua dòng tiêu đề
+  const last = e.range.getRow() + e.range.getNumRows() - 1;
+  if (last < first) return;
+
+  const today = new Date();
+  for (let row = first; row <= last; row++) {
+    const dateCell = sheet.getRange(row, dateCol);
+    if (String(dateCell.getDisplayValue() || "").trim()) continue; // đã có ngày
+    const hasData =
+      (nameCol && String(sheet.getRange(row, nameCol).getDisplayValue() || "").trim()) ||
+      (prodCol && String(sheet.getRange(row, prodCol).getDisplayValue() || "").trim());
+    if (!hasData) continue;
+    dateCell.setValue(today).setNumberFormat("dd/MM/yyyy");
+  }
+}
+
+
 function onEdit(e) {
   try {
     if (!e || !e.range) return;
     const sheet = e.range.getSheet();
     if (sheet.getName() === KV_CATALOG_SHEET || sheet.getName() === KV_IMEI_INDEX_SHEET) return;
-    if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
     if (e.range.getRow() === 1) return;
 
     const headers = headerRow_(sheet);
+    autoFillOrderDate_(e, sheet, headers);
+
+    if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
+
     const col = e.range.getColumn();
 
     // Gõ IMEI → tự tra tên SP. Nếu đã "Bật tra IMEI trực tiếp" (installable
