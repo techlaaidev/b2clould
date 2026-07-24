@@ -871,6 +871,36 @@ function autoFillOrderDate_(e, sheet, headers) {
 }
 
 
+// Quét TOÀN BỘ sheet, điền Order Date cho mọi dòng có dữ liệu đơn mà còn trống
+// ngày. Chạy tự động theo trigger định giờ (bắt đơn từ form) và khi bấm menu.
+// Tên sheet đơn hàng lưu trong Script Property KV_ORDER_SHEET (đặt khi bật).
+function backfillOrderDates_() {
+  const ss = SpreadsheetApp.getActive();
+  const name = PropertiesService.getScriptProperties().getProperty("KV_ORDER_SHEET");
+  const sheet = name ? ss.getSheetByName(name) : ss.getActiveSheet();
+  if (!sheet || sheet.getLastRow() < 2) return 0;
+  return fillOrderDatesInRange_(sheet, headerRow_(sheet), 2, sheet.getLastRow());
+}
+
+
+// Bật tự điền Order Date: nhớ sheet hiện tại làm sheet đơn hàng + tạo trigger
+// chạy mỗi phút để bắt cả đơn đổ từ form web (onEdit không bắt được).
+function enableAutoOrderDate() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  PropertiesService.getScriptProperties().setProperty("KV_ORDER_SHEET", sheet.getName());
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "backfillOrderDates_") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("backfillOrderDates_").timeBased().everyMinutes(1).create();
+  const filled = backfillOrderDates_();
+  SpreadsheetApp.getUi().alert(
+    'Đã bật tự điền Order Date cho sheet "' + sheet.getName() + '".\n' +
+    "Mỗi phút hệ thống tự điền ngày hôm nay cho dòng mới (kể cả đơn từ form web) " +
+    "có Name / Product Number / IG / Address mà chưa có Order Date.\n" +
+    (filled ? "Vừa điền cho " + filled + " dòng đang thiếu." : "Hiện không có dòng nào thiếu."));
+}
+
+
 function onEdit(e) {
   try {
     if (!e || !e.range) return;
