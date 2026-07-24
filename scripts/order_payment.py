@@ -83,6 +83,8 @@ def parse_product_number(text):
     if match:
         price = _to_int(match.group(1))
         name_part = raw[: match.start()].strip()
+    # Bỏ nốt phép tính thu cũ đổi mới còn lại ("- 121,800y-Buyback 57,000").
+    name_part = _BUYBACK_TAIL.sub("", name_part).strip()
     name = _LEADING_LABEL.sub("", name_part).strip(" -_")
     return name, price
 
