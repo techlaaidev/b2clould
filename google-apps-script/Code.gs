@@ -242,8 +242,10 @@ function parsePriceCell_(text) {
 
 
 // Lấy giá bán ở cuối ô Product Number: số sau dấu '-' cuối cùng, cho phép đuôi y/¥.
+// Chấp nhận cả dấu '=' cho ô có phép tính thu cũ đổi mới:
+// "TF - iPhone ... - 121,800y-Buyback 57,000 = 64,800y" -> 64800.
 function parsePriceFromProductNumber_(text) {
-  const match = String(text || "").match(/-\s*([\d.,]+)\s*[y¥]?\s*$/i);
+  const match = String(text || "").match(/[-=]\s*([\d.,]+)\s*[y¥]?\s*$/i);
   if (!match) return null;
   const digits = match[1].replace(/[.,\s]/g, "");
   return /^\d+$/.test(digits) ? Number(digits) : null;
