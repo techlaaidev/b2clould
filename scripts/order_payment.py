@@ -44,8 +44,11 @@ BANK_TRANSFER = "BankTransfer"
 DEPOSIT_MARKER = "DP"            # Thanh toan = DP  -> Daibiki with a deposit
 PAID_MARKER = "Đã chuyển khoản"  # Thanh toan = paid -> BankTransfer completed
 
-# Trailing price: last number after the final '-' with an optional 'y'/¥ suffix.
-_TRAILING_PRICE = re.compile(r"-\s*([\d.,]+)\s*[y¥]?\s*$", re.IGNORECASE)
+# Trailing price: last number after '-' HOẶC '=' (ô có phép tính thu cũ đổi
+# mới: "... - 121,800y-Buyback 57,000 = 64,800y" -> lấy 64.800 sau dấu '=').
+_TRAILING_PRICE = re.compile(r"[-=]\s*([\d.,]+)\s*[y¥]?\s*$", re.IGNORECASE)
+# Đuôi phép tính buyback còn sót lại trong tên hàng sau khi bóc giá cuối.
+_BUYBACK_TAIL = re.compile(r"[-=]\s*[\d.,]+\s*[y¥]?\s*[-=]?\s*buyback[\s\S]*$", re.IGNORECASE)
 # Leading human payment label to strip from the item name (COD_, CK -, TF-, ...).
 _LEADING_LABEL = re.compile(r"^(cod|ck|tf|dp|db)[\s_:.\-]+", re.IGNORECASE)
 
