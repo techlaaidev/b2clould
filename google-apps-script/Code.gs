@@ -64,7 +64,7 @@ function validateAndSyncOrders() {
 
 
 function createReadyShipments() {
-  ensureAutoOrderDateTrigger_();
+  backfillOrderDates_();
   runWithAlert_("Đang kiểm tra dữ liệu trên sheet...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
