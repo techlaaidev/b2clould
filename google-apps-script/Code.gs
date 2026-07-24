@@ -11,6 +11,7 @@ function onOpen() {
     .addItem("In gộp phiếu đã tạo (2 nhãn/tờ A4)", "printMergedLabels")
     .addItem("In gộp phiếu giao hàng KiotViet (2 phiếu/tờ A4)", "printMergedKvSlips")
     .addItem("Điền cột Price từ Product Number", "fillPriceColumnFromProductNumber")
+    .addItem("Bật tự điền Order Date (đơn từ form)", "enableAutoOrderDate")
     .addSeparator()
     .addItem("Tạo CSV Japan Post (YuPack R)", "generateJapanPostCsv")
     .addSeparator()
