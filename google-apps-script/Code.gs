@@ -882,21 +882,19 @@ function backfillOrderDates_() {
 }
 
 
-// Bật tự điền Order Date: nhớ sheet hiện tại làm sheet đơn hàng + tạo trigger
-// chạy mỗi phút để bắt cả đơn đổ từ form web (onEdit không bắt được).
-function enableAutoOrderDate() {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  PropertiesService.getScriptProperties().setProperty("KV_ORDER_SHEET", sheet.getName());
-  ScriptApp.getProjectTriggers().forEach(t => {
-    if (t.getHandlerFunction() === "backfillOrderDates_") ScriptApp.deleteTrigger(t);
-  });
-  ScriptApp.newTrigger("backfillOrderDates_").timeBased().everyMinutes(1).create();
-  const filled = backfillOrderDates_();
-  SpreadsheetApp.getUi().alert(
-    'Đã bật tự điền Order Date cho sheet "' + sheet.getName() + '".\n' +
-    "Mỗi phút hệ thống tự điền ngày hôm nay cho dòng mới (kể cả đơn từ form web) " +
-    "có Name / Product Number / IG / Address mà chưa có Order Date.\n" +
-    (filled ? "Vừa điền cho " + filled + " dòng đang thiếu." : "Hiện không có dòng nào thiếu."));
+// Tự cài (ngầm, 1 lần) trigger định giờ điền Order Date — để bắt cả đơn đổ
+// từ form web (onEdit không chạy với ghi bằng API). Gọi ở đầu các menu chính
+// (đã được cấp quyền) nên KHÔNG cần nút riêng. Idempotent: đã có thì bỏ qua.
+function ensureAutoOrderDateTrigger_() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty("KV_ORDER_SHEET", SpreadsheetApp.getActiveSheet().getName());
+    const exists = ScriptApp.getProjectTriggers()
+      .some(t => t.getHandlerFunction() === "backfillOrderDates_");
+    if (!exists) {
+      ScriptApp.newTrigger("backfillOrderDates_").timeBased().everyMinutes(1).create();
+    }
+  } catch (ignore) { /* thiếu quyền tạo trigger -> bỏ qua, onEdit vẫn chạy */ }
 }
 
 
