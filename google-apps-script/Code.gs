@@ -1333,7 +1333,7 @@ function kvProp_(key) {
 // Customer = "IG/WA Account" (tra có sẵn → dùng lại, chưa có → tạo mới); trống → khách lẻ.
 // Price = product basePrice from KiotViet; branch = chi nhánh hiện tại (17397).
 // Menu thường: bỏ qua dòng đã có hóa đơn (không đẩy trùng).
-function createKiotVietInvoices() { kvRunCreateInvoices_(); }
+function createKiotVietInvoices() { ensureAutoOrderDateTrigger_(); kvRunCreateInvoices_(); }
 
 function kvRunCreateInvoices_() {
   runWithAlert_("Đang tạo hóa đơn KiotViet...", () => {
