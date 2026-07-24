@@ -872,31 +872,19 @@ function autoFillOrderDate_(e, sheet, headers) {
 }
 
 
-// Quét TOÀN BỘ sheet, điền Order Date cho mọi dòng có dữ liệu đơn mà còn trống
-// ngày. Chạy tự động theo trigger định giờ (bắt đơn từ form) và khi bấm menu.
-// Tên sheet đơn hàng lưu trong Script Property KV_ORDER_SHEET (đặt khi bật).
+// Quét MỌI sheet có cột "Order Date", điền ngày hôm nay cho dòng có dữ liệu
+// đơn mà còn trống ngày. KHÔNG cần trigger: gọi khi MỞ sheet (onOpen) và ở
+// đầu mỗi menu, nên chạy tự động — kể cả đơn từ form đổ về (điền khi mở/xử lý).
 function backfillOrderDates_() {
   const ss = SpreadsheetApp.getActive();
-  const name = PropertiesService.getScriptProperties().getProperty("KV_ORDER_SHEET");
-  const sheet = name ? ss.getSheetByName(name) : ss.getActiveSheet();
-  if (!sheet || sheet.getLastRow() < 2) return 0;
-  return fillOrderDatesInRange_(sheet, headerRow_(sheet), 2, sheet.getLastRow());
-}
-
-
-// Tự cài (ngầm, 1 lần) trigger định giờ điền Order Date — để bắt cả đơn đổ
-// từ form web (onEdit không chạy với ghi bằng API). Gọi ở đầu các menu chính
-// (đã được cấp quyền) nên KHÔNG cần nút riêng. Idempotent: đã có thì bỏ qua.
-function ensureAutoOrderDateTrigger_() {
-  try {
-    const props = PropertiesService.getScriptProperties();
-    props.setProperty("KV_ORDER_SHEET", SpreadsheetApp.getActiveSheet().getName());
-    const exists = ScriptApp.getProjectTriggers()
-      .some(t => t.getHandlerFunction() === "backfillOrderDates_");
-    if (!exists) {
-      ScriptApp.newTrigger("backfillOrderDates_").timeBased().everyMinutes(1).create();
-    }
-  } catch (ignore) { /* thiếu quyền tạo trigger -> bỏ qua, onEdit vẫn chạy */ }
+  let total = 0;
+  ss.getSheets().forEach(sheet => {
+    if (sheet.getLastRow() < 2) return;
+    const headers = headerRow_(sheet);
+    if (headers.indexOf("Order Date") === -1 && headers.indexOf("Orderdate") === -1) return;
+    total += fillOrderDatesInRange_(sheet, headers, 2, sheet.getLastRow());
+  });
+  return total;
 }
 
 
