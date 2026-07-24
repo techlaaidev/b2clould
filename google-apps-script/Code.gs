@@ -975,9 +975,11 @@ function onEditKvImei_(e) {
     if (!e || !e.range) return;
     const sheet = e.range.getSheet();
     if (sheet.getName() === KV_CATALOG_SHEET || sheet.getName() === KV_IMEI_INDEX_SHEET) return;
-    if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
     if (e.range.getRow() === 1) return;
     const headers = headerRow_(sheet);
+    // Trigger cài đặt chạy song song onEdit đơn giản; onEdit đã điền Order
+    // Date rồi, ở đây chỉ xử lý IMEI.
+    if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
     const imeiCol = headers.indexOf(KV_IMEI_HEADER) + 1;
     if (imeiCol === 0 || e.range.getColumn() !== imeiCol) return;
 
