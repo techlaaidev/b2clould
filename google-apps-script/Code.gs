@@ -45,7 +45,7 @@ function setupApiKey() {
 
 
 function validateAndSyncOrders() {
-  ensureAutoOrderDateTrigger_();
+  backfillOrderDates_();
   runWithAlert_("Đang kiểm tra và đồng bộ đơn hàng...", () => {
     const sheet = SpreadsheetApp.getActiveSheet();
     const read = readRows_(sheet);
