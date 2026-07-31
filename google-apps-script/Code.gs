@@ -1194,7 +1194,7 @@ function kvFillNameFromImei_(e, sheet, headers) {
     nameCell.clearContent();
     sheet.getRange(row, codeCol).clearContent();
     SpreadsheetApp.getActive().toast(
-      'Không tìm thấy sản phẩm nào có IMEI đuôi "' + typed + '" trong kho KiotViet (chi nhánh ' + kvCurrentBranchId_() + '). Kiểm tra lại IMEI.',
+      'Không tìm thấy sản phẩm nào có IMEI đuôi "' + typed + '" còn hàng ở Akihabara hoặc Osu. Kiểm tra lại IMEI.',
       "KiotViet — không tìm thấy sản phẩm", 8);
     return;
   }
