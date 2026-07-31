@@ -2151,9 +2151,10 @@ function kvResolveForInvoice_(token, retailer, code, imei) {
 // giftDetails: các dòng hóa đơn bổ sung từ cột "Hàng tặng kèm" (có thể rỗng).
 // surcharges: các khoản thu khác (COD fee THK000001 cho đơn Daibiki, có thể rỗng).
 // delivery: thông tin giao hàng {deliveryCode, receiver, contactNumber, address}
-//   cho đơn Daibiki (null = không phải đơn giao hàng) — phí vận đơn Yamato
-//   (代引手数料 theo bậc giá hàng) được điền vào delivery.price (Phí áp dụng).
-function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId, fallbackPrice, giftDetails, surcharges, delivery) {
+//   cho đơn giao hàng (null = không). Daibiki: phí vận đơn Yamato + thu hộ COD.
+// payment: {method, accountId} khi khách ĐÃ TRẢ TRƯỚC (BankTransfer) → ghi
+//   thanh toán đủ tiền để hóa đơn KHÔNG tạo công nợ. null = không ghi thanh toán.
+function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNumbers, customerId, fallbackPrice, giftDetails, surcharges, delivery, payment) {
   const basePrice = product.basePrice != null ? Number(product.basePrice) : 0;
   const price = basePrice > 0 ? basePrice : (fallbackPrice != null ? fallbackPrice : 0);
   const detail = {
@@ -2165,13 +2166,28 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
   };
   if (serialNumbers) detail.serialNumbers = serialNumbers;
 
+  const invoiceDetails = [detail].concat(giftDetails || []);
+  // Tổng hóa đơn = tiền hàng (mọi dòng) + các khoản thu khác — dùng làm số tiền
+  // thanh toán chuyển khoản cho đơn BankTransfer.
+  let invoiceTotal = invoiceDetails.reduce(
+    (s, d) => s + Number(d.price || 0) * Number(d.quantity || 1), 0);
+  invoiceTotal += (surcharges || []).reduce((s, x) => s + Number(x.price || 0), 0);
+
   const payload = {
     branchId: branchId,
     soldById: soldById, // KiotViet requires a real seller user id
     isApplyVoucher: false,
-    invoiceDetails: [detail].concat(giftDetails || [])
+    invoiceDetails: invoiceDetails
   };
   if (customerId) payload.customerId = customerId; // gắn khách; bỏ trống → khách lẻ
+
+  // BankTransfer: khách trả trước → ghi thanh toán CHUYỂN KHOẢN đủ tiền vào
+  // đúng tài khoản (accountId) → hóa đơn "Hoàn thành", không tạo công nợ.
+  if (payment) {
+    payload.method = payment.method;       // "Transfer"
+    payload.accountId = payment.accountId; // tài khoản ngân hàng KiotViet
+    payload.totalPayment = invoiceTotal;   // trả đủ = tổng hóa đơn
+  }
   // Tên trường ĐÚNG theo tài liệu KiotViet Public API là "surchages" (thiếu r).
   if (surcharges && surcharges.length) payload.surchages = surcharges;
   // Đơn Daibiki: hóa đơn BÁN GIAO HÀNG, kèm VẬN ĐƠN Yamato:
