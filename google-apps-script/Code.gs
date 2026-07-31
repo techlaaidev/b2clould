@@ -1507,14 +1507,25 @@ function kvRunCreateInvoices_() {
         }
 
         // Hóa đơn kiểu BÁN GIAO HÀNG cho cả Daibiki lẫn BankTransfer — kèm mã
-        // vận đơn + người nhận. Daibiki: phí COD vào Phí áp dụng (kvCreateInvoice_).
+        // vận đơn + người nhận + ĐỐI TÁC giao hàng theo cột "Đơn vị giao hàng".
         const trackingNo = trackingColKv === -1 ? "" : String(raw[trackingColKv] || "").trim();
-        let delivery = (isDaibikiKv || isBankTransferKv) ? {
-          deliveryCode: trackingNo,
-          receiver: custNameCol === -1 ? "" : String(raw[custNameCol] || "").trim(),
-          contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
-          address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim()
-        } : null;
+        let delivery = null;
+        if (isDaibikiKv || isBankTransferKv) {
+          // Validate đối tác giao hàng: bắt buộc YAMATO / JAPANPOST.
+          const carrier = carrierColKv === -1 ? "" : String(raw[carrierColKv] || "").trim().toUpperCase();
+          const partner = KV_DELIVERY_PARTNERS[carrier];
+          if (!partner) {
+            throw new Error('Đơn giao hàng: cột "Đơn vị giao hàng" = "' + (carrier || "(trống)") +
+              '" không hợp lệ — chọn YAMATO (→ ヤマト Nagoya) hoặc JAPANPOST (→ Japan Post Nagoya).');
+          }
+          delivery = {
+            deliveryCode: trackingNo,
+            receiver: custNameCol === -1 ? "" : String(raw[custNameCol] || "").trim(),
+            contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
+            address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim(),
+            partner: partner
+          };
+        }
         // Daibiki BẮT BUỘC có Mã vận đơn (COD phải kèm vận đơn). BankTransfer đã
         // trả trước → không có mã vận đơn thì bỏ phần giao hàng, vẫn tạo hóa đơn.
         if (isDaibikiKv && !trackingNo) {
