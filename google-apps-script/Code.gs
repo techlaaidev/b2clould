@@ -1378,6 +1378,7 @@ function kvRunCreateInvoices_() {
     const trackingColKv = headers.indexOf("Mã vận đơn");
     const custNameCol = headers.indexOf("Name");
     const bankCol = Math.max(headers.indexOf("Bank Account"), headers.indexOf("Back account"));
+    const carrierColKv = headers.indexOf("Đơn vị giao hàng");
     const giftProductCache = {}; // mã SP tặng kèm -> product (tránh gọi API lặp trong 1 lần chạy)
     let codSurcharge = null;     // khoản thu THK000001 trên KiotViet (tải 1 lần khi cần)
     // Cột khách hàng: tên khách = "IG/WA Account" (unique); SĐT/email/địa chỉ để tạo khách đầy đủ.
