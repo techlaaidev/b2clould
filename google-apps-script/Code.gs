@@ -1052,10 +1052,9 @@ function kvIncrementalImeiRefresh_(token, retailer) {
   const started = Date.now();
   const fromText = Utilities.formatDate(
     new Date(Number(last) - 30 * 60 * 1000), "GMT+7", "yyyy-MM-dd'T'HH:mm:ss");
-  const branchId = kvCurrentBranchId_();
 
   const changed = {};  // mã SP có thay đổi
-  const newRows = [];  // [imei, code, fullName] còn bán được ở CN hiện tại
+  const newRows = [];  // [imei, code, fullName, branchId] còn bán được (cả 2 CN)
   const catRows = [];  // [code, fullName] — vá vào danh mục SP (SP mới/đổi tên)
   const pageSize = 100;
   let current = 0;
