@@ -2066,19 +2066,16 @@ function kvCurrentBranchId_() {
 
 
 // Resolves a row to everything the invoice needs and validates the IMEI against KiotViet.
-// Hóa đơn LUÔN xuất ở chi nhánh hiện tại (kvCurrentBranchId_), nên chỉ chấp nhận IMEI
-// vừa còn hàng (status 1) VỪA thuộc đúng chi nhánh đó.
+// Bán được máy ở CẢ 2 chi nhánh (Akihabara + Osu): hóa đơn xuất ở ĐÚNG chi nhánh
+// đang giữ máy đó (kiểm tra LIVE với KiotViet ngay lúc này — hàng rào chống bán trùng).
 //   - product (id, code, name, basePrice)
-//   - branchId: luôn = chi nhánh hiện tại
+//   - branchId: chi nhánh đang giữ máy (17397 hoặc 17637)
 //   - serialNumbers: the IMEI to attach (empty for non-serial products)
 // Throws a clear Vietnamese error (→ written to the sheet, invoice NOT created) when:
 //   - SP quản lý IMEI nhưng ô IMEI trống
 //   - IMEI không thuộc SP này (sai IMEI / nhập nhầm)
-//   - IMEI đã bán / không còn trong kho
-//   - IMEI còn hàng nhưng ở chi nhánh khác
-//   - SP hết hàng ở chi nhánh hiện tại
+//   - IMEI đã bán / không còn trong kho ở cả 2 chi nhánh
 function kvResolveForInvoice_(token, retailer, code, imei) {
-  const branchId = kvCurrentBranchId_();
   let product = kvGetProductWithSerials_(token, retailer, code);
   if (!product || !product.id) throw new Error(`Không tìm thấy SP mã "${code}" trên KiotViet.`);
 
@@ -2094,22 +2091,19 @@ function kvResolveForInvoice_(token, retailer, code, imei) {
     if (!imeiTrim) throw new Error(`SP quản lý IMEI — cần điền IMEI vào cột "${KV_IMEI_HEADER}".`);
     const matches = serialsRaw.filter(s => String(s.serialNumber).trim() === imeiTrim);
     if (!matches.length) throw new Error(`Không tìm thấy sản phẩm khớp IMEI "${imeiTrim}" trên KiotViet (sai IMEI hoặc nhập nhầm).`);
-    // Chỉ IMEI còn hàng (status 1) VÀ ở đúng chi nhánh hiện tại mới bán được ở đây.
-    const sellable = matches.filter(s => Number(s.status) === 1 && Number(s.branchId) === branchId)[0];
-    if (!sellable) {
-      const inStockElsewhere = matches.some(s => Number(s.status) === 1);
-      throw new Error(inStockElsewhere
-        ? `IMEI "${imeiTrim}" còn hàng nhưng ở chi nhánh khác (không thuộc chi nhánh ${branchId}).`
-        : `IMEI "${imeiTrim}" đã bán / không còn trong kho.`);
-    }
-    return { product: product, branchId: branchId, serialNumbers: imeiTrim };
+    // Còn hàng (status 1) ở BẤT KỲ chi nhánh nào trong 2 CN → bán từ chi nhánh đó.
+    const sellable = matches.filter(s =>
+      Number(s.status) === 1 && KV_BRANCH_IDS.indexOf(Number(s.branchId)) !== -1)[0];
+    if (!sellable) throw new Error(`IMEI "${imeiTrim}" đã bán / không còn trong kho.`);
+    return { product: product, branchId: Number(sellable.branchId), serialNumbers: imeiTrim };
   }
 
-  // Non-serial product → cần còn hàng ở đúng chi nhánh hiện tại; ignore any IMEI typed.
+  // Non-serial (phụ kiện): bán từ chi nhánh nào còn hàng (ưu tiên Akihabara).
   const inv = (product.inventories || [])
-    .filter(i => Number(i.branchId) === branchId && Number(i.onHand) > 0)[0];
-  if (!inv) throw new Error(`SP "${code}" hết hàng ở chi nhánh ${branchId}.`);
-  return { product: product, branchId: branchId, serialNumbers: "" };
+    .filter(i => KV_BRANCH_IDS.indexOf(Number(i.branchId)) !== -1 && Number(i.onHand) > 0)
+    .sort((a, b) => (Number(a.branchId) === KV_BRANCH_ID ? -1 : 1))[0];
+  if (!inv) throw new Error(`SP "${code}" hết hàng ở cả 2 chi nhánh.`);
+  return { product: product, branchId: Number(inv.branchId), serialNumbers: "" };
 }
 
 
