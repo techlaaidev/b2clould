@@ -1092,11 +1092,11 @@ function kvIncrementalImeiRefresh_(token, retailer) {
     const sh = SpreadsheetApp.getActive().getSheetByName(KV_IMEI_INDEX_SHEET);
     if (sh) {
       const lastRow = sh.getLastRow();
-      const rows = lastRow < 2 ? [] : sh.getRange(2, 1, lastRow - 1, 3).getValues();
+      const rows = lastRow < 2 ? [] : sh.getRange(2, 1, lastRow - 1, 4).getValues();
       const all = rows.filter(r => !changed[String(r[1] || "")]).concat(newRows);
       sh.clearContents();
-      sh.getRange(1, 1, 1, 3).setValues([["imei", "code", "fullName"]]);
-      if (all.length) sh.getRange(2, 1, all.length, 3).setValues(all);
+      sh.getRange(1, 1, 1, 4).setValues([["imei", "code", "fullName", "branchId"]]);
+      if (all.length) sh.getRange(2, 1, all.length, 4).setValues(all);
     }
     // Vá danh mục SP (dropdown gợi ý tên): SP mới được thêm, SP đổi tên được thay.
     const cat = SpreadsheetApp.getActive().getSheetByName(KV_CATALOG_SHEET);
