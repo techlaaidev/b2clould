@@ -1176,7 +1176,34 @@ function syncKiotVietQuick() {
 // - khớp đúng 1 IMEI → tự ghi IMEI ĐẦY ĐỦ lại vào ô (tạo hóa đơn cần đủ số)
 //   và điền tên SP + mã.
 // - nhiều IMEI cùng đuôi → hiện dropdown các IMEI đầy đủ để chọn.
-function kvFillNameFromImei_(e, sheet, headers) {
+// Hỏi THẲNG KiotViet: IMEI này còn hàng (status 1) ở 1 trong 2 chi nhánh
+// không. Trả {ok, reason}. Index có thể cũ (KiotViet không luôn cập nhật
+// modifiedDate khi bán serial) nên đây là kiểm tra tồn kho ĐÁNG TIN.
+// Lỗi mạng -> ok:true (không chặn nhầm; tạo hóa đơn vẫn check lại lần cuối).
+function kvImeiStillInStock_(token, retailer, code, imei) {
+  if (!token || !code) return { ok: true };
+  try {
+    let product = kvGetProductWithSerials_(token, retailer, code);
+    if (!product || !product.id) return { ok: false, reason: "SP không còn trên KiotViet" };
+    let serials = product.productSerials || [];
+    if (!serials.length && product.isLotSerialControl) {
+      const byId = kvGetProductByIdWithSerials_(token, retailer, product.id);
+      if (byId) serials = byId.productSerials || [];
+    }
+    const imeiTrim = String(imei || "").trim();
+    const matches = serials.filter(s => String(s.serialNumber).trim() === imeiTrim);
+    if (!matches.length) return { ok: false, reason: "IMEI không còn trong kho" };
+    const sellable = matches.filter(s =>
+      Number(s.status) === 1 && KV_BRANCH_IDS.indexOf(Number(s.branchId)) !== -1)[0];
+    if (!sellable) return { ok: false, reason: "đã bán / hết hàng" };
+    return { ok: true, branchId: Number(sellable.branchId) };
+  } catch (ignore) {
+    return { ok: true }; // lỗi mạng -> để tạo hóa đơn check lại
+  }
+}
+
+
+function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
   const nameCol = headers.indexOf(KV_NAME_HEADER) + 1;
   if (nameCol === 0) return; // chưa có cột tên SP → bỏ qua
   const codeCol = kvEnsureCodeColumn_(sheet);
