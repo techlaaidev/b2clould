@@ -1193,7 +1193,11 @@ function kvImeiStillInStock_(token, retailer, code, imei) {
     const sellable = matches.filter(s =>
       Number(s.status) === 1 && KV_BRANCH_IDS.indexOf(Number(s.branchId)) !== -1)[0];
     if (!sellable) return { ok: false, reason: "đã bán / hết hàng" };
-    return { ok: true, branchId: Number(sellable.branchId) };
+    return {
+      ok: true,
+      branchId: Number(sellable.branchId),
+      name: String(product.fullName || product.name || "").trim()  // tên tươi
+    };
   } catch (ignore) {
     return { ok: true }; // lỗi mạng -> để tạo hóa đơn check lại
   }
