@@ -1039,17 +1039,14 @@ function onEditKvImei_(e) {
     const imeiCol = headers.indexOf(KV_IMEI_HEADER) + 1;
     if (imeiCol === 0 || e.range.getColumn() !== imeiCol) return;
 
-    // Cập nhật kho tức thì trước khi tra; lỗi mạng thì dùng chỉ mục hiện có.
+    // Lấy token để tra. Việc đồng bộ gia tăng (chậm) chỉ chạy BÊN TRONG
+    // kvFillNameFromImei_ KHI IMEI chưa có trong index (SP mới) — IMEI đã biết
+    // thì bỏ qua cho nhanh. Check live tồn kho luôn chạy (index có thể cũ).
     let token = null, retailer = null;
     try {
       token = kvGetToken_();
       retailer = kvProp_("KV_RETAILER");
-      kvIncrementalImeiRefresh_(token, retailer);
-    } catch (err) {
-      SpreadsheetApp.getActive().toast(
-        "Không cập nhật được kho mới nhất (" + (err.message || err) + ") — dùng chỉ mục hiện có.", "KiotViet", 5);
-    }
-    // Truyền token/retailer để tra xong CÒN CHECK LIVE tồn kho (index có thể cũ).
+    } catch (err) { /* thiếu cấu hình -> tra bằng index, không check live */ }
     kvFillNameFromImei_(e, sheet, headers, token, retailer);
   } catch (err) {
     SpreadsheetApp.getActive().toast("KiotViet: " + (err.message || err), "Lỗi", 5);
