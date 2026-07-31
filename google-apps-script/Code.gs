@@ -1666,6 +1666,13 @@ function rowCollectAmount_(row) {
 }
 
 
+// Tên đối tác giao hàng của 1 dòng theo cột "Đơn vị giao hàng" (Yamato/Japan Post).
+function kvPartnerNameForRow_(row) {
+  const carrier = String(row["Đơn vị giao hàng"] || "").trim().toUpperCase();
+  return (KV_DELIVERY_PARTNERS[carrier] || {}).name || KV_DELIVERY_PARTNER;
+}
+
+
 function kvSlipHtml_(row) {
   const esc = value => String(value == null ? "" : value)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
