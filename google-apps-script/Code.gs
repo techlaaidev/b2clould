@@ -1442,8 +1442,9 @@ function kvRunCreateInvoices_() {
         // Đơn Daibiki: cộng khoản thu khác 決済手数料 (COD fee) vào hóa đơn.
         // Số tiền lấy từ cột "Thu khác"; ô trống -> mặc định DAIBIKI_FEE.
         let surcharges = [];
-        const isDaibikiKv = ttypeCol !== -1 &&
-          String(raw[ttypeCol] || "").trim().toLowerCase() === "daibiki";
+        const ttypeLower = ttypeCol === -1 ? "" : String(raw[ttypeCol] || "").trim().toLowerCase();
+        const isDaibikiKv = ttypeLower === "daibiki";
+        const isBankTransferKv = ttypeLower === "banktransfer";
         if (isDaibikiKv) {
           const cellFee = surchargeCol === -1 ? null : parsePriceCell_(raw[surchargeCol]);
           const fee = cellFee != null ? cellFee : DAIBIKI_FEE;
