@@ -1215,7 +1215,8 @@ function kvFillNameFromImei_(e, sheet, headers) {
       return;
     }
   }
-  SpreadsheetApp.getActive().toast("✓ " + hit.name, "KiotViet", 5);
+  const cn = KV_BRANCH_NAMES[hit.branchId] ? " (CN " + KV_BRANCH_NAMES[hit.branchId] + ")" : "";
+  SpreadsheetApp.getActive().toast("✓ " + hit.name + cn, "KiotViet", 5);
 }
 
 
