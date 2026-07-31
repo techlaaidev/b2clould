@@ -1561,9 +1561,9 @@ function kvRunCreateInvoices_() {
         ok++;
         if (surcharges.length) okFee++;
 
-        // Đơn Daibiki: dựng PHIẾU GIAO HÀNG PDF ("tài liệu thứ 2") và ghi
-        // link vào cột pdf_url_kiot_viet — in gộp sau bằng menu riêng.
-        if (delivery) {
+        // Đơn giao hàng (Daibiki + BankTransfer): dựng PHIẾU GIAO HÀNG PDF và
+        // ghi link vào cột pdf_url_kiot_viet — in gộp sau bằng menu riêng.
+        if (isDaibikiKv || isBankTransferKv) {
           try {
             const rowObj = {};
             headers.forEach((header, idx) => { if (header) rowObj[header] = raw[idx]; });
