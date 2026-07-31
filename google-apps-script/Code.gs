@@ -1239,8 +1239,8 @@ function kvWriteImeiIndex_(rows) {
   let sh = ss.getSheetByName(KV_IMEI_INDEX_SHEET);
   if (!sh) sh = ss.insertSheet(KV_IMEI_INDEX_SHEET);
   sh.clearContents();
-  sh.getRange(1, 1, 1, 3).setValues([["imei", "code", "fullName"]]);
-  if (rows.length) sh.getRange(2, 1, rows.length, 3).setValues(rows);
+  sh.getRange(1, 1, 1, 4).setValues([["imei", "code", "fullName", "branchId"]]);
+  if (rows.length) sh.getRange(2, 1, rows.length, 4).setValues(rows);
   sh.hideSheet();
 }
 
