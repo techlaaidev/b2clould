@@ -1236,17 +1236,14 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
     return null;
   };
 
-  let index = kvLoadImeiIndex_();
-  let r = resolve(index);
-  // CHỈ khi IMEI CHƯA có trong index (có thể là SP mới) mới đồng bộ gia tăng
-  // (chậm) rồi thử lại. IMEI đã biết → bỏ qua bước này cho NHANH.
-  if (!r && token) {
-    try {
-      kvIncrementalImeiRefresh_(token, retailer);
-      index = kvLoadImeiIndex_();
-      r = resolve(index);
-    } catch (ignore) { /* lỗi mạng -> dùng index hiện có */ }
+  // LUÔN đồng bộ gia tăng trước mỗi lần gõ (theo yêu cầu) — vá index với các
+  // SP vừa thay đổi trên KiotViet, bất kể IMEI đã có trong index hay chưa.
+  // Lỗi mạng thì dùng index hiện có; check live ở dưới vẫn đảm bảo tồn kho.
+  if (token) {
+    try { kvIncrementalImeiRefresh_(token, retailer); } catch (ignore) { /* dùng index hiện có */ }
   }
+  const index = kvLoadImeiIndex_();
+  const r = resolve(index);
 
   if (!index) {
     SpreadsheetApp.getActive().toast('Chưa có chỉ mục IMEI. Chạy "Đồng bộ kho KiotViet".', "KiotViet", 5);
