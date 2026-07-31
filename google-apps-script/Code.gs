@@ -1121,7 +1121,25 @@ function kvIncrementalImeiRefresh_(token, retailer) {
 // 3. Danh mục SP + chỉ mục IMEI: chỉ hỏi các SP THAY ĐỔI từ lần đồng bộ
 //    trước (lastModifiedFrom) rồi vá vào dữ liệu nền.
 // Chỉ cần "Đồng bộ kho (TOÀN BỘ)" đúng 1 lần đầu; sau đó luôn dùng menu này.
+// Tự bật "tra IMEI trực tiếp" (ngầm, 1 lần): cài installable trigger
+// onEditKvImei_ (được phép gọi API) + đặt cờ KV_IMEI_LIVE=1 để onEdit thường
+// nhường phần IMEI cho nó. Gọi ở các menu KiotViet (đã cấp quyền) → không cần
+// nút riêng. Idempotent: đã có trigger thì bỏ qua.
+function ensureImeiLiveTrigger_() {
+  try {
+    const exists = ScriptApp.getProjectTriggers()
+      .some(t => t.getHandlerFunction() === "onEditKvImei_");
+    if (!exists) {
+      ScriptApp.newTrigger("onEditKvImei_")
+        .forSpreadsheet(SpreadsheetApp.getActive()).onEdit().create();
+    }
+    PropertiesService.getScriptProperties().setProperty("KV_IMEI_LIVE", "1");
+  } catch (ignore) { /* thiếu quyền -> onEdit thường vẫn tra bằng chỉ mục */ }
+}
+
+
 function syncKiotVietQuick() {
+  ensureImeiLiveTrigger_();
   runWithAlert_("Đang đồng bộ nhanh KiotViet...", () => {
     const token = kvGetToken_();
     const retailer = kvProp_("KV_RETAILER");
