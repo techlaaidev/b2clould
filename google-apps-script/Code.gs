@@ -1078,9 +1078,9 @@ function kvIncrementalImeiRefresh_(token, retailer) {
       const full = p.fullName || p.name || "";
       if (full) catRows.push([code, full]);
       (p.productSerials || []).forEach(s => {
-        if (Number(s.status) !== 1 || Number(s.branchId) !== branchId) return;
+        if (Number(s.status) !== 1 || KV_BRANCH_IDS.indexOf(Number(s.branchId)) === -1) return;
         const num = String(s.serialNumber || "").trim();
-        if (num) newRows.push([num, code, full]);
+        if (num) newRows.push([num, code, full, Number(s.branchId)]);
       });
     });
     current += pageSize;
