@@ -1180,7 +1180,7 @@ function syncKiotVietQuick() {
 function kvImeiStillInStock_(token, retailer, code, imei) {
   if (!token || !code) return { ok: true };
   try {
-    let product = kvGetProductWithSerials_(token, retailer, code);
+    let product = kvGetSerialsByCode_(token, retailer, code); // nhẹ: chỉ serial
     if (!product || !product.id) return { ok: false, reason: "SP không còn trên KiotViet" };
     let serials = product.productSerials || [];
     if (!serials.length && product.isLotSerialControl) {
