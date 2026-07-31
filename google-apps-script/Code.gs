@@ -2424,6 +2424,23 @@ function ensureHeaderReturnCol_(sheet, header) {
 }
 
 
+// Nhẹ: chỉ lấy serial (status/branchId) của 1 SP — bỏ inventory — cho check
+// live tồn kho khi gõ IMEI (nhanh hơn, chỉ cần trạng thái serial).
+function kvGetSerialsByCode_(token, retailer, code) {
+  const url = KV_API_BASE + "/products/code/" + encodeURIComponent(code) +
+    "?includeSerials=true&includeInventory=false";
+  const resp = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: { Authorization: "Bearer " + token, Retailer: retailer },
+    muteHttpExceptions: true
+  });
+  const httpCode = resp.getResponseCode();
+  if (httpCode === 404) return null;
+  if (httpCode >= 400) throw new Error("KiotViet product HTTP " + httpCode);
+  return JSON.parse(resp.getContentText());
+}
+
+
 function kvGetProductWithSerials_(token, retailer, code) {
   const url = KV_API_BASE + "/products/code/" + encodeURIComponent(code) +
     "?includeSerials=true&includeInventory=true";
