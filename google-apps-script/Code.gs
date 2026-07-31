@@ -759,7 +759,10 @@ const KV_GIFT_SETS = {
   "Shipping cost 200": ["SP165676"]
 };
 const KV_MAX_SUGGEST = 20;
-const KV_BRANCH_ID = 17397;                           // chi nhánh hiện tại; chỉ bán IMEI thuộc chi nhánh này
+const KV_BRANCH_ID = 17397;                           // chi nhánh mặc định (Akihabara) cho SP không IMEI
+// Cả 2 chi nhánh tài khoản API quản lý — index IMEI + bán được máy ở cả hai.
+const KV_BRANCH_IDS = [17397, 17637];                 // 17397 = Akihabara, 17637 = Osu
+const KV_BRANCH_NAMES = { 17397: "Akihabara", 17637: "Osu" };
 
 
 function setupKiotVietApi() {
