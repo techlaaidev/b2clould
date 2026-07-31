@@ -1040,13 +1040,17 @@ function onEditKvImei_(e) {
     if (imeiCol === 0 || e.range.getColumn() !== imeiCol) return;
 
     // Cập nhật kho tức thì trước khi tra; lỗi mạng thì dùng chỉ mục hiện có.
+    let token = null, retailer = null;
     try {
-      kvIncrementalImeiRefresh_(kvGetToken_(), kvProp_("KV_RETAILER"));
+      token = kvGetToken_();
+      retailer = kvProp_("KV_RETAILER");
+      kvIncrementalImeiRefresh_(token, retailer);
     } catch (err) {
       SpreadsheetApp.getActive().toast(
         "Không cập nhật được kho mới nhất (" + (err.message || err) + ") — dùng chỉ mục hiện có.", "KiotViet", 5);
     }
-    kvFillNameFromImei_(e, sheet, headers);
+    // Truyền token/retailer để tra xong CÒN CHECK LIVE tồn kho (index có thể cũ).
+    kvFillNameFromImei_(e, sheet, headers, token, retailer);
   } catch (err) {
     SpreadsheetApp.getActive().toast("KiotViet: " + (err.message || err), "Lỗi", 5);
   }
