@@ -1535,7 +1535,7 @@ function kvRunCreateInvoices_() {
 
         const invoice = kvCreateInvoice_(
           token, retailer, resolved.branchId, soldById, resolved.product, resolved.serialNumbers, customerId, paidPrice, giftDetails, surcharges,
-          delivery
+          delivery, payment
         );
         const invCode = invoice.code || invoice.id || "OK";
         sheet.getRange(sheetRow, resultCol).setValue(invCode);
