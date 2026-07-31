@@ -1501,19 +1501,30 @@ function kvRunCreateInvoices_() {
           }
         }
 
-        // Đơn Daibiki: hóa đơn kiểu BÁN GIAO HÀNG — phí vận đơn Yamato
-        // (330/440/660/1.100¥ theo bậc giá hàng) ghi vào Phí áp dụng của phần
-        // giao hàng, kèm mã vận đơn + người nhận. KHÔNG phải giảm giá hóa đơn.
-        const delivery = !isDaibikiKv ? null : {
+        // Hóa đơn kiểu BÁN GIAO HÀNG cho cả Daibiki lẫn BankTransfer — kèm mã
+        // vận đơn + người nhận. Daibiki: phí COD vào Phí áp dụng (kvCreateInvoice_).
+        const delivery = (isDaibikiKv || isBankTransferKv) ? {
           deliveryCode: trackingColKv === -1 ? "" : String(raw[trackingColKv] || "").trim(),
           receiver: custNameCol === -1 ? "" : String(raw[custNameCol] || "").trim(),
           contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
           address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim()
-        };
-        // Hóa đơn Daibiki bắt buộc kèm VẬN ĐƠN: phải tạo vận đơn Yamato thành
-        // công (có Mã vận đơn) trước, rồi mới tạo hóa đơn KiotViet.
+        } : null;
+        // Bắt buộc có Mã vận đơn (tạo vận đơn Yamato trước) mới tạo hóa đơn giao hàng.
         if (delivery && !delivery.deliveryCode) {
-          throw new Error("Đơn Daibiki chưa có Mã vận đơn Yamato — hãy chạy 'Tạo vận đơn cho đơn hợp lệ' trước, rồi mới tạo hóa đơn KiotViet (hóa đơn cần kèm vận đơn).");
+          throw new Error("Đơn chưa có Mã vận đơn Yamato — hãy chạy 'Tạo vận đơn cho đơn hợp lệ' trước, rồi mới tạo hóa đơn KiotViet (hóa đơn cần kèm vận đơn).");
+        }
+
+        // Đơn BankTransfer: khách ĐÃ TRẢ TRƯỚC → ghi thanh toán CHUYỂN KHOẢN đủ
+        // tiền vào đúng tài khoản (theo cột Bank Account) để KHÔNG tạo công nợ.
+        let payment = null;
+        if (isBankTransferKv) {
+          const bankRaw = bankCol === -1 ? "" : String(raw[bankCol] || "").trim();
+          const accountId = KV_BANK_ACCOUNTS[bankRaw.toLowerCase()];
+          if (!accountId) {
+            throw new Error('Đơn BankTransfer: cột Bank Account "' + (bankRaw || "(trống)") +
+              '" không khớp tài khoản nào (hợp lệ: Yucho / SMBC / Paypay).');
+          }
+          payment = { method: "Transfer", accountId: accountId };
         }
 
         // Hàng tặng kèm / phụ phí: thêm các SP của bộ đã chọn vào hóa đơn.
