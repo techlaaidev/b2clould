@@ -826,7 +826,7 @@ function syncKiotVietCatalog() {
       kvApplySlipLangDropdown_();
     const note = rows.length >= total ? "" : " (một phần — chạy lại để lấy tiếp)";
     return `Đã đồng bộ ${rows.length}/${total} sản phẩm KiotViet${note}.\n` +
-      `Chỉ mục IMEI (CN ${branchId}): ${imeiRows.length} IMEI.` +
+      `Chỉ mục IMEI (cả 2 chi nhánh Akihabara + Osu): ${imeiRows.length} IMEI.` +
       (imeiRows.length ? "" : "\n⚠ 0 IMEI — endpoint danh sách không trả serial; báo lại để tôi đổi cách lấy.") +
       sellerNote;
   });
