@@ -787,6 +787,7 @@ function setupKiotVietApi() {
 
 
 function syncKiotVietCatalog() {
+  ensureImeiLiveTrigger_();
   runWithAlert_("Đang đồng bộ kho KiotViet...", () => {
     const token = kvGetToken_();
     const retailer = kvProp_("KV_RETAILER");
