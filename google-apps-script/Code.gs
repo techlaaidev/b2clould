@@ -739,6 +739,13 @@ const KV_SELLER_HEADER = "Người nhập đơn";            // map với NGƯ�
 const KV_GIFT_HEADER = "Hàng tặng kèm";               // bộ quà / phụ phí thêm vào hóa đơn KiotViet
 const KV_SURCHARGE_HEADER = "Thu khác";               // phí COD thu của khách -> khoản thu khác trên hóa đơn
 const KV_COD_SURCHARGE_CODE = "THK000001";            // mã khoản thu 決済手数料・Cash on Delivery Fee trên KiotViet
+// Đơn BankTransfer: cột "Bank Account" -> tài khoản ngân hàng KiotViet (accountId)
+// để ghi thanh toán CHUYỂN KHOẢN đủ tiền → hóa đơn không tạo công nợ.
+const KV_BANK_ACCOUNTS = {
+  "yucho": 626,      // JPY Japan Post Bank — 10350-73934231
+  "smbc": 1385,      // JAインターナショナル — 7520102
+  "paypay": 106002   // Paypay Bank — 005-5453031
+};
 const KV_DELIVERY_PARTNER = "ヤマト Nagoya";          // đối tác giao hàng trên KiotViet cho đơn Daibiki (Yamato)
 const KV_SLIP_PDF_HEADER = "pdf_url_kiot_viet";       // cột chứa link PDF phiếu giao hàng KiotViet (tự dựng)
 const KV_DELIVERY_PARTNER_ID = 6242;                  // partnerDeliveryId của ヤマト Nagoya (xác minh qua API 17/07/2026)
