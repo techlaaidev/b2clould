@@ -1650,7 +1650,9 @@ function yamatoCodFee_(value) {
 
 // Số tiền THU HỘ của dòng: giá cuối Product Number (đã gồm phí) - đặt cọc DP;
 // không có giá ở Product Number -> Price + Thu khác - đặt cọc.
+// Đơn BankTransfer đã trả trước → thu hộ = 0 (tài xế không thu gì khi giao).
 function rowCollectAmount_(row) {
+  if (String(row["Type of transaction"] || "").trim().toLowerCase() === "banktransfer") return 0;
   let gross = parsePriceFromProductNumber_(row["Product Number"]);
   if (gross == null) {
     const price = parsePriceCell_(row["Price"]);
