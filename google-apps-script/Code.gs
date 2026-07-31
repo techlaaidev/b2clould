@@ -1260,6 +1260,20 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
     return;
   }
   e.range.clearDataValidations(); // xoá dropdown gợi ý còn lại từ lần gõ trước
+
+  // CHECK LIVE tồn kho: index có thể cũ (máy đã bán vẫn còn trong index vì
+  // KiotViet không luôn cập nhật modifiedDate) → hỏi thẳng KiotViet. Đã bán /
+  // hết hàng thì XÓA tên + mã và báo ngay, KHÔNG cho đẩy đơn.
+  const stock = kvImeiStillInStock_(token, retailer, hit.code, imei);
+  if (!stock.ok) {
+    nameCell.clearContent();
+    sheet.getRange(row, codeCol).clearContent();
+    SpreadsheetApp.getActive().toast(
+      'IMEI "' + imei + '" — ' + stock.reason + ' (kiểm tra live trên KiotViet). KHÔNG dùng được máy này.',
+      "KiotViet — sản phẩm hết hàng", 8);
+    return;
+  }
+
   nameCell.setValue(hit.name);
   sheet.getRange(row, codeCol).setValue(hit.code);
 
