@@ -1023,12 +1023,11 @@ function kvWriteCatalog_(rows) {
 // - IMEI không có trong kho CN hiện tại (sai / đã bán / CN khác): xoá tên + mã (không điền gì).
 // ===== Tra IMEI trực tiếp (installable trigger — được phép gọi API) =====
 // Trigger onEditKvImei_ đã được cài sẵn (Script Property KV_IMEI_LIVE=1).
-// Luồng mỗi lần gõ IMEI (nhanh + chính xác tuyệt đối):
-//   1. Tra index (tức thì) để lấy MÃ SP.
-//   2. Gọi LIVE KiotViet cho đúng máy đó → đọc status/branch → quyết định
+// Luồng mỗi lần gõ IMEI (chính xác tối đa):
+//   1. LUÔN đồng bộ gia tăng: hỏi KiotViet các SP vừa thay đổi → vá index.
+//   2. Tra index để lấy MÃ SP.
+//   3. Gọi LIVE KiotViet cho đúng máy đó → đọc status/branch → quyết định
 //      còn hàng / đã bán (KHÔNG tin index về tồn kho).
-//   3. Chỉ khi IMEI CHƯA có trong index (SP mới) mới đồng bộ gia tăng (chậm)
-//      1 lần rồi tra lại — IMEI đã biết thì bỏ qua bước này cho nhanh.
 // KHÔNG xoá hàm này: xoá là trigger đã cài sẽ báo lỗi mỗi lần sửa ô.
 function onEditKvImei_(e) {
   try {
