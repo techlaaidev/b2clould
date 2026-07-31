@@ -746,10 +746,14 @@ const KV_BANK_ACCOUNTS = {
   "smbc": 1385,      // JAインターナショナル — 7520102
   "paypay": 106002   // Paypay Bank — 005-5453031
 };
-const KV_DELIVERY_PARTNER = "ヤマト Nagoya";          // đối tác giao hàng trên KiotViet cho đơn Daibiki (Yamato)
+const KV_DELIVERY_PARTNER = "ヤマト Nagoya";          // đối tác mặc định (Yamato) — dùng cho phiếu PDF
 const KV_SLIP_PDF_HEADER = "pdf_url_kiot_viet";       // cột chứa link PDF phiếu giao hàng KiotViet (tự dựng)
-const KV_DELIVERY_PARTNER_ID = 6242;                  // partnerDeliveryId của ヤマト Nagoya (xác minh qua API 17/07/2026)
-const KV_DELIVERY_PARTNER_CODE = "DT000004";          // mã đối tác ヤマト Nagoya trên KiotViet
+// Đối tác giao hàng trên hóa đơn KiotViet theo cột "Đơn vị giao hàng"
+// (xác minh partnerDeliveryId/code qua API 17-31/07/2026).
+const KV_DELIVERY_PARTNERS = {
+  "YAMATO":    { id: 6242, code: "DT000004", name: "ヤマト Nagoya" },
+  "JAPANPOST": { id: 1014, code: "DT000003", name: "Japan Post Nagoya" }
+};
 const KV_NAME_MATCH_MIN = 0.6;                        // tên SP KiotViet phải khớp >=60% từ khoá của Product Number
 
 // Tên bộ tặng kèm / phụ phí -> các mã SP KiotViet sẽ thêm vào hóa đơn.
