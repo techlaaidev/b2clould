@@ -1235,6 +1235,13 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
     return null;
   };
 
+  // Báo "đang chạy" cho nhân viên (việc quét + check live gọi KiotViet, mất
+  // vài giây). Toast kết quả (✓ / lỗi) ở dưới sẽ thay thông báo này.
+  if (token) {
+    SpreadsheetApp.getActive().toast(
+      'Đang kiểm tra IMEI "' + typed + '" trên KiotViet, đợi chút...', "KiotViet ⏳", 30);
+  }
+
   // LUÔN đồng bộ gia tăng trước mỗi lần gõ (theo yêu cầu) — vá index với các
   // SP vừa thay đổi trên KiotViet, bất kể IMEI đã có trong index hay chưa.
   // Lỗi mạng thì dùng index hiện có; check live ở dưới vẫn đảm bảo tồn kho.
