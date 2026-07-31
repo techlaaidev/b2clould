@@ -1503,16 +1503,19 @@ function kvRunCreateInvoices_() {
 
         // Hóa đơn kiểu BÁN GIAO HÀNG cho cả Daibiki lẫn BankTransfer — kèm mã
         // vận đơn + người nhận. Daibiki: phí COD vào Phí áp dụng (kvCreateInvoice_).
-        const delivery = (isDaibikiKv || isBankTransferKv) ? {
-          deliveryCode: trackingColKv === -1 ? "" : String(raw[trackingColKv] || "").trim(),
+        const trackingNo = trackingColKv === -1 ? "" : String(raw[trackingColKv] || "").trim();
+        let delivery = (isDaibikiKv || isBankTransferKv) ? {
+          deliveryCode: trackingNo,
           receiver: custNameCol === -1 ? "" : String(raw[custNameCol] || "").trim(),
           contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
           address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim()
         } : null;
-        // Bắt buộc có Mã vận đơn (tạo vận đơn Yamato trước) mới tạo hóa đơn giao hàng.
-        if (delivery && !delivery.deliveryCode) {
-          throw new Error("Đơn chưa có Mã vận đơn Yamato — hãy chạy 'Tạo vận đơn cho đơn hợp lệ' trước, rồi mới tạo hóa đơn KiotViet (hóa đơn cần kèm vận đơn).");
+        // Daibiki BẮT BUỘC có Mã vận đơn (COD phải kèm vận đơn). BankTransfer đã
+        // trả trước → không có mã vận đơn thì bỏ phần giao hàng, vẫn tạo hóa đơn.
+        if (isDaibikiKv && !trackingNo) {
+          throw new Error("Đơn Daibiki chưa có Mã vận đơn Yamato — hãy chạy 'Tạo vận đơn cho đơn hợp lệ' trước, rồi mới tạo hóa đơn KiotViet.");
         }
+        if (isBankTransferKv && !trackingNo) delivery = null;
 
         // Đơn BankTransfer: khách ĐÃ TRẢ TRƯỚC → ghi thanh toán CHUYỂN KHOẢN đủ
         // tiền vào đúng tài khoản (theo cột Bank Account) để KHÔNG tạo công nợ.
