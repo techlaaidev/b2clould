@@ -1222,11 +1222,13 @@ function kvFillNameFromImei_(e, sheet, headers) {
 function kvLoadImeiIndex_() {
   const sh = SpreadsheetApp.getActive().getSheetByName(KV_IMEI_INDEX_SHEET);
   if (!sh || sh.getLastRow() < 2) return null;
-  const vals = sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues();
+  const vals = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues();
   const byImei = {};
   vals.forEach(r => {
     const imei = String(r[0] || "").trim();
-    if (imei) byImei[imei] = { code: String(r[1] || ""), name: String(r[2] || "") };
+    if (imei) byImei[imei] = {
+      code: String(r[1] || ""), name: String(r[2] || ""), branchId: Number(r[3]) || 0
+    };
   });
   return { byImei };
 }
