@@ -1778,7 +1778,7 @@ function kvRenderInvoiceTemplate_(template, inv, row) {
         '" src="https://quickchart.io/barcode?type=code128&height=45&text=' +
         encodeURIComponent(String(row["Mã vận đơn"]).trim()) + '" style="height:45px">'
       : "",
-    "Doi_Tac_Giao_Hang": KV_DELIVERY_PARTNER
+    "Doi_Tac_Giao_Hang": kvPartnerNameForRow_(row)
   };
 
   let html = template;
