@@ -2247,19 +2247,11 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
       height: template && template.height != null ? template.height : 10
     };
     if (template && template.type != null) payload.deliveryDetail.type = template.type;
-    if (template && template.partnerDeliveryId) {
-      payload.deliveryDetail.partnerDeliveryId = template.partnerDeliveryId;
-      payload.deliveryDetail.partnerDelivery = {
-        code: template.partnerCode || KV_DELIVERY_PARTNER,
-        name: template.partnerName || KV_DELIVERY_PARTNER
-      };
-    } else {
-      payload.deliveryDetail.partnerDeliveryId = KV_DELIVERY_PARTNER_ID;
-      payload.deliveryDetail.partnerDelivery = {
-        code: KV_DELIVERY_PARTNER_CODE,
-        name: KV_DELIVERY_PARTNER
-      };
-    }
+    // Đối tác giao hàng theo cột "Đơn vị giao hàng": YAMATO → ヤマト Nagoya,
+    // JAPANPOST → Japan Post Nagoya (đã validate ở kvRunCreateInvoices_).
+    const partner = delivery.partner || KV_DELIVERY_PARTNERS["YAMATO"];
+    payload.deliveryDetail.partnerDeliveryId = partner.id;
+    payload.deliveryDetail.partnerDelivery = { code: partner.code, name: partner.name };
   }
 
   return kvPostInvoice_(token, retailer, payload);
