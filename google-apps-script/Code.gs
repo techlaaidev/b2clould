@@ -1215,42 +1215,54 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
   if (/^\d+(\.\d+)?e\+?\d+$/i.test(typed)) typed = Number(typed).toFixed(0);
   if (!typed) return;
 
-  const index = kvLoadImeiIndex_();
+  const nameCell = sheet.getRange(row, nameCol);
+  nameCell.clearDataValidations();
+
+  // Tra IMEI trong 1 index (đúng / theo đuôi). Trả {imei,hit} | {dropdown} |
+  // {tooShort} | null(không thấy).
+  const resolve = index => {
+    if (!index) return null;
+    if (index.byImei[typed]) return { imei: typed, hit: index.byImei[typed] };
+    if (!/^\d+$/.test(typed)) return null;
+    if (typed.length < 5) return { tooShort: true };
+    const matches = Object.keys(index.byImei).filter(k => k.length > typed.length && k.endsWith(typed));
+    if (matches.length === 1) return { imei: matches[0], hit: index.byImei[matches[0]], full: true };
+    if (matches.length > 1) return { dropdown: matches };
+    return null;
+  };
+
+  let index = kvLoadImeiIndex_();
+  let r = resolve(index);
+  // CHỈ khi IMEI CHƯA có trong index (có thể là SP mới) mới đồng bộ gia tăng
+  // (chậm) rồi thử lại. IMEI đã biết → bỏ qua bước này cho NHANH.
+  if (!r && token) {
+    try {
+      kvIncrementalImeiRefresh_(token, retailer);
+      index = kvLoadImeiIndex_();
+      r = resolve(index);
+    } catch (ignore) { /* lỗi mạng -> dùng index hiện có */ }
+  }
+
   if (!index) {
     SpreadsheetApp.getActive().toast('Chưa có chỉ mục IMEI. Chạy "Đồng bộ kho KiotViet".', "KiotViet", 5);
     return;
   }
-
-  const nameCell = sheet.getRange(row, nameCol);
-  nameCell.clearDataValidations();
-
-  let imei = typed;
-  let hit = index.byImei[imei];
-  if (!hit && /^\d+$/.test(typed)) {
-    if (typed.length < 5) {
-      SpreadsheetApp.getActive().toast(
-        'Gõ ít nhất 5 số cuối của IMEI (đang gõ ' + typed.length + ' số).', "KiotViet", 5);
-      return;
-    }
-    // Tìm theo đuôi: mọi IMEI trong kho CN hiện tại kết thúc bằng số vừa gõ.
-    const matches = Object.keys(index.byImei).filter(k => k.length > typed.length && k.endsWith(typed));
-    if (matches.length === 1) {
-      imei = matches[0];
-      hit = index.byImei[imei];
-      e.range.setValue(imei); // ghi IMEI đầy đủ — tạo hóa đơn KiotViet cần đủ số
-    } else if (matches.length > 1) {
-      e.range.setDataValidation(
-        SpreadsheetApp.newDataValidation()
-          .requireValueInList(matches.slice(0, KV_MAX_SUGGEST), true)
-          .setAllowInvalid(true).build()
-      );
-      SpreadsheetApp.getActive().toast(
-        matches.length + ' IMEI cùng đuôi "' + typed + '" — bấm ▼ chọn IMEI đầy đủ.', "KiotViet", 6);
-      return;
-    }
+  if (r && r.tooShort) {
+    SpreadsheetApp.getActive().toast(
+      'Gõ ít nhất 5 số cuối của IMEI (đang gõ ' + typed.length + ' số).', "KiotViet", 5);
+    return;
   }
-
-  if (!hit) {
+  if (r && r.dropdown) {
+    nameCell.clearDataValidations();
+    e.range.setDataValidation(
+      SpreadsheetApp.newDataValidation()
+        .requireValueInList(r.dropdown.slice(0, KV_MAX_SUGGEST), true)
+        .setAllowInvalid(true).build());
+    SpreadsheetApp.getActive().toast(
+      r.dropdown.length + ' IMEI cùng đuôi "' + typed + '" — bấm ▼ chọn IMEI đầy đủ.', "KiotViet", 6);
+    return;
+  }
+  if (!r || !r.hit) {
     e.range.clearDataValidations();
     nameCell.clearContent();
     sheet.getRange(row, codeCol).clearContent();
@@ -1259,7 +1271,10 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
       "KiotViet — không tìm thấy sản phẩm", 8);
     return;
   }
-  e.range.clearDataValidations(); // xoá dropdown gợi ý còn lại từ lần gõ trước
+
+  const imei = r.imei, hit = r.hit;
+  if (r.full) e.range.setValue(imei); // ghi IMEI đầy đủ — tạo hóa đơn cần đủ số
+  e.range.clearDataValidations();
 
   // CHECK LIVE tồn kho: index có thể cũ (máy đã bán vẫn còn trong index vì
   // KiotViet không luôn cập nhật modifiedDate) → hỏi thẳng KiotViet. Đã bán /
@@ -1273,8 +1288,10 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
       "KiotViet — sản phẩm hết hàng", 8);
     return;
   }
-
-  nameCell.setValue(hit.name);
+  // Dùng TÊN TƯƠI từ check live (SP có thể vừa đổi tên) — không tin index.
+  const name = stock.name || hit.name;
+  const branchId = stock.branchId || hit.branchId;
+  nameCell.setValue(name);
   sheet.getRange(row, codeCol).setValue(hit.code);
 
   // Cảnh báo sớm nếu SP theo IMEI không khớp mô tả ở Product Number
@@ -1282,16 +1299,16 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
   const prodCol = headers.indexOf("Product Number") + 1;
   if (prodCol !== 0) {
     const prodCell = sheet.getRange(row, prodCol).getDisplayValue();
-    const ratio = kvNameMatchRatio_(prodCell, hit.name);
+    const ratio = kvNameMatchRatio_(prodCell, name);
     if (ratio < KV_NAME_MATCH_MIN) {
       SpreadsheetApp.getActive().toast(
-        '⚠ SP theo IMEI là "' + hit.name + '" nhưng chỉ khớp ' + Math.round(ratio * 100) +
+        '⚠ SP theo IMEI là "' + name + '" nhưng chỉ khớp ' + Math.round(ratio * 100) +
         '% với Product Number — kiểm tra lại IMEI/máy!', "KiotViet — lệch tên SP", 8);
       return;
     }
   }
-  const cn = KV_BRANCH_NAMES[hit.branchId] ? " (CN " + KV_BRANCH_NAMES[hit.branchId] + ")" : "";
-  SpreadsheetApp.getActive().toast("✓ " + hit.name + cn, "KiotViet", 5);
+  const cn = KV_BRANCH_NAMES[branchId] ? " (CN " + KV_BRANCH_NAMES[branchId] + ")" : "";
+  SpreadsheetApp.getActive().toast("✓ " + name + cn, "KiotViet", 5);
 }
 
 
