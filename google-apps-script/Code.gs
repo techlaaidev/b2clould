@@ -1696,7 +1696,7 @@ function kvSlipHtml_(row) {
     '<tr><td>Tiền</td><td>Giá SP: ' + yen(price) + ' &nbsp;|&nbsp; Thu khác (COD fee): ' + yen(fee) +
       (deposit != null ? ' &nbsp;|&nbsp; Đặt cọc: -' + yen(deposit) : '') + '</td></tr>' +
     '<tr class="total"><td>THU HỘ (COD)</td><td><b>' + yen(rowCollectAmount_(row)) + '</b></td></tr>' +
-    '<tr><td>Vận chuyển</td><td>' + esc(KV_DELIVERY_PARTNER) + ' — Mã vận đơn: <b>' +
+    '<tr><td>Vận chuyển</td><td>' + esc(kvPartnerNameForRow_(row)) + ' — Mã vận đơn: <b>' +
       esc(row["Mã vận đơn"] || "") + '</b></td></tr>' +
     '</table></div>');
 }
