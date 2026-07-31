@@ -2212,14 +2212,16 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     payload.usingCod = true;
     // Tên trường lúc TẠO/SỬA là "deliveryDetail" (theo tài liệu 2.12.3);
     // "invoiceDelivery" chỉ là tên trường KiotViet trả về khi ĐỌC hóa đơn.
+    // BankTransfer (đã trả trước) = KHÔNG thu hộ COD: phí vận đơn 0, tắt COD.
+    const isPrepaid = !!payment;
     payload.deliveryDetail = {
       deliveryCode: delivery.deliveryCode || "",
-      price: yamatoCodFee_(price),
+      price: isPrepaid ? 0 : yamatoCodFee_(price),
       receiver: delivery.receiver || "",
       contactNumber: delivery.contactNumber || "",
       address: delivery.address || "",
-      status: 1,           // Chờ xử lý (trạng thái vận đơn)
-      usingPriceCod: true, // thu hộ tiền COD — cờ nằm ở CẤP VẬN ĐƠN
+      status: 1,                   // Chờ xử lý (trạng thái vận đơn)
+      usingPriceCod: !isPrepaid,   // thu hộ COD (Daibiki); prepaid thì tắt
       weight: template && template.weight != null ? template.weight : 500,
       length: template && template.length != null ? template.length : 10,
       width: template && template.width != null ? template.width : 10,
