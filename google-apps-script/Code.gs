@@ -654,7 +654,8 @@ function csvCell_(value) {
 
 
 function saveCsvToDrive_(csv, fileName) {
-  const blob = Utilities.newBlob("", "text/csv", fileName).setDataFromString(csv, "UTF-8");
+  // ゆうプリR đọc CSV mã hóa Shift_JIS (UTF-8 sẽ lỗi chữ Nhật khi nhập vào app).
+  const blob = Utilities.newBlob("", "text/csv", fileName).setDataFromString(csv, "Shift_JIS");
   const folderId = PropertiesService.getScriptProperties().getProperty("B2_PDF_FOLDER_ID");
   const file = folderId
     ? DriveApp.getFolderById(folderId).createFile(blob)
