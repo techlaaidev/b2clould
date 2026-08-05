@@ -580,6 +580,59 @@ function generateJapanPostCsv() {
 }
 
 
+// Ngày (hiển thị dd/mm/yyyy | yyyy/mm/dd | dd/mm) -> "yyyymmdd" cho ゆうプリR.
+function jpDate_(text) {
+  const nums = (String(text || "").match(/\d+/g) || []).map(Number);
+  const now = new Date();
+  let y, m, d;
+  if (nums.length === 3) {
+    if (nums[0] >= 1000) { y = nums[0]; m = nums[1]; d = nums[2]; }        // yyyy/m/d
+    else { d = nums[0]; m = nums[1]; y = nums[2]; if (nums[1] > 12 && nums[0] <= 12) { d = nums[1]; m = nums[0]; } }
+  } else if (nums.length === 2) { d = nums[0]; m = nums[1]; y = now.getFullYear(); }
+  else return "";
+  if (!y || !m || !d || m > 12 || d > 31) return "";
+  return ("" + y) + ("0" + m).slice(-2) + ("0" + d).slice(-2);
+}
+
+// Khung giờ (text) -> mã 配達時間帯区分 của ゆうプリR.
+function jpTimeZone_(text) {
+  const t = String(text || "").trim();
+  if (!t) return "";
+  if (t.indexOf("午前") !== -1) return "51";
+  const h = (t.match(/\d{1,2}/g) || []).map(Number);
+  const start = h[0];
+  if (start == null) return "";
+  if (start < 12) return "51";
+  if (start >= 20) return "56";
+  if (start === 19) return "57";
+  if (start === 18) return "55";
+  if (start >= 16) return "54";
+  if (start >= 14) return "53";
+  if (start >= 12) return "52";
+  return "";
+}
+
+// Tên hàng 品名: bỏ nhãn thanh toán đầu + phần giá/phép tính cuối.
+function jpItemName_(product) {
+  return String(product || "")
+    .replace(/^(cod|ck|tf|dp|db)[\s_:.\-]+/i, "")
+    .replace(/[-=]\s*[\d.,]+\s*[y¥]?[\s\S]*$/i, "")
+    .trim().slice(0, 25);
+}
+
+// Cắt chuỗi thành các đoạn ~25 ký tự cho お届け先住所1/2/3.
+function jpSplitAddress_(addr) {
+  const s = String(addr || "").trim();
+  return [s.slice(0, 25), s.slice(25, 50), s.slice(50, 75)];
+}
+
+// Mã お客様側管理番号 duy nhất (≤15 ký tự) để khớp mã vận đơn trả về sau này.
+function jpMgmtNo_(rowIndex) {
+  return "JP" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyMMddHHmm") +
+    ("00" + rowIndex).slice(-3);
+}
+
+
 function buildJapanPostCsv_(sheet) {
   const values = sheet.getDataRange().getDisplayValues();
   if (values.length < 2) return "Không có dữ liệu.";
@@ -587,67 +640,88 @@ function buildJapanPostCsv_(sheet) {
   const headers = values[0].map(value => String(value).trim());
   const col = name => headers.indexOf(name);
   const idx = {
-    name: col("Name"),
-    ig: col("IG/WA Account"),
-    postcode: col("Postcode"),
-    address: col("Address"),
-    mobile: col("Mobile"),
-    product: col("Product Number"),
-    date: col("Date"),
-    time: col("Time"),
-    carrier: col("Đơn vị giao hàng"),
+    name: col("Name"), postcode: col("Postcode"), address: col("Address"),
+    mobile: col("Mobile"), product: col("Product Number"),
+    date: col("Date"), time: col("Time"),
+    ttype: col("Type of transaction"), pay: col("Thanh toán"),
+    deposit: col("Số tiền đặt cọc"), carrier: col("Đơn vị giao hàng"),
     link: col(JP_LINK_HEADER)
   };
+  if (idx.carrier === -1) throw new Error('Thiếu cột "Đơn vị giao hàng".');
+  if (idx.link === -1) throw new Error(`Thiếu cột "${JP_LINK_HEADER}".`);
 
-  if (idx.carrier === -1) throw new Error('Thieu cot "Đơn vị giao hàng".');
-  if (idx.link === -1) throw new Error(`Thieu cot "${JP_LINK_HEADER}".`);
+  // Cột ẩn lưu お客様側管理番号 (để menu nhập mã vận đơn khớp lại sau này).
+  const mgmtCol = ensureHeaderReturnCol_(sheet, JP_MGMT_HEADER);
+  sheet.hideColumns(mgmtCol);
 
-  const csvHeader = [
-    "お届け先郵便番号", "お届け先住所1", "お届け先住所2", "お届け先氏名", "お届け先電話番号",
-    "品名", "お届け希望日", "お届け希望時間帯", "ご依頼主氏名", "ご依頼主電話番号", "ご依頼主住所"
-  ];
-  const lines = [csvHeader.map(csvCell_).join(",")];
+  const lines = [];           // KHÔNG có dòng tiêu đề — layout theo VỊ TRÍ 118 cột
   const exportedRows = [];
-  const selected = getSelectedRowSet_(sheet); // only highlighted rows
+  const mgmtByRow = {};
+  const selected = getSelectedRowSet_(sheet);
 
   for (let r = 1; r < values.length; r++) {
     const sheetRow = r + 1;
-    if (selected && !selected[sheetRow]) continue;    // skip rows not selected
+    if (selected && !selected[sheetRow]) continue;
     const row = values[r];
-    const carrier = String(row[idx.carrier] || "").trim().toUpperCase();
-    if (carrier !== "JAPANPOST") continue;            // only Japan Post orders
-    if (String(row[idx.link] || "").trim()) continue; // already exported
-    if (!row[idx.name] || !row[idx.address]) continue; // skip incomplete rows
+    if (String(row[idx.carrier] || "").trim().toUpperCase() !== "JAPANPOST") continue;
+    if (String(row[idx.link] || "").trim()) continue;   // đã xuất
+    if (!row[idx.name] || !row[idx.address]) continue;   // thiếu dữ liệu
 
-    let customerName = String(row[idx.name] || "");
-    if (idx.ig !== -1 && row[idx.ig]) customerName += ` (${row[idx.ig]})`;
+    const c = new Array(JP_CSV_COLUMNS).fill(""); // 118 cột rỗng
+    const set = (pos, val) => { c[pos - 1] = String(val == null ? "" : val); };
 
-    lines.push([
-      row[idx.postcode] || "",
-      "", // 住所1 left blank; full address goes to 住所2 (matches old form)
-      row[idx.address] || "",
-      customerName,
-      row[idx.mobile] || "",
-      row[idx.product] || "",
-      idx.date !== -1 ? (row[idx.date] || "") : "",
-      idx.time !== -1 ? (row[idx.time] || "") : "",
-      JP_SENDER_NAME,
-      JP_SENDER_PHONE,
-      JP_SENDER_ADDRESS
-    ].map(csvCell_).join(","));
-    exportedRows.push(r + 1);
+    const mgmt = jpMgmtNo_(sheetRow);
+    const isDaibiki = String(row[idx.ttype] || "").trim().toLowerCase() === "daibiki";
+    const addr = jpSplitAddress_(row[idx.address]);
+
+    set(1, mgmt);                       // お客様側管理番号
+    set(6, "0");                        // 郵便種別 = ゆうパック
+    set(7, "0");                        // 保冷なし
+    set(8, isDaibiki ? "2" : "0");      // 代引 / 元払い
+    set(13, row[idx.postcode]);         // お届け先郵便番号
+    set(14, addr[0]); set(15, addr[1]); set(16, addr[2]); // お届け先住所1/2/3
+    set(17, row[idx.name]);             // お届け先名称1
+    set(19, "0");                       // 敬称 = 様
+    set(20, row[idx.mobile]);           // お届け先電話番号
+    set(30, JP_SENDER_POSTCODE);        // ご依頼主郵便番号
+    set(31, JP_SENDER_ADDRESS);         // ご依頼主住所1
+    set(34, JP_SENDER_NAME);            // ご依頼主名称1
+    set(37, JP_SENDER_PHONE);           // ご依頼主電話番号
+    if (idx.date !== -1) set(65, jpDate_(row[idx.date]));      // 配達指定日
+    if (idx.time !== -1) set(66, jpTimeZone_(row[idx.time]));  // 配達時間帯区分
+
+    // 代引金額 (chỉ Daibiki): giá cuối Product Number - đặt cọc DP.
+    if (isDaibiki) {
+      let cod = parsePriceFromProductNumber_(row[idx.product]);
+      if (cod != null) {
+        if (idx.pay !== -1 && String(row[idx.pay] || "").trim().toUpperCase() === "DP" && idx.deposit !== -1) {
+          const dep = parsePriceCell_(row[idx.deposit]);
+          if (dep != null) cod -= dep;
+        }
+        set(100, cod);
+      }
+    }
+    set(104, jpItemName_(row[idx.product])); // 品名(明細)
+    set(105, "1");                            // 個数(明細)
+
+    lines.push(c.map(csvCell_).join(","));
+    exportedRows.push(sheetRow);
+    mgmtByRow[sheetRow] = mgmt;
   }
 
   if (!exportedRows.length) return "Không có đơn Japan Post mới để xuất CSV.";
 
   const ts = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyyMMdd_HHmm");
   const fileName = `YuPack_${ts}.csv`;
-  const url = saveCsvToDrive_(lines.join("\n"), fileName);
+  const url = saveCsvToDrive_(lines.join("\r\n"), fileName); // CRLF chuẩn Windows
 
-  // All exported orders point to this combined CSV file.
-  exportedRows.forEach(sheetRow => sheet.getRange(sheetRow, idx.link + 1).setValue(url));
+  exportedRows.forEach(sheetRow => {
+    sheet.getRange(sheetRow, idx.link + 1).setValue(url);
+    sheet.getRange(sheetRow, mgmtCol).setValue(mgmtByRow[sheetRow]);
+  });
 
-  return `Đã tạo CSV Japan Post: ${exportedRows.length} đơn.\nFile: ${fileName}`;
+  return `Đã tạo CSV Japan Post (layout ゆうプリR 118 cột, Shift-JIS): ${exportedRows.length} đơn.\n` +
+    `File: ${fileName}\nNhập vào ゆうプリR: 外部データ取込 → chọn file này.`;
 }
 
 
