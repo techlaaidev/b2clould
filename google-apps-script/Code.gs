@@ -2324,10 +2324,11 @@ function kvCreateInvoice_(token, retailer, branchId, soldById, product, serialNu
     // Tên trường lúc TẠO/SỬA là "deliveryDetail" (theo tài liệu 2.12.3);
     // "invoiceDelivery" chỉ là tên trường KiotViet trả về khi ĐỌC hóa đơn.
     // BankTransfer (đã trả trước) = KHÔNG thu hộ COD: phí vận đơn 0, tắt COD.
+    // Daibiki: phí theo biểu của đúng đơn vị giao hàng (Yamato / Japan Post).
     const isPrepaid = !!payment;
     payload.deliveryDetail = {
       deliveryCode: delivery.deliveryCode || "",
-      price: isPrepaid ? 0 : yamatoCodFee_(price),
+      price: isPrepaid ? 0 : carrierCodFee_(delivery.carrier, price),
       receiver: delivery.receiver || "",
       contactNumber: delivery.contactNumber || "",
       address: delivery.address || "",
