@@ -1593,7 +1593,8 @@ function kvRunCreateInvoices_() {
             receiver: custNameCol === -1 ? "" : String(raw[custNameCol] || "").trim(),
             contactNumber: mobileCol === -1 ? "" : String(raw[mobileCol] || "").trim(),
             address: addrCol === -1 ? "" : String(raw[addrCol] || "").trim(),
-            partner: partner
+            partner: partner,
+            carrier: carrier   // để tính phí đúng biểu (Yamato / Japan Post)
           };
         }
         // Daibiki BẮT BUỘC có Mã vận đơn (COD phải kèm vận đơn). BankTransfer đã
