@@ -1701,15 +1701,28 @@ function kvGetDefaultUserId_(token, retailer) {
 }
 
 
-// 代引手数料 Yamato — PHÍ VẬN ĐƠN của đơn hàng, tính theo bậc giá trị đơn
-// (KHÔNG tính Thu khác). Ghi vào invoiceDelivery.price (Phí áp dụng) của hóa
-// đơn Bán giao hàng trên KiotViet. Chỉ áp cho đơn ship Daibiki.
+// PHÍ VẬN ĐƠN (代引手数料) theo bậc giá trị đơn — ghi vào deliveryDetail.price
+// (Phí áp dụng) của hóa đơn Bán giao hàng. Khác nhau theo đơn vị giao hàng.
 function yamatoCodFee_(value) {
   if (!value || value <= 0) return 0;
   if (value <= 9999) return 330;
   if (value <= 29999) return 440;
   if (value <= 99999) return 660;
   return 1100; // 100,000 - 300,000円
+}
+
+// Japan Post — biểu phí riêng (khác Yamato).
+function japanPostCodFee_(value) {
+  if (!value || value <= 0) return 0;
+  if (value <= 50000) return 220;   // 1 ~ 50,000
+  if (value <= 54000) return 440;   // 50,000 ~ 54,000
+  return 640;                       // 54,000 ~
+}
+
+// Chọn biểu phí theo đơn vị giao hàng (carrier: "YAMATO" / "JAPANPOST").
+function carrierCodFee_(carrier, value) {
+  return String(carrier || "").toUpperCase() === "JAPANPOST"
+    ? japanPostCodFee_(value) : yamatoCodFee_(value);
 }
 
 
