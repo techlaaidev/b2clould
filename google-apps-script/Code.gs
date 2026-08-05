@@ -566,8 +566,11 @@ function savePdfToDrive_(base64Pdf, fileName) {
 // "Link url file csv xử lí mã vận đơn" column.
 const JP_SENDER_NAME = "MOBAPPY";
 const JP_SENDER_PHONE = "090-2668-8868";
+const JP_SENDER_POSTCODE = "460-0011";
 const JP_SENDER_ADDRESS = "愛知県名古屋市中区大須3丁目31-22";
 const JP_LINK_HEADER = "Link url file csv xử lí mã vận đơn";
+const JP_MGMT_HEADER = "_jpMgmt";  // cột ẩn lưu お客様側管理番号 để khớp mã vận đơn trả về
+const JP_CSV_COLUMNS = 118;        // layout 発送予定データ của ゆうプリR (cố định 118 cột)
 
 
 function generateJapanPostCsv() {
