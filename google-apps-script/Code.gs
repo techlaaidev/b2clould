@@ -13,6 +13,7 @@ function onOpen() {
     .addItem("Điền cột Price từ Product Number", "fillPriceColumnFromProductNumber")
     .addSeparator()
     .addItem("Tạo CSV Japan Post (YuPack R)", "generateJapanPostCsv")
+    .addItem("Nhập mã vận đơn Japan Post từ CSV", "importJapanPostTracking")
     .addSeparator()
     .addItem("Cấu hình KiotViet API", "setupKiotVietApi")
     .addItem("Đồng bộ nhanh KiotViet (nhân viên/quà/SP thay đổi)", "syncKiotVietQuick")
