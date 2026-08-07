@@ -797,13 +797,6 @@ function csvCell_(value) {
 }
 
 
-// Lấy fileId từ link Google Drive (hoặc chính ID).
-function extractDriveId_(input) {
-  const s = String(input || "").trim();
-  const m = s.match(/[-\w]{25,}/);
-  return m ? m[0] : "";
-}
-
 // Parse 1 dòng CSV (xử lý dấu ngoặc kép, "" = escape). Trả mảng trường.
 function parseCsvLine_(line) {
   const out = [];
