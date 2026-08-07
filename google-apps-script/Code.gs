@@ -704,7 +704,13 @@ function jpCsvLine_(row, idx, sheetRow, isDaibiki) {
   set(31, JP_SENDER_ADDRESS);         // ご依頼主住所1
   set(34, JP_SENDER_NAME);            // ご依頼主名称1
   set(37, JP_SENDER_PHONE);           // ご依頼主電話番号
-  if (idx.date !== -1) set(65, jpDate_(row[idx.date]));      // 配達指定日
+  // Ngày nhận hàng: PHẢI đặt cột 64 = "6" (配達日指定) thì ゆうプリR mới dùng
+  // ngày ở cột 65; thiếu cột 64, app bỏ qua ngày -> trông như thiếu trường.
+  const wantDate = idx.date !== -1 ? jpDate_(row[idx.date]) : "";
+  if (wantDate) {
+    set(64, "6");                                             // 速達・配達日指定種別 = 配達日指定
+    set(65, wantDate);                                        // 配達指定日/希望日
+  }
   if (idx.time !== -1) set(66, jpTimeZone_(row[idx.time]));  // 配達時間帯区分
 
   // 代引金額 (chỉ Daibiki): giá cuối Product Number - đặt cọc DP.
