@@ -796,6 +796,102 @@ function csvCell_(value) {
 }
 
 
+// Lấy fileId từ link Google Drive (hoặc chính ID).
+function extractDriveId_(input) {
+  const s = String(input || "").trim();
+  const m = s.match(/[-\w]{25,}/);
+  return m ? m[0] : "";
+}
+
+// Parse 1 dòng CSV (xử lý dấu ngoặc kép, "" = escape). Trả mảng trường.
+function parseCsvLine_(line) {
+  const out = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ",") { out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+
+// ===== Nhập mã vận đơn Japan Post từ file 発送履歴データ (ゆうプリR xuất) =====
+// Layout 発送履歴: cột 1 = お客様側管理番号 (khớp cột ẩn _jpMgmt), cột 2 =
+// お問い合わせ番号 (mã vận đơn). Khớp theo _jpMgmt rồi điền vào cột "Mã vận đơn".
+function importJapanPostTracking() {
+  const ui = SpreadsheetApp.getUi();
+  const prompt = ui.prompt(
+    "Nhập mã vận đơn Japan Post",
+    'Dán LINK Google Drive (hoặc ID) của file 発送履歴データ (.csv) mà ゆうプリR xuất ra sau khi in:',
+    ui.ButtonSet.OK_CANCEL);
+  if (prompt.getSelectedButton() !== ui.Button.OK) return;
+
+  const fileId = extractDriveId_(prompt.getResponseText());
+  if (!fileId) { ui.alert("Không đọc được ID file từ link. Kiểm tra lại link Drive."); return; }
+
+  SpreadsheetApp.getActive().toast("Đang đọc file mã vận đơn...", "Japan Post", 15);
+  try {
+    let text;
+    try {
+      text = DriveApp.getFileById(fileId).getBlob().getDataAsString("Shift_JIS");
+    } catch (e) {
+      ui.alert("Không mở được file (kiểm tra quyền truy cập / ID): " + (e.message || e));
+      return;
+    }
+
+    // Bản đồ お客様側管理番号 -> dòng sheet (từ cột ẩn _jpMgmt).
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const headers = headerRow_(sheet);
+    const mgmtCol = headers.indexOf(JP_MGMT_HEADER) + 1;
+    const trackCol = headers.indexOf("Mã vận đơn") + 1;
+    if (mgmtCol === 0) { ui.alert('Sheet chưa có cột "' + JP_MGMT_HEADER + '" — chưa từng xuất CSV Japan Post ở sheet này.'); return; }
+    if (trackCol === 0) { ui.alert('Sheet thiếu cột "Mã vận đơn".'); return; }
+
+    const lastRow = sheet.getLastRow();
+    const rowByMgmt = {};
+    if (lastRow >= 2) {
+      const mgmtVals = sheet.getRange(2, mgmtCol, lastRow - 1, 1).getValues();
+      mgmtVals.forEach((v, i) => {
+        const key = String(v[0] || "").trim();
+        if (key) rowByMgmt[key] = i + 2;
+      });
+    }
+
+    const lines = text.split(/\r\n|\r|\n/).filter(l => l.trim());
+    let filled = 0, notFound = 0;
+    const misses = [];
+    lines.forEach(line => {
+      const cols = parseCsvLine_(line);
+      const mgmt = String(cols[0] || "").trim();
+      const tracking = String(cols[1] || "").trim();
+      if (!mgmt || !tracking) return;            // dòng trống / tiêu đề
+      const sheetRow = rowByMgmt[mgmt];
+      if (!sheetRow) { notFound++; misses.push(mgmt); return; }
+      sheet.getRange(sheetRow, trackCol).setValue(tracking);
+      filled++;
+    });
+
+    let msg = "Đã điền Mã vận đơn cho " + filled + " đơn.";
+    if (notFound) {
+      msg += "\n⚠ " + notFound + " mã quản lý trong file không khớp dòng nào trên sheet";
+      msg += " (vd: " + misses.slice(0, 5).join(", ") + ").";
+    }
+    if (!filled && !notFound) msg = "File không có dòng mã vận đơn hợp lệ (cột 1 = mã quản lý, cột 2 = mã vận đơn).";
+    ui.alert(msg);
+  } catch (error) {
+    ui.alert("Lỗi: " + (error.message || error));
+  }
+}
+
+
 function saveCsvToDrive_(csv, fileName) {
   // ゆうプリR đọc CSV mã hóa Shift_JIS (UTF-8 sẽ lỗi chữ Nhật khi nhập vào app).
   const blob = Utilities.newBlob("", "text/csv", fileName).setDataFromString(csv, "Shift_JIS");
