@@ -575,8 +575,57 @@ const JP_CSV_COLUMNS = 118;        // layout 発送予定データ của ゆう�
 
 
 function generateJapanPostCsv() {
-  runWithAlert_("Đang tạo CSV Japan Post...", () => {
-    return buildJapanPostCsv_(SpreadsheetApp.getActiveSheet());
+  const ui = SpreadsheetApp.getUi();
+  SpreadsheetApp.getActive().toast("Đang tạo CSV Japan Post...", "Japan Post", 15);
+  try {
+    const result = buildJapanPostCsv_(SpreadsheetApp.getActiveSheet());
+    if (typeof result === "string") { ui.alert(result); return; } // thông báo (không có file)
+    showJpCsvDialog_(result); // {files:[{type,url,count,fileName}], skipped}
+  } catch (error) {
+    ui.alert("Lỗi: " + (error.message || error));
+  }
+}
+
+
+// Hộp thoại kết quả xuất CSV với link BẤM ĐƯỢC cho từng file (Daibiki / BankTransfer).
+function showJpCsvDialog_(result) {
+  let html = '<div style="font:14px sans-serif;padding:6px">';
+  html += '<p>Đã tạo <b>' + result.files.length + '</b> file CSV Japan Post:</p><ul>';
+  result.files.forEach(f => {
+    html += '<li style="margin:8px 0"><b>' + f.type + '</b> — ' + f.count + ' đơn<br>' +
+      '<a href="' + f.url + '" target="_blank">📄 Mở / tải ' + f.fileName + '</a></li>';
+  });
+  html += '</ul>';
+  if (result.skipped) html += '<p style="color:#666">Bỏ qua ' + result.skipped + ' dòng đã tick "Đã xuất CSV JP".</p>';
+  html += '<p style="color:#666">Link cũng lưu ở sheet "CSV Japan Post". Nhập vào ゆうプリR: 外部データ取込.</p></div>';
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html).setWidth(480).setHeight(260), "CSV Japan Post — xong");
+}
+
+
+// Đảm bảo cột checkbox "Đã xuất CSV JP" tồn tại + là ô tick. Trả về số cột.
+function ensureJpDoneCheckbox_(sheet) {
+  const headers = headerRow_(sheet);
+  let col = headers.indexOf(JP_DONE_HEADER) + 1;
+  if (col === 0) { col = headers.length + 1; sheet.getRange(1, col).setValue(JP_DONE_HEADER); }
+  const lastRow = Math.max(sheet.getLastRow(), 2);
+  sheet.getRange(2, col, lastRow - 1, 1).insertCheckboxes();
+  return col;
+}
+
+
+// Lịch sử xuất CSV Japan Post: mỗi file 1 dòng (thời gian | loại | số đơn | link).
+function logJpCsv_(files) {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName("CSV Japan Post");
+  if (!sh) {
+    sh = ss.insertSheet("CSV Japan Post");
+    sh.getRange(1, 1, 1, 4).setValues([["Thời gian", "Loại", "Số đơn", "Link CSV"]]);
+  }
+  files.forEach(f => {
+    const row = sh.getLastRow() + 1;
+    sh.getRange(row, 1).setValue(new Date()).setNumberFormat("dd/MM/yyyy HH:mm:ss");
+    sh.getRange(row, 2, 1, 3).setValues([[f.type, f.count, f.url]]);
   });
 }
 
