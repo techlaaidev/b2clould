@@ -929,8 +929,7 @@ function jpFillTrackingFromText_(text) {
     }
   });
 
-  // 3) Còn lại (không khớp được) -> theo THỨ TỰ vào các đơn chờ mã.
-  const leftover = records.filter(rec => !rec.targetRow || usedRows[rec.targetRow] === false);
+  // 3) Còn lại (không khớp được mã/SĐT) -> theo THỨ TỰ vào các đơn chờ mã.
   const unmatched = records.filter(rec => !rec.targetRow);
   const awaiting = [];
   mgmtVals.forEach((v, i) => {
