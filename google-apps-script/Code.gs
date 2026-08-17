@@ -864,71 +864,91 @@ function jpProcessTrackingUpload(text) {
 }
 
 
-// Khớp お客様側管理番号 (cột 1) -> dòng sheet theo _jpMgmt, điền お問い合わせ番号
-// (cột 2) vào cột "Mã vận đơn". Trả về thông điệp kết quả (tiếng Việt).
+// SĐT -> chỉ chữ số (bỏ gạch/khoảng trắng) để so khớp.
+function jpNormPhone_(s) { return String(s || "").replace(/\D/g, ""); }
+
+// Điền お問い合わせ番号 (mã vận đơn) vào đúng dòng. Ưu tiên khớp theo:
+//   1) お客様側管理番号 (khớp cột ẩn _jpMgmt)
+//   2) SĐT người nhận (お届け先電話番号 khớp cột Mobile) — KHÔNG phụ thuộc vị trí cột
+//   3) THỨ TỰ (dự phòng khi file không có mã quản lý lẫn SĐT)
+// Tự nhận diện: mã vận đơn = trường 12 chữ số; SĐT = trường khớp Mobile trên sheet.
 function jpFillTrackingFromText_(text) {
   const sheet = SpreadsheetApp.getActiveSheet();
   const headers = headerRow_(sheet);
   const mgmtCol = headers.indexOf(JP_MGMT_HEADER) + 1;
   const trackCol = headers.indexOf("Mã vận đơn") + 1;
+  const mobileCol = headers.indexOf("Mobile") + 1;
   if (mgmtCol === 0) return 'Sheet chưa có cột "' + JP_MGMT_HEADER + '" — chưa từng xuất CSV Japan Post ở sheet này.';
   if (trackCol === 0) return 'Sheet thiếu cột "Mã vận đơn".';
 
   const lastRow = sheet.getLastRow();
   const mgmtVals = lastRow >= 2 ? sheet.getRange(2, mgmtCol, lastRow - 1, 1).getValues() : [];
   const trackVals = lastRow >= 2 ? sheet.getRange(2, trackCol, lastRow - 1, 1).getValues() : [];
-  const rowByMgmt = {};
-  mgmtVals.forEach((v, i) => { const k = String(v[0] || "").trim(); if (k) rowByMgmt[k] = i + 2; });
+  const mobileVals = (mobileCol && lastRow >= 2) ? sheet.getRange(2, mobileCol, lastRow - 1, 1).getValues() : [];
 
-  // Parse file: mỗi dòng -> {mgmt (cột 1), tracking (cột 2)}. File có thể phân
-  // tách bằng TAB hoặc phẩy; bỏ dòng tiêu đề / dòng không có mã vận đơn (số).
+  const rowByMgmt = {};  // mã quản lý -> dòng
+  const rowByPhone = {}; // SĐT (chữ số) -> dòng (chỉ các đơn đã xuất CSV)
+  mgmtVals.forEach((v, i) => {
+    const k = String(v[0] || "").trim();
+    if (!k) return;                       // chỉ xét đơn Japan Post đã xuất CSV
+    rowByMgmt[k] = i + 2;
+    const ph = mobileVals.length ? jpNormPhone_(mobileVals[i][0]) : "";
+    if (ph) rowByPhone[ph] = i + 2;
+  });
+
+  // Parse file: tự tìm trong MỖI dòng — mã vận đơn (12 chữ số) + dòng đích
+  // (theo mã quản lý hoặc SĐT). Không phụ thuộc vị trí cột.
   const records = [];
   String(text || "").split(/\r\n|\r|\n/).forEach(line => {
     if (!line.trim()) return;
     const cols = line.indexOf("\t") !== -1 ? line.split("\t") : parseCsvLine_(line);
-    const mgmt = String(cols[0] || "").trim();
-    const tracking = String(cols[1] || "").trim();
-    if (!/^\d{6,}$/.test(tracking)) return; // bỏ header + dòng không phải mã vận đơn
-    records.push({ mgmt: mgmt, tracking: tracking });
-  });
-  if (!records.length) return "File không có dòng mã vận đơn hợp lệ (cột 2 = お問い合わせ番号).";
-
-  // Gộp danh sách "dòng X ← mã vận đơn" thành text để báo cho người dùng.
-  const detail = list => list.map(x => "• Dòng " + x.row + " ← " + x.tracking).join("\n");
-
-  // Có mã quản lý khớp _jpMgmt → khớp CHÍNH XÁC theo mã.
-  const anyMgmtMatch = records.some(rec => rec.mgmt && rowByMgmt[rec.mgmt]);
-  if (anyMgmtMatch) {
-    const done = []; let notFound = 0; const misses = [];
-    records.forEach(rec => {
-      const r = rec.mgmt ? rowByMgmt[rec.mgmt] : null;
-      if (r) { sheet.getRange(r, trackCol).setValue(rec.tracking); done.push({ row: r, tracking: rec.tracking }); }
-      else { notFound++; if (rec.mgmt) misses.push(rec.mgmt); }
+    let tracking = "", targetRow = null, by = "";
+    cols.forEach(cRaw => {
+      const t = String(cRaw || "").trim();
+      const d = jpNormPhone_(t);
+      if (!targetRow && rowByMgmt[t]) { targetRow = rowByMgmt[t]; by = "mã quản lý"; }
+      else if (!targetRow && d && rowByPhone[d]) { targetRow = rowByPhone[d]; by = "SĐT"; }
+      // mã vận đơn = 12 chữ số, KHÔNG phải SĐT đã khớp
+      if (!tracking && /^\d{12}$/.test(t) && !rowByPhone[t]) tracking = t;
     });
-    let msg = "Đã điền Mã vận đơn cho " + done.length + " đơn (khớp theo mã quản lý):\n" + detail(done);
-    if (notFound) msg += "\n⚠ " + notFound + " dòng trong file không khớp (vd: " + misses.slice(0, 5).join(", ") + ").";
-    return msg;
-  }
+    if (!tracking) return; // bỏ dòng tiêu đề / không có mã vận đơn
+    records.push({ tracking: tracking, targetRow: targetRow, by: by });
+  });
+  if (!records.length) return "File không có mã vận đơn (12 chữ số) hợp lệ.";
 
-  // KHÔNG có mã quản lý (ゆうプリR không giữ お客様側管理番号) → khớp theo THỨ TỰ:
-  // các dòng đã xuất CSV (có _jpMgmt) mà CHƯA có mã vận đơn, theo thứ tự trên sheet.
+  const detail = list => list.map(x => "• Dòng " + x.row + " ← " + x.tracking + (x.by ? " (" + x.by + ")" : "")).join("\n");
+  const usedRows = {};
+  const done = [];
+
+  // 1+2) Khớp theo mã quản lý / SĐT (chính xác, không lo thứ tự).
+  records.forEach(rec => {
+    if (rec.targetRow && !usedRows[rec.targetRow]) {
+      sheet.getRange(rec.targetRow, trackCol).setValue(rec.tracking);
+      usedRows[rec.targetRow] = true;
+      done.push({ row: rec.targetRow, tracking: rec.tracking, by: rec.by });
+    }
+  });
+
+  // 3) Còn lại (không khớp được) -> theo THỨ TỰ vào các đơn chờ mã.
+  const leftover = records.filter(rec => !rec.targetRow || usedRows[rec.targetRow] === false);
+  const unmatched = records.filter(rec => !rec.targetRow);
   const awaiting = [];
   mgmtVals.forEach((v, i) => {
-    if (String(v[0] || "").trim() && !String(trackVals[i][0] || "").trim()) awaiting.push(i + 2);
+    const r = i + 2;
+    if (String(v[0] || "").trim() && !String(trackVals[i][0] || "").trim() && !usedRows[r]) awaiting.push(r);
   });
-  const n = Math.min(records.length, awaiting.length);
-  const done = [];
+  const n = Math.min(unmatched.length, awaiting.length);
   for (let i = 0; i < n; i++) {
-    sheet.getRange(awaiting[i], trackCol).setValue(records[i].tracking);
-    done.push({ row: awaiting[i], tracking: records[i].tracking });
+    sheet.getRange(awaiting[i], trackCol).setValue(unmatched[i].tracking);
+    done.push({ row: awaiting[i], tracking: unmatched[i].tracking, by: "thứ tự" });
   }
 
-  let msg = "Đã điền Mã vận đơn cho " + n + " đơn — khớp theo THỨ TỰ (file không có mã quản lý):\n" + detail(done);
-  if (records.length !== awaiting.length) {
-    msg += "\n⚠ File có " + records.length + " mã nhưng sheet có " + awaiting.length +
-      " đơn đang chờ mã — số lượng LỆCH, kiểm tra lại.";
+  let msg = "Đã điền Mã vận đơn cho " + done.length + " đơn:\n" + detail(done);
+  const missCount = unmatched.length - n;
+  if (missCount > 0) msg += "\n⚠ " + missCount + " mã trong file KHÔNG khớp đơn nào (thừa mã / hết đơn chờ).";
+  if (unmatched.length && !mobileVals.length) {
+    msg += '\nGợi ý: thêm cột お届け先電話番号 vào file xuất của ゆうプリR để khớp chính xác theo SĐT.';
   }
-  msg += '\nLưu ý: khớp theo thứ tự yêu cầu thứ tự đơn trong file GIỐNG thứ tự trên sheet.';
   return msg;
 }
 
