@@ -875,31 +875,54 @@ function jpFillTrackingFromText_(text) {
   if (trackCol === 0) return 'Sheet thiếu cột "Mã vận đơn".';
 
   const lastRow = sheet.getLastRow();
+  const mgmtVals = lastRow >= 2 ? sheet.getRange(2, mgmtCol, lastRow - 1, 1).getValues() : [];
+  const trackVals = lastRow >= 2 ? sheet.getRange(2, trackCol, lastRow - 1, 1).getValues() : [];
   const rowByMgmt = {};
-  if (lastRow >= 2) {
-    sheet.getRange(2, mgmtCol, lastRow - 1, 1).getValues().forEach((v, i) => {
-      const key = String(v[0] || "").trim();
-      if (key) rowByMgmt[key] = i + 2;
-    });
-  }
+  mgmtVals.forEach((v, i) => { const k = String(v[0] || "").trim(); if (k) rowByMgmt[k] = i + 2; });
 
-  const lines = String(text || "").split(/\r\n|\r|\n/).filter(l => l.trim());
-  let filled = 0, notFound = 0;
-  const misses = [];
-  lines.forEach(line => {
-    const cols = parseCsvLine_(line);
+  // Parse file: mỗi dòng -> {mgmt (cột 1), tracking (cột 2)}. File có thể phân
+  // tách bằng TAB hoặc phẩy; bỏ dòng tiêu đề / dòng không có mã vận đơn (số).
+  const records = [];
+  String(text || "").split(/\r\n|\r|\n/).forEach(line => {
+    if (!line.trim()) return;
+    const cols = line.indexOf("\t") !== -1 ? line.split("\t") : parseCsvLine_(line);
     const mgmt = String(cols[0] || "").trim();
     const tracking = String(cols[1] || "").trim();
-    if (!mgmt || !tracking) return;            // dòng trống / tiêu đề
-    const sheetRow = rowByMgmt[mgmt];
-    if (!sheetRow) { notFound++; misses.push(mgmt); return; }
-    sheet.getRange(sheetRow, trackCol).setValue(tracking);
-    filled++;
+    if (!/^\d{6,}$/.test(tracking)) return; // bỏ header + dòng không phải mã vận đơn
+    records.push({ mgmt: mgmt, tracking: tracking });
   });
+  if (!records.length) return "File không có dòng mã vận đơn hợp lệ (cột 2 = お問い合わせ番号).";
 
-  let msg = "Đã điền Mã vận đơn cho " + filled + " đơn.";
-  if (notFound) msg += "\n⚠ " + notFound + " mã quản lý trong file không khớp dòng nào trên sheet (vd: " + misses.slice(0, 5).join(", ") + ").";
-  if (!filled && !notFound) msg = "File không có dòng mã vận đơn hợp lệ (cột 1 = mã quản lý, cột 2 = mã vận đơn).";
+  // Có mã quản lý khớp _jpMgmt → khớp CHÍNH XÁC theo mã.
+  const anyMgmtMatch = records.some(rec => rec.mgmt && rowByMgmt[rec.mgmt]);
+  if (anyMgmtMatch) {
+    let filled = 0, notFound = 0; const misses = [];
+    records.forEach(rec => {
+      const r = rec.mgmt ? rowByMgmt[rec.mgmt] : null;
+      if (r) { sheet.getRange(r, trackCol).setValue(rec.tracking); filled++; }
+      else { notFound++; if (rec.mgmt) misses.push(rec.mgmt); }
+    });
+    let msg = "Đã điền Mã vận đơn cho " + filled + " đơn (khớp theo mã quản lý).";
+    if (notFound) msg += "\n⚠ " + notFound + " dòng trong file không khớp (vd: " + misses.slice(0, 5).join(", ") + ").";
+    return msg;
+  }
+
+  // KHÔNG có mã quản lý (ゆうプリR không giữ お客様側管理番号) → khớp theo THỨ TỰ:
+  // các dòng đã xuất CSV (có _jpMgmt) mà CHƯA có mã vận đơn, theo thứ tự trên sheet.
+  const awaiting = [];
+  mgmtVals.forEach((v, i) => {
+    if (String(v[0] || "").trim() && !String(trackVals[i][0] || "").trim()) awaiting.push(i + 2);
+  });
+  const n = Math.min(records.length, awaiting.length);
+  for (let i = 0; i < n; i++) sheet.getRange(awaiting[i], trackCol).setValue(records[i].tracking);
+
+  let msg = "Đã điền Mã vận đơn cho " + n + " đơn — khớp theo THỨ TỰ (file không có mã quản lý).";
+  if (records.length !== awaiting.length) {
+    msg += "\n⚠ File có " + records.length + " mã nhưng sheet có " + awaiting.length +
+      " đơn đang chờ mã — số lượng LỆCH, kiểm tra lại.";
+  }
+  msg += '\nLưu ý: khớp theo thứ tự yêu cầu thứ tự đơn trong file GIỐNG thứ tự trên sheet. ' +
+    'Để khớp chắc chắn hơn, cấu hình ゆうプリR giữ お客様側管理番号 khi nhập/xuất.';
   return msg;
 }
 
