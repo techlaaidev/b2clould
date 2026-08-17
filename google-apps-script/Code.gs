@@ -893,16 +893,19 @@ function jpFillTrackingFromText_(text) {
   });
   if (!records.length) return "File không có dòng mã vận đơn hợp lệ (cột 2 = お問い合わせ番号).";
 
+  // Gộp danh sách "dòng X ← mã vận đơn" thành text để báo cho người dùng.
+  const detail = list => list.map(x => "• Dòng " + x.row + " ← " + x.tracking).join("\n");
+
   // Có mã quản lý khớp _jpMgmt → khớp CHÍNH XÁC theo mã.
   const anyMgmtMatch = records.some(rec => rec.mgmt && rowByMgmt[rec.mgmt]);
   if (anyMgmtMatch) {
-    let filled = 0, notFound = 0; const misses = [];
+    const done = []; let notFound = 0; const misses = [];
     records.forEach(rec => {
       const r = rec.mgmt ? rowByMgmt[rec.mgmt] : null;
-      if (r) { sheet.getRange(r, trackCol).setValue(rec.tracking); filled++; }
+      if (r) { sheet.getRange(r, trackCol).setValue(rec.tracking); done.push({ row: r, tracking: rec.tracking }); }
       else { notFound++; if (rec.mgmt) misses.push(rec.mgmt); }
     });
-    let msg = "Đã điền Mã vận đơn cho " + filled + " đơn (khớp theo mã quản lý).";
+    let msg = "Đã điền Mã vận đơn cho " + done.length + " đơn (khớp theo mã quản lý):\n" + detail(done);
     if (notFound) msg += "\n⚠ " + notFound + " dòng trong file không khớp (vd: " + misses.slice(0, 5).join(", ") + ").";
     return msg;
   }
@@ -914,15 +917,18 @@ function jpFillTrackingFromText_(text) {
     if (String(v[0] || "").trim() && !String(trackVals[i][0] || "").trim()) awaiting.push(i + 2);
   });
   const n = Math.min(records.length, awaiting.length);
-  for (let i = 0; i < n; i++) sheet.getRange(awaiting[i], trackCol).setValue(records[i].tracking);
+  const done = [];
+  for (let i = 0; i < n; i++) {
+    sheet.getRange(awaiting[i], trackCol).setValue(records[i].tracking);
+    done.push({ row: awaiting[i], tracking: records[i].tracking });
+  }
 
-  let msg = "Đã điền Mã vận đơn cho " + n + " đơn — khớp theo THỨ TỰ (file không có mã quản lý).";
+  let msg = "Đã điền Mã vận đơn cho " + n + " đơn — khớp theo THỨ TỰ (file không có mã quản lý):\n" + detail(done);
   if (records.length !== awaiting.length) {
     msg += "\n⚠ File có " + records.length + " mã nhưng sheet có " + awaiting.length +
       " đơn đang chờ mã — số lượng LỆCH, kiểm tra lại.";
   }
-  msg += '\nLưu ý: khớp theo thứ tự yêu cầu thứ tự đơn trong file GIỐNG thứ tự trên sheet. ' +
-    'Để khớp chắc chắn hơn, cấu hình ゆうプリR giữ お客様側管理番号 khi nhập/xuất.';
+  msg += '\nLưu ý: khớp theo thứ tự yêu cầu thứ tự đơn trong file GIỐNG thứ tự trên sheet.';
   return msg;
 }
 
