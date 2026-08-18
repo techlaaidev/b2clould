@@ -1158,6 +1158,7 @@ function jpFillTrackingFromText_(text) {
   const mgmtCol = headers.indexOf(JP_MGMT_HEADER) + 1;
   const trackCol = headers.indexOf("Mã vận đơn") + 1;
   const mobileCol = headers.indexOf("Mobile") + 1;
+  const igCol = headers.indexOf("IG/WA Account") + 1;
   if (mgmtCol === 0)
     return (
       'Sheet chưa có cột "' +
