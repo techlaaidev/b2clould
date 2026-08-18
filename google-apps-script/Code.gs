@@ -966,6 +966,9 @@ function jpCsvLine_(row, idx, sheetRow, isDaibiki) {
   }
   set(104, jpItemName_(row[idx.product])); // 品名(明細)
   set(105, "1"); // 個数(明細)
+  // フリー項目０１ (trường tự do, ゆうプリR giữ nguyên) = IG/WA Account — dùng
+  // làm khóa khớp ngược mã vận đơn cho khách KHÔNG có SĐT.
+  if (idx.ig !== -1) set(76, row[idx.ig]);
   return { line: c.map(csvCell_).join(","), mgmt: mgmt };
 }
 
