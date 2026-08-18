@@ -1279,9 +1279,9 @@ function jpFillTrackingFromText_(text) {
       "\n⚠ " +
       missCount +
       " mã trong file KHÔNG khớp đơn nào (thừa mã / hết đơn chờ).";
-  if (unmatched.length && !mobileVals.length) {
+  if (unmatched.length) {
     msg +=
-      "\nGợi ý: thêm cột お届け先電話番号 vào file xuất của ゆうプリR để khớp chính xác theo SĐT.";
+      "\nGợi ý: thêm cột お届け先電話番号 (SĐT) hoặc フリー項目０１ (IG/WA Account) vào file xuất của ゆうプリR để khớp chính xác.";
   }
   return msg;
 }
