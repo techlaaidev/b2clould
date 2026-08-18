@@ -966,9 +966,13 @@ function jpCsvLine_(row, idx, sheetRow, isDaibiki) {
   }
   set(104, jpItemName_(row[idx.product])); // 品名(明細)
   set(105, "1"); // 個数(明細)
-  // フリー項目０１ (trường tự do, ゆうプリR giữ nguyên) = IG/WA Account — dùng
-  // làm khóa khớp ngược mã vận đơn cho khách KHÔNG có SĐT.
-  if (idx.ig !== -1) set(76, row[idx.ig]);
+  // Trường tự do (ゆうプリR giữ nguyên qua vòng nhập→xuất), dùng làm khóa khớp
+  // ngược mã vận đơn — đề phòng お客様側管理番号 (cột 1) bị mất:
+  //   フリー項目０１ = mã quản lý DUY NHẤT mỗi đơn → khớp chính xác tuyệt đối,
+  //                    cùng khách mua nhiều lần vẫn không lẫn.
+  //   フリー項目０２ = IG/WA Account (để nhìn / dự phòng).
+  set(76, mgmt);
+  if (idx.ig !== -1) set(77, row[idx.ig]);
   return { line: c.map(csvCell_).join(","), mgmt: mgmt };
 }
 
