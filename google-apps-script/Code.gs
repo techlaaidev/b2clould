@@ -1176,15 +1176,22 @@ function jpFillTrackingFromText_(text) {
     mobileCol && lastRow >= 2
       ? sheet.getRange(2, mobileCol, lastRow - 1, 1).getValues()
       : [];
+  const igVals =
+    igCol && lastRow >= 2
+      ? sheet.getRange(2, igCol, lastRow - 1, 1).getValues()
+      : [];
 
   const rowByMgmt = {}; // mã quản lý -> dòng
   const rowByPhone = {}; // SĐT (chữ số) -> dòng (chỉ các đơn đã xuất CSV)
+  const rowByIg = {}; // IG/WA Account (thường hoá) -> dòng
   mgmtVals.forEach((v, i) => {
     const k = String(v[0] || "").trim();
     if (!k) return; // chỉ xét đơn Japan Post đã xuất CSV
     rowByMgmt[k] = i + 2;
     const ph = mobileVals.length ? jpNormPhone_(mobileVals[i][0]) : "";
     if (ph) rowByPhone[ph] = i + 2;
+    const ig = igVals.length ? String(igVals[i][0] || "").trim().toLowerCase() : "";
+    if (ig) rowByIg[ig] = i + 2;
   });
 
   // Parse file: tự tìm trong MỖI dòng — mã vận đơn (12 chữ số) + dòng đích
