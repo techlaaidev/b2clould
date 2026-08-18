@@ -1215,6 +1215,9 @@ function jpFillTrackingFromText_(text) {
         } else if (!targetRow && d && rowByPhone[d]) {
           targetRow = rowByPhone[d];
           by = "SĐT";
+        } else if (!targetRow && rowByIg[t.toLowerCase()]) {
+          targetRow = rowByIg[t.toLowerCase()];
+          by = "IG";
         }
         // mã vận đơn = 12 chữ số, KHÔNG phải SĐT đã khớp
         if (!tracking && /^\d{12}$/.test(t) && !rowByPhone[t]) tracking = t;
