@@ -2042,7 +2042,7 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
     );
     SpreadsheetApp.getActive().toast(
       r.dropdown.length +
-        ' IMEI cùng đuôi "' +
+        ' IMEI chứa "' +
         typed +
         '" — bấm ▼ chọn IMEI đầy đủ.',
       "KiotViet",
