@@ -1981,8 +1981,10 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
     if (index.byImei[typed]) return { imei: typed, hit: index.byImei[typed] };
     if (!/^\d+$/.test(typed)) return null;
     if (typed.length < 5) return { tooShort: true };
+    // Khớp chuỗi con: typed là 5+ số LIÊN TIẾP ở BẤT KỲ vị trí nào trong IMEI
+    // (không riêng đuôi). Exact match đã xử lý ở trên.
     const matches = Object.keys(index.byImei).filter(
-      (k) => k.length > typed.length && k.endsWith(typed),
+      (k) => k.length > typed.length && k.includes(typed),
     );
     if (matches.length === 1)
       return { imei: matches[0], hit: index.byImei[matches[0]], full: true };
