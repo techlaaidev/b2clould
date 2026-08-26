@@ -1976,7 +1976,7 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
   const nameCell = sheet.getRange(row, nameCol);
   nameCell.clearDataValidations();
 
-  // Tra IMEI trong 1 index (đúng / theo đuôi). Trả {imei,hit} | {dropdown} |
+  // Tra IMEI trong 1 index (đúng / chứa chuỗi con). Trả {imei,hit} | {dropdown} |
   // {tooShort} | null(không thấy).
   const resolve = (index) => {
     if (!index) return null;
