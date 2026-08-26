@@ -1839,6 +1839,7 @@ function kvIncrementalImeiRefresh_(token, retailer) {
         .filter((r) => !changed[String(r[1] || "")])
         .concat(newRows);
       sh.clearContents();
+      sh.getRange(1, 1, sh.getMaxRows(), 1).setNumberFormat("@"); // giữ số 0 đầu
       sh.getRange(1, 1, 1, 4).setValues([
         ["imei", "code", "fullName", "branchId"],
       ]);
