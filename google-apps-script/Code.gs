@@ -2065,7 +2065,10 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
 
   const imei = r.imei,
     hit = r.hit;
-  if (r.full) e.range.setValue(imei); // ghi IMEI đầy đủ — tạo hóa đơn cần đủ số
+  if (r.full) {
+    e.range.setNumberFormat("@"); // dạng text — giữ số 0 ở đầu IMEI/serial
+    e.range.setValue(imei); // ghi IMEI đầy đủ — tạo hóa đơn cần đủ số
+  }
   e.range.clearDataValidations();
 
   // CHECK LIVE tồn kho: index có thể cũ (máy đã bán vẫn còn trong index vì
