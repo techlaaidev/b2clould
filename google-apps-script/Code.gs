@@ -2026,7 +2026,7 @@ function kvFillNameFromImei_(e, sheet, headers, token, retailer) {
   }
   if (r && r.tooShort) {
     SpreadsheetApp.getActive().toast(
-      "Gõ ít nhất 5 số cuối của IMEI (đang gõ " + typed.length + " số).",
+      "Gõ ít nhất 5 số liên tiếp của IMEI (đang gõ " + typed.length + " số).",
       "KiotViet",
       5,
     );
