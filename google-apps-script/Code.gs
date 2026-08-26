@@ -1919,10 +1919,11 @@ function syncKiotVietQuick() {
   });
 }
 
-// Nhân viên chỉ cần gõ 5 SỐ CUỐI của IMEI (hoặc nhiều hơn / đủ IMEI):
+// Nhân viên gõ 5+ SỐ LIÊN TIẾP bất kỳ của IMEI (ở đầu/giữa/cuối đều được), hoặc
+// đủ IMEI. Số 0 ở đầu được giữ nguyên.
 // - khớp đúng 1 IMEI → tự ghi IMEI ĐẦY ĐỦ lại vào ô (tạo hóa đơn cần đủ số)
 //   và điền tên SP + mã.
-// - nhiều IMEI cùng đuôi → hiện dropdown các IMEI đầy đủ để chọn.
+// - nhiều IMEI cùng chứa chuỗi đó → hiện dropdown các IMEI đầy đủ để chọn.
 // Hỏi THẲNG KiotViet: IMEI này còn hàng (status 1) ở 1 trong 2 chi nhánh
 // không. Trả {ok, reason}. Index có thể cũ (KiotViet không luôn cập nhật
 // modifiedDate khi bán serial) nên đây là kiểm tra tồn kho ĐÁNG TIN.
