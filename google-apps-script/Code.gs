@@ -2142,6 +2142,8 @@ function kvWriteImeiIndex_(rows) {
   let sh = ss.getSheetByName(KV_IMEI_INDEX_SHEET);
   if (!sh) sh = ss.insertSheet(KV_IMEI_INDEX_SHEET);
   sh.clearContents();
+  // Cột imei để dạng text — KHÔNG để Sheets nuốt số 0 ở đầu serial.
+  sh.getRange(1, 1, sh.getMaxRows(), 1).setNumberFormat("@");
   sh.getRange(1, 1, 1, 4).setValues([["imei", "code", "fullName", "branchId"]]);
   if (rows.length) sh.getRange(2, 1, rows.length, 4).setValues(rows);
   sh.hideSheet();
