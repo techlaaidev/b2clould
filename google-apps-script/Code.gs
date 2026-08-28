@@ -751,10 +751,12 @@ function savePdfToDrive_(base64Pdf, fileName) {
 // Yamato orders create labels via the B2 API; Japan Post orders can't, so we
 // export them to a ゆうプリR CSV instead and write the file URL back to the
 // "Link url file csv xử lí mã vận đơn" column.
-const JP_SENDER_NAME = "MOBAPPY";
-const JP_SENDER_PHONE = "090-2668-8868";
+const JP_SENDER_NAME = "MOBAPPY名古大須";
+const JP_SENDER_NAME2 = "ｼﾞｪｲｴｲｲﾝﾀｰﾅｼｮﾅﾙｶﾌﾞｼｷｶﾞｲｼｬ"; // ご依頼主名称2 (tên công ty katakana)
+const JP_SENDER_PHONE = "052-228-6598";
 const JP_SENDER_POSTCODE = "460-0011";
-const JP_SENDER_ADDRESS = "愛知県名古屋市中区大須3丁目31-22";
+const JP_SENDER_ADDRESS = "愛知県名古屋市中区大須3-40-28";
+const JP_SENDER_ADDRESS2 = "セントラルラ・フォーレ1階"; // ご依頼主住所2 (tên tòa nhà/tầng)
 const JP_LINK_HEADER = "Link url file csv xử lí mã vận đơn";
 const JP_MGMT_HEADER = "_jpMgmt"; // cột ẩn lưu お客様側管理番号 để khớp mã vận đơn trả về
 const JP_DONE_HEADER = "Đã xuất CSV JP"; // cột checkbox: đã đưa dòng này vào file CSV chưa
