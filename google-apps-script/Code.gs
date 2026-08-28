@@ -670,7 +670,12 @@ function getSelectedRowSet_(sheet) {
   rangeList.getRanges().forEach((range) => {
     const start = range.getRow();
     const end = start + range.getNumRows() - 1;
-    for (let r = start; r <= end; r++) set[r] = true;
+    for (let r = start; r <= end; r++) {
+      // Bỏ qua dòng đang bị FILTER ẩn: khi lọc rồi bôi đen cả vùng, vùng chọn
+      // vẫn gồm các dòng bị lọc ẩn — KHÔNG xử lý chúng (tôn trọng bộ lọc bật).
+      if (sheet.isRowHiddenByFilter(r)) continue;
+      set[r] = true;
+    }
   });
   return set;
 }
