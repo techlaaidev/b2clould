@@ -2794,8 +2794,8 @@ function kvRenderInvoiceTemplate_(template, inv, row) {
   );
   const tokens = {
     Ten_Cua_Hang: (inv && inv.branchName) || JP_SENDER_NAME,
-    Dia_Chi_Cua_Hang: JP_SENDER_ADDRESS,
-    Dia_Chi_Chi_Nhanh: JP_SENDER_ADDRESS,
+    Dia_Chi_Cua_Hang: JP_SENDER_ADDRESS + " " + JP_SENDER_ADDRESS2,
+    Dia_Chi_Chi_Nhanh: JP_SENDER_ADDRESS + " " + JP_SENDER_ADDRESS2,
     Dien_Thoai_Cua_Hang: JP_SENDER_PHONE,
     Ma_Hoa_Don: (inv && inv.code) || "",
     Ngay_Thang_Nam:
