@@ -938,7 +938,9 @@ function jpCsvLine_(row, idx, sheetRow, isDaibiki) {
   set(20, row[idx.mobile]); // お届け先電話番号
   set(30, JP_SENDER_POSTCODE); // ご依頼主郵便番号
   set(31, JP_SENDER_ADDRESS); // ご依頼主住所1
+  set(32, JP_SENDER_ADDRESS2); // ご依頼主住所2 (tòa nhà/tầng)
   set(34, JP_SENDER_NAME); // ご依頼主名称1
+  set(35, JP_SENDER_NAME2); // ご依頼主名称2 (công ty katakana)
   set(37, JP_SENDER_PHONE); // ご依頼主電話番号
   // Ngày nhận hàng: PHẢI đặt cột 64 = "6" (配達日指定) thì ゆうプリR mới dùng
   // ngày ở cột 65; thiếu cột 64, app bỏ qua ngày -> trông như thiếu trường.
